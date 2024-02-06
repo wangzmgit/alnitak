@@ -7,24 +7,23 @@ import (
 )
 
 func CollectMenuRoutes(r *gin.RouterGroup) {
-	menuApi := api.MenuApi{}
 
-	menu := r.Group("menu")
-	menu.Use(middleware.Auth())
+	menuGroup := r.Group("menu")
+	menuGroup.Use(middleware.Auth())
 	{
 		// 获取菜单树
-		menu.GET("getMenuTree", menuApi.GetMenuTree)
+		menuGroup.GET("getMenuTree", api.GetMenuTree)
 		// 获取用户菜单树
-		menu.GET("getUserMenu", menuApi.GetUserMenuTree)
+		menuGroup.GET("getUserMenu", api.GetUserMenuTree)
 		// 新增菜单
-		menu.POST("addMenu", menuApi.AddMenu)
+		menuGroup.POST("addMenu", api.AddMenu)
 		// 编辑菜单
-		menu.PUT("editMenu", menuApi.EditMenu)
+		menuGroup.PUT("editMenu", api.EditMenu)
 		// 删除菜单
-		menu.DELETE("deleteMenu/:id", menuApi.DeleteMenu)
+		menuGroup.DELETE("deleteMenu/:id", api.DeleteMenu)
 		// 获取角色菜单
-		menu.GET("getRoleMenu", menuApi.GetRoleMenu)
+		menuGroup.GET("getRoleMenu", api.GetRoleMenu)
 		// 编辑角色菜单
-		menu.PUT("editRoleMenu", menuApi.EditRoleMenu)
+		menuGroup.PUT("editRoleMenu", api.EditRoleMenu)
 	}
 }

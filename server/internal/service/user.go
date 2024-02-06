@@ -2,14 +2,12 @@ package service
 
 import (
 	"errors"
-	"fmt"
 	"math"
 	"strconv"
 
 	"github.com/bwmarrin/snowflake"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 	"interastral-peace.com/alnitak/internal/cache"
 	"interastral-peace.com/alnitak/internal/domain/dto"
@@ -23,12 +21,10 @@ import (
 
 func UserRegister(ctx *gin.Context, registerReq dto.RegisterReq) error {
 	if user, _ := FindUserByEmail(registerReq.Email); user.ID != 0 {
-		AddFailOperation(ctx, "注册", "邮箱已存在", gin.H{"邮箱": registerReq.Email}, nil)
 		return errors.New("邮箱已存在")
 	}
 
 	if cache.GetEmailCode(registerReq.Email) != registerReq.Code { // 验证邮箱验证码
-		AddFailOperation(ctx, "注册", "邮箱验证码错误", gin.H{"邮箱": registerReq.Email, "验证码": registerReq.Code}, nil)
 		return errors.New("邮箱验证码错误")
 	}
 
@@ -40,23 +36,26 @@ func UserRegister(ctx *gin.Context, registerReq dto.RegisterReq) error {
 	// 随机生成不重复的用户名
 	username, err := generateUniqueUsername()
 	if err != nil {
-		AddFailOperation(ctx, "注册", "用户名生成失败", gin.H{"邮箱": registerReq.Email}, err)
 		return errors.New("用户名生成失败")
 	}
 
 	// 保存到数据库
-	return global.Mysql.Create(&model.User{
+	if err := global.Mysql.Create(&model.User{
 		Username: username,
 		Email:    registerReq.Email,
 		Password: string(hashedPassword),
-	}).Error
+	}).Error; err != nil {
+		utils.ErrorLog("创建用户失败", "user", err.Error())
+		return errors.New("创建用户失败")
+	}
+
+	return nil
 }
 
 func UserLogin(ctx *gin.Context, loginReq dto.LoginReq) (accessToken, refreshToken string, err error) {
 	// 读取数据库
 	user, err := FindUserByEmail(loginReq.Email)
 	if err != nil {
-		AddFailOperation(ctx, "登录", "获取用户信息失败", gin.H{"邮箱": loginReq.Email}, nil)
 		return "", "", errors.New("获取用户信息失败")
 	}
 
@@ -65,18 +64,15 @@ func UserLogin(ctx *gin.Context, loginReq dto.LoginReq) (accessToken, refreshTok
 	if passwordError != nil {
 		// 记录登录尝试次数
 		cache.IncrLoginTryCount(loginReq.Email)
-		AddFailOperation(ctx, "登录", "用户名密码不匹配", gin.H{"邮箱": loginReq.Email}, nil)
 		return "", "", errors.New("用户名密码不匹配")
 	}
 
 	// 生成验证token
 	if accessToken, err = jwt.GenerateAccessToken(user.ID); err != nil {
-		AddFailOperation(ctx, "登录", "AccessToken生成失败", gin.H{"邮箱": loginReq.Email}, err)
 		return "", "", errors.New("验证token生成失败")
 	}
 	// 生成刷新token
 	if refreshToken, err = jwt.GenerateRefreshToken(user.ID); err != nil {
-		AddFailOperation(ctx, "登录", "RefreshToken生成失败", gin.H{"邮箱": loginReq.Email}, err)
 		return "", "", errors.New("刷新token生成失败")
 	}
 
@@ -93,15 +89,14 @@ func UpdateToken(ctx *gin.Context, tokenReq dto.TokenReq) (accessToken, refreshT
 	// 验证并解析token
 	_, claims, err := jwt_parse.ParseToken(tokenReq.RefreshToken)
 	if err != nil {
-		AddFailOperation(ctx, "刷新TOKEN", "解析TOKEN出错", gin.H{"Token值": tokenReq.RefreshToken}, err)
+		utils.ErrorLog("token验证失败", "user", err.Error())
 		return "", "", errors.New("token验证失败")
 	}
 
 	// 读取缓存
 	if !cache.IsRefreshTokenExist(claims.UserId, tokenReq.RefreshToken) { // refreshToken 存在
-		AddFailOperation(ctx, "刷新TOKEN", "RefreshToken不在缓存中", gin.H{"Token值": tokenReq.RefreshToken}, nil)
+		utils.ErrorLog("无效Token", "user", err.Error())
 		return "", "", errors.New("无效Token")
-
 	}
 
 	// 移除refreshToken
@@ -110,14 +105,14 @@ func UpdateToken(ctx *gin.Context, tokenReq dto.TokenReq) (accessToken, refreshT
 	// 重新生成refreshToken
 	refreshToken, err = jwt.GenerateRefreshToken(claims.UserId)
 	if err != nil {
-		AddFailOperation(ctx, "刷新TOKEN", "RefreshToken生成失败", nil, err)
+		utils.ErrorLog("Token生成失败", "user", err.Error())
 		return "", "", errors.New("Token生成失败")
 	}
 
 	// 刷新accessToken
 	accessToken, err = jwt_parse.GenerateAccessToken(claims.UserId)
 	if err != nil {
-		AddFailOperation(ctx, "刷新TOKEN", "AccessToken生成失败", nil, err)
+		utils.ErrorLog("AccessToken生成失败", "user", err.Error())
 		return "", "", errors.New("Token生成失败")
 	}
 
@@ -130,9 +125,15 @@ func UpdateToken(ctx *gin.Context, tokenReq dto.TokenReq) (accessToken, refreshT
 	return accessToken, refreshToken, nil
 }
 
+func Logout() {
+	// 删除token
+	// 移除用户cookie
+
+}
+
 // 生成用户Id和md5并写入Cookie
 func SetUserIdCookie(ctx *gin.Context, userId uint) {
-	salt := viper.GetString("user_id_salt")
+	salt := viper.GetString("security.user_id_salt")
 	ckMd5 := utils.GenerateSaltedMD5(strconv.Itoa(int(userId)), salt)
 
 	ctx.SetCookie("user_id", strconv.Itoa(int(userId)), math.MaxInt32, "/", "", false, true)
@@ -147,7 +148,8 @@ func GetUserInfo(userId uint) (user vo.UserInfoResp) {
 	if user.ID == 0 {
 		user, err = FindUserInfoById(userId)
 		if err != nil {
-			zap.L().Error(fmt.Sprintf("Service | 用户信息查询失败 | 错误信息: %s", err.Error()))
+			utils.ErrorLog("用户信息查询失败", "user", err.Error())
+			return
 		}
 
 		// 存到redis
@@ -165,7 +167,8 @@ func GetUserBaseInfo(userId uint) (user vo.UserInfoResp) {
 	if user.ID == 0 {
 		user, err = FindUserInfoById(userId)
 		if err != nil {
-			zap.L().Error(fmt.Sprintf("Service | 用户信息查询失败 | 错误信息: %s", err.Error()))
+			utils.ErrorLog("用户信息查询失败", "user", err.Error())
+			return
 		}
 
 		// 存到redis

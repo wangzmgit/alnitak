@@ -6,12 +6,11 @@ import (
 )
 
 func CollectAuthRoutes(r *gin.RouterGroup) {
-	authApi := api.UserAuthApi{}
 
 	// 用户注册
-	r.POST("auth/register", authApi.Register)
+	r.POST("auth/register", api.Register)
 	// 用户登录(密码)
-	r.POST("auth/login", authApi.Login)
+	r.POST("auth/login", api.Login)
 	// 更新token
-	r.POST("auth/updateToken", authApi.UpdateToken)
+	r.POST("auth/updateToken", api.UpdateToken)
 }

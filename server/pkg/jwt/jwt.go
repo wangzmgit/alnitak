@@ -5,8 +5,8 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
 	"interastral-peace.com/alnitak/internal/cache"
+	"interastral-peace.com/alnitak/utils"
 )
 
 type Claims struct {
@@ -31,7 +31,7 @@ func GenerateAccessToken(id uint) (string, error) {
 			//发放时间等
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			Issuer:    "leaf",
+			Issuer:    "alnitak",
 		},
 	}
 	return generateToken(accessJwtKey, accessClaims)
@@ -54,7 +54,7 @@ func GenerateRefreshToken(id uint) (string, error) {
 			//发放时间等
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			Issuer:    "leaf",
+			Issuer:    "alnitak",
 		},
 	}
 	return generateToken(refreshJwtKey, refreshClaims)
@@ -83,7 +83,7 @@ func ParseToken(tokenString string) (*jwt.Token, *Claims, error) {
 	// 获取jwt的荷载数据
 	claims, err := GetTokenClaims(tokenString)
 	if err != nil {
-		zap.L().Error("token荷载解析失败: " + err.Error())
+		utils.ErrorLog("token荷载解析失败", "jwt", err.Error())
 	}
 	// 判断类型 选择不同的密钥
 	var secret []byte

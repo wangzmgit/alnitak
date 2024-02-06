@@ -18,7 +18,7 @@ func InitRouter() {
 
 	//跨域中间件
 	r.Use(middleware.CORS())
-
+	r.Use(middleware.OperationRecord())
 	// 收集添加路由
 	CollectRoutes(r)
 
@@ -42,6 +42,12 @@ func CollectRoutes(r *gin.Engine) *gin.Engine {
 		CollectApiRoutes(v1)
 		// 菜单相关路由
 		CollectMenuRoutes(v1)
+		// 视频相关路由
+		CollectVideoRoutes(v1)
+		// 分区相关路由
+		CollectPartitionRoutes(v1)
+		// 上传相关路由
+		CollectUploadRoutes(v1)
 	}
 
 	//获取静态文件

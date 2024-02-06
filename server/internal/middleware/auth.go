@@ -27,13 +27,11 @@ func Auth() gin.HandlerFunc {
 				}
 
 				// 提示需要刷新token
-				service.AddFailOperation(ctx, "权限", "用户Token过期", gin.H{"用户ID": claims.UserId}, nil)
 				resp.Result(ctx, 3000, nil, "TOKEN过期")
 				ctx.Abort()
 				return
 			}
 
-			service.AddFailOperation(ctx, "权限", "Token验证失败", gin.H{"用户ID": claims.UserId}, err)
 			resp.FailWithMessage(ctx, "验证失败")
 			ctx.Abort()
 			return
@@ -51,11 +49,6 @@ func Auth() gin.HandlerFunc {
 			obj := ctx.FullPath()
 			isPass := global.Casbin.CasbinCheck(sub, obj, act)
 			if !isPass {
-				service.AddFailOperation(ctx, "权限", "权限不足", gin.H{
-					"用户ID": claims.UserId,
-					"请求方式": act,
-					"请求路径": obj,
-				}, nil)
 				resp.FailWithMessage(ctx, "权限不足")
 				ctx.Abort()
 				return
@@ -65,7 +58,6 @@ func Auth() gin.HandlerFunc {
 			ctx.Set("roleCode", user.Role)
 			ctx.Next()
 		} else {
-			service.AddFailOperation(ctx, "权限", "Token类型错误", gin.H{"用户ID": claims.UserId}, nil)
 			resp.FailWithMessage(ctx, "token验证失败")
 			ctx.Abort()
 		}

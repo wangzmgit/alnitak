@@ -7,9 +7,7 @@ import (
 	"interastral-peace.com/alnitak/utils"
 )
 
-type UserApi struct{}
-
-func (u *UserApi) GetUserInfo(ctx *gin.Context) {
+func GetUserInfo(ctx *gin.Context) {
 	userId := ctx.GetUint("userId")
 	user := service.GetUserInfo(userId)
 
@@ -17,7 +15,7 @@ func (u *UserApi) GetUserInfo(ctx *gin.Context) {
 }
 
 // 获取用户基本信息
-func (u *UserApi) GetUserBaseInfo(ctx *gin.Context) {
+func GetUserBaseInfo(ctx *gin.Context) {
 	userId := utils.StringToUint(ctx.Query("userId"))
 
 	user := service.GetUserBaseInfo(userId)

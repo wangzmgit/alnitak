@@ -23,7 +23,7 @@ func Init() *Redis {
 		Password: password,
 		DB:       0, // use default DB
 	})
-	zap.L().Info("redis连接成功")
+	zap.L().Info("redis连接成功", zap.String("module", "db"))
 
 	return &Redis{
 		redisClient: redisClient,

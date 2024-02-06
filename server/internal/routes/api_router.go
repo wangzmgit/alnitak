@@ -7,24 +7,23 @@ import (
 )
 
 func CollectApiRoutes(r *gin.RouterGroup) {
-	apiApi := api.ApiApi{}
 
-	api := r.Group("api")
-	api.Use(middleware.Auth())
+	apiGroup := r.Group("api")
+	apiGroup.Use(middleware.Auth())
 	{
 		// 获取API列表
-		api.POST("getApiList", apiApi.GetApiList)
+		apiGroup.POST("getApiList", api.GetApiList)
 		// 获取全部API列表
-		api.GET("getAllApiList", apiApi.GetAllApiList)
+		apiGroup.GET("getAllApiList", api.GetAllApiList)
 		// 新增API
-		api.POST("addApi", apiApi.AddApi)
+		apiGroup.POST("addApi", api.AddApi)
 		// 编辑API
-		api.PUT("editApi", apiApi.EditApi)
+		apiGroup.PUT("editApi", api.EditApi)
 		// 删除API
-		api.DELETE("deleteApi/:id", apiApi.DeleteApi)
+		apiGroup.DELETE("deleteApi/:id", api.DeleteApi)
 		// 获取角色API
-		api.GET("getRoleApi", apiApi.GetRoleApi)
+		apiGroup.GET("getRoleApi", api.GetRoleApi)
 		// 编辑角色API
-		api.PUT("editRoleApi", apiApi.EditRoleApi)
+		apiGroup.PUT("editRoleApi", api.EditRoleApi)
 	}
 }

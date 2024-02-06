@@ -4,8 +4,8 @@ import (
 	"strconv"
 
 	"github.com/google/uuid"
-	"go.uber.org/zap"
 	"interastral-peace.com/alnitak/internal/global"
+	"interastral-peace.com/alnitak/utils"
 )
 
 // 创建验证状态
@@ -20,7 +20,7 @@ func GetCaptchaStatus(captchaId string) int { // 0 不存在 1未验证  2验证
 	s := global.Redis.Get(CAPTCHA_STATUS_KEY + captchaId)
 	status, err := strconv.Atoi(s)
 	if err != nil {
-		zap.L().Error("数据错误 | 人机验证状态转换为int类型失败")
+		utils.ErrorLog("人机验证状态转换为int类型失败", "cache", err.Error())
 	}
 	return status
 }

@@ -8,6 +8,7 @@ import (
 	"interastral-peace.com/alnitak/internal/domain/model"
 	"interastral-peace.com/alnitak/internal/domain/vo"
 	"interastral-peace.com/alnitak/internal/global"
+	"interastral-peace.com/alnitak/utils"
 )
 
 func GetApiList(page, pageSize int) (total int64, apis []vo.ApiResp) {
@@ -31,7 +32,7 @@ func AddApi(ctx *gin.Context, addApiReq dto.AddApiReq) error {
 		Category: addApiReq.Category,
 		Desc:     addApiReq.Desc,
 	}).Error; err != nil {
-		AddFailOperation(ctx, "新增API", "更新数据库失败", nil, err)
+		utils.ErrorLog("新增API更新数据库失败", "api", err.Error())
 		return errors.New("新增API失败")
 	}
 
@@ -48,7 +49,7 @@ func EditApi(ctx *gin.Context, editApiReq dto.EditApiReq) error {
 			"desc":     editApiReq.Desc,
 		},
 	).Error; err != nil {
-		AddFailOperation(ctx, "编辑API", "更新数据库失败", nil, err)
+		utils.ErrorLog("编辑API更新数据库失败", "api", err.Error())
 		return errors.New("编辑API失败")
 	}
 	return nil
@@ -57,7 +58,7 @@ func EditApi(ctx *gin.Context, editApiReq dto.EditApiReq) error {
 // 删除API
 func DeleteApi(ctx *gin.Context, id uint) error {
 	if err := global.Mysql.Where("id = ?", id).Delete(&model.Api{}).Error; err != nil {
-		AddFailOperation(ctx, "删除API", "更新数据库失败", nil, err)
+		utils.ErrorLog("删除API更新数据库失败", "api", err.Error())
 		return errors.New("删除API失败")
 	}
 
@@ -76,7 +77,7 @@ func SelectRoleApiList(code string) (apis []vo.ApiResp) {
 func EditRoleApi(ctx *gin.Context, editRoleApiReq dto.EditRoleApiReq) error {
 	role, err := FindRoleById(editRoleApiReq.Id)
 	if err != nil {
-		AddFailOperation(ctx, "编辑角色API", "获取角色信息失败", nil, err)
+		utils.ErrorLog("编辑角色API更新数据库失败", "api", err.Error())
 		return errors.New("获取角色信息失败")
 	}
 

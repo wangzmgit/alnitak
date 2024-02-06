@@ -7,14 +7,12 @@ import (
 )
 
 func CollectUserRoutes(r *gin.RouterGroup) {
-	userApi := api.UserApi{}
+	userGroup := r.Group("user")
+	userGroup.GET("/getUserBaseInfo", api.GetUserBaseInfo)
 
-	user := r.Group("user")
-	user.GET("/getUserBaseInfo", userApi.GetUserBaseInfo)
-
-	auth := user.Use(middleware.Auth())
+	userAuth := userGroup.Use(middleware.Auth())
 	{
 		// 用户获取个人信息
-		auth.GET("/getUserInfo", userApi.GetUserInfo)
+		userAuth.GET("/getUserInfo", api.GetUserInfo)
 	}
 }

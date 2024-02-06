@@ -8,8 +8,8 @@ import (
 
 type User struct {
 	gorm.Model
-	Username   string    `gorm:"type:varchar(30);comment:'用户名';not null"`
-	Email      string    `gorm:"type:varchar(30);comment:'邮箱';not null"`
+	Username   string    `gorm:"type:varchar(30);comment:'用户名';not null;index"`
+	Email      string    `gorm:"type:varchar(30);comment:'邮箱';not null;index"`
 	Password   string    `gorm:"type:varchar(128);comment:'密码';not null"`
 	Avatar     string    `gorm:"type:varchar(255);comment:'头像'"`
 	SpaceCover string    `gorm:"type:varchar(255);comment:'空间封面'"`

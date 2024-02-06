@@ -8,11 +8,11 @@ import (
 	"interastral-peace.com/alnitak/internal/domain/model"
 	"interastral-peace.com/alnitak/internal/domain/vo"
 	"interastral-peace.com/alnitak/internal/global"
+	"interastral-peace.com/alnitak/utils"
 )
 
 func AddRole(ctx *gin.Context, addRoleReq dto.AddRoleReq) error {
 	if role, _ := FindRoleByCode(addRoleReq.Code); role.ID != 0 {
-		AddFailOperation(ctx, "添加角色", "角色代码已存在", gin.H{"Code": addRoleReq.Code}, nil)
 		return errors.New("角色代码已存在")
 	}
 
@@ -39,7 +39,7 @@ func EditRole(ctx *gin.Context, editRoleReq dto.EditRoleReq) error {
 			"desc": editRoleReq.Desc,
 		},
 	).Error; err != nil {
-		AddFailOperation(ctx, "编辑角色", "更新数据库失败", nil, err)
+		utils.ErrorLog("修改角色失败", "role", err.Error())
 		return errors.New("修改角色失败")
 	}
 	return nil
@@ -50,7 +50,7 @@ func DeleteRole(ctx *gin.Context, id uint) error {
 	// TODO: 查询是否有使用该角色的用户
 
 	if err := global.Mysql.Where("id = ?", id).Delete(&model.Role{}).Error; err != nil {
-		AddFailOperation(ctx, "删除角色", "更新数据库失败", nil, err)
+		utils.ErrorLog("删除角色失败", "role", err.Error())
 		return errors.New("删除角色失败")
 	}
 
@@ -64,7 +64,7 @@ func EditRoleHome(ctx *gin.Context, editRoleHomeReq dto.EditRoleHomeReq) error {
 			"home_page": editRoleHomeReq.Home,
 		},
 	).Error; err != nil {
-		AddFailOperation(ctx, "编辑角色首页", "更新数据库失败", nil, err)
+		utils.ErrorLog("修改角色首页失败", "role", err.Error())
 		return errors.New("修改首页失败")
 	}
 	return nil

@@ -7,12 +7,12 @@ import (
 	"interastral-peace.com/alnitak/internal/domain/dto"
 	"interastral-peace.com/alnitak/internal/domain/model"
 	"interastral-peace.com/alnitak/internal/global"
+	"interastral-peace.com/alnitak/utils"
 )
 
 // 新增菜单
 func AddMenu(ctx *gin.Context, addMenuReq dto.AddMenuReq) error {
 	if menu := FindMenusByName(addMenuReq.Name); menu.ID != 0 {
-		AddFailOperation(ctx, "新增菜单", "路由Name已存在", gin.H{"Name": addMenuReq.Name}, nil)
 		return errors.New("路由Name已存在")
 	}
 
@@ -29,7 +29,7 @@ func AddMenu(ctx *gin.Context, addMenuReq dto.AddMenuReq) error {
 		Hidden:    addMenuReq.Hidden,
 		KeepAlive: addMenuReq.KeepAlive,
 	}).Error; err != nil {
-		AddFailOperation(ctx, "新增菜单", "更新数据库失败", nil, err)
+		utils.ErrorLog("新增菜单更新数据库失败", "menu", err.Error())
 		return errors.New("新增菜单失败")
 	}
 	return nil
@@ -38,7 +38,6 @@ func AddMenu(ctx *gin.Context, addMenuReq dto.AddMenuReq) error {
 // 编辑菜单
 func EditMenu(ctx *gin.Context, editMenuReq dto.EditMenuReq) error {
 	if menu := FindMenusByName(editMenuReq.Name); menu.ID != 0 && menu.ID != editMenuReq.ID {
-		AddFailOperation(ctx, "编辑菜单", "路由Name已存在", gin.H{"Name": editMenuReq.Name}, nil)
 		return errors.New("路由Name已存在")
 	}
 
@@ -55,7 +54,7 @@ func EditMenu(ctx *gin.Context, editMenuReq dto.EditMenuReq) error {
 			"keep_alive": editMenuReq.KeepAlive,
 		},
 	).Error; err != nil {
-		AddFailOperation(ctx, "编辑菜单", "更新数据库失败", nil, err)
+		utils.ErrorLog("编辑菜单更新数据库失败", "menu", err.Error())
 		return errors.New("编辑菜单失败")
 	}
 	return nil
@@ -64,7 +63,8 @@ func EditMenu(ctx *gin.Context, editMenuReq dto.EditMenuReq) error {
 // 删除菜单
 func DeleteMenu(ctx *gin.Context, id uint) error {
 	if err := global.Mysql.Where("id = ?", id).Delete(&model.Menu{}).Error; err != nil {
-		AddFailOperation(ctx, "删除菜单", "更新数据库失败", nil, err)
+		utils.ErrorLog("删除菜单更新数据库失败", "menu", err.Error())
+
 		return errors.New("删除菜单失败")
 	}
 
@@ -101,7 +101,7 @@ func GetMenuTreeByRoleCode(code string) []model.Menu {
 func EditRoleMenu(ctx *gin.Context, editMenuReq dto.EditRoleMenuReq) error {
 	role, err := FindRoleById(editMenuReq.Id)
 	if err != nil {
-		AddFailOperation(ctx, "更新角色菜单", "获取角色信息失败", nil, err)
+		utils.ErrorLog("更新角色菜单获取角色信息失败", "menu", err.Error())
 		return errors.New("获取角色信息失败")
 	}
 

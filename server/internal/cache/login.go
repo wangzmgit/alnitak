@@ -3,15 +3,15 @@ package cache
 import (
 	"strconv"
 
-	"go.uber.org/zap"
 	"interastral-peace.com/alnitak/internal/global"
+	"interastral-peace.com/alnitak/utils"
 )
 
 func GetLoginTryCount(username string) int {
 	s := global.Redis.Get(LOGIN_TRY_COUNT_KEY + username)
 	count, err := strconv.Atoi(s)
 	if err != nil {
-		zap.L().Error("数据错误 | 缓存中用户登录次数转换为int类型失败")
+		utils.ErrorLog("用户登录次数转换int类型失败", "cache", err.Error())
 	}
 	return count
 }

@@ -1,16 +1,23 @@
 package model
 
-import "gorm.io/gorm"
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
 
 type Operate struct {
 	gorm.Model
-	Position string `gorm:"type:varchar(50);comment:'位置'"`
-	Success  bool   `gorm:"comment:'是否成功'"`
-	Param    string `gorm:"type:text;comment:'参数'"`
-	Msg      string `gorm:"type:varchar(50);;comment:'信息'"`
-	Error    string `gorm:"type:text;comment:'错误详情'"`
-	Ip       string `gorm:"comment:'请求ip'"`
-	UserID   uint   `gorm:"default:0;comment:'用户ID'"`
+	Ip           string        `gorm:"column:ip;comment:请求ip"`                         // 请求ip
+	Method       string        `gorm:"column:method;comment:请求方法"`                     // 请求方法
+	Path         string        `gorm:"column:path;comment:请求路径"`                       // 请求路径
+	Status       int           `gorm:"column:status;comment:请求状态"`                     // 请求状态
+	Latency      time.Duration `gorm:"column:latency;comment:延迟" swaggertype:"string"` // 延迟
+	Agent        string        `gorm:"column:agent;comment:代理"`                        // 代理
+	ErrorMessage string        `gorm:"column:error_message;comment:错误信息"`              // 错误信息
+	Body         string        `gorm:"type:text;column:body;comment:请求Body"`           // 请求Body
+	Resp         string        `gorm:"type:text;column:resp;comment:响应Body"`           // 响应Body
+	UserID       int           `gorm:"column:user_id;comment:用户id"`                    // 用户id
 }
 
 func (table *Operate) TableName() string {

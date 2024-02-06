@@ -7,6 +7,7 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"interastral-peace.com/alnitak/utils"
 	"moul.io/zapgorm2"
 )
 
@@ -24,10 +25,10 @@ func Init() *gorm.DB {
 	logger := zapgorm2.New(zap.L())
 	logger.SetAsDefault()
 	if mysqlClient, err := gorm.Open(mysql.Open(dns), &gorm.Config{Logger: logger}); err != nil {
-		zap.L().Error("mysql连接失败" + err.Error())
+		utils.ErrorLog("mysql连接失败", "db", err.Error())
 		panic(err)
 	} else {
-		zap.L().Info("mysql连接成功")
+		zap.L().Info("mysql连接成功", zap.String("module", "db"))
 		db = mysqlClient
 		return mysqlClient
 	}

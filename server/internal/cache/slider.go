@@ -3,15 +3,15 @@ package cache
 import (
 	"strconv"
 
-	"go.uber.org/zap"
 	"interastral-peace.com/alnitak/internal/global"
+	"interastral-peace.com/alnitak/utils"
 )
 
 func GetSliderX(captchaId string) int {
 	s := global.Redis.Get(SLIDER_X_KEY + captchaId)
 	x, err := strconv.Atoi(s)
 	if err != nil {
-		zap.L().Error("数据错误 | 缓存中滑块x坐标转换为int类型失败")
+		utils.ErrorLog("滑块x坐标转换为int类型失败", "cache", err.Error())
 	}
 	return x
 }

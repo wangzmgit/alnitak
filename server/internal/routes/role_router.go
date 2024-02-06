@@ -7,22 +7,21 @@ import (
 )
 
 func CollectRoleRoutes(r *gin.RouterGroup) {
-	roleApi := api.RoleApi{}
 
-	role := r.Group("role")
-	role.Use(middleware.Auth())
+	roleGroup := r.Group("role")
+	roleGroup.Use(middleware.Auth())
 	{
 		// 获取个人角色信息
-		role.GET("getRoleInfo", roleApi.GetRoleInfo)
+		roleGroup.GET("getRoleInfo", api.GetRoleInfo)
 		// 新增角色
-		role.POST("addRole", roleApi.AddRole)
+		roleGroup.POST("addRole", api.AddRole)
 		// 获取角色列表
-		role.POST("getRoleList", roleApi.GetRoleList)
+		roleGroup.POST("getRoleList", api.GetRoleList)
 		// 编辑角色
-		role.PUT("editRole", roleApi.EditRole)
+		roleGroup.PUT("editRole", api.EditRole)
 		// 删除角色
-		role.DELETE("deleteRole/:id", roleApi.DeleteRole)
+		roleGroup.DELETE("deleteRole/:id", api.DeleteRole)
 		// 编辑角色首页
-		role.PUT("editRoleHome", roleApi.EditRoleHome)
+		roleGroup.PUT("editRoleHome", api.EditRoleHome)
 	}
 }

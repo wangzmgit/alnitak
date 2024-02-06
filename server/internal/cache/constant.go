@@ -43,3 +43,15 @@ const USER_INFO_KEY = "user_info_key:"
 
 // 用户信息过期时间 n 小时
 const USER_INFO_EXPIRATION_TIME = time.Hour * time.Duration(24)
+
+// 上传文件缓存标识符
+const UPLOAD_IMAGE_KEY = "upload_image_key:"
+
+// 上传文件过期时间 n 分钟
+const UPLOAD_IMAGE_EXPRIRATION_TIME = time.Minute * time.Duration(20)
+
+// 分区缓存标识符
+const PARTITION_KEY = "partition_key:"
+
+// 分区过期时间 不过期
+const PARTITION_EXPRIRATION_TIME = 0

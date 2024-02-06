@@ -6,17 +6,15 @@ import (
 )
 
 func CollectVerifyRoutes(r *gin.RouterGroup) {
-	emailApi := api.EmailApi{}
-	captchaApi := api.CaptchaApi{}
 
-	verify := r.Group("verify")
+	verifyGroup := r.Group("verify")
 	{
 		// 获取滑块验证
-		verify.GET("captcha/get", captchaApi.GetSliderCaptcha)
+		verifyGroup.GET("captcha/get", api.GetSliderCaptcha)
 		// 验证滑块
-		verify.POST("captcha/validate", captchaApi.ValidateSlider)
+		verifyGroup.POST("captcha/validate", api.ValidateSlider)
 		// 获取邮箱验证码
-		verify.POST("getEmailCode", emailApi.SendRegisterEmailCode)
+		verifyGroup.POST("getEmailCode", api.SendRegisterEmailCode)
 	}
 
 }

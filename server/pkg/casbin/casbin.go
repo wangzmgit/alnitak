@@ -1,10 +1,10 @@
 package casbin
 
 import (
-	"fmt"
 	"sync"
 
 	"interastral-peace.com/alnitak/pkg/mysql"
+	"interastral-peace.com/alnitak/utils"
 
 	"github.com/casbin/casbin/v2"
 	gormadapter "github.com/casbin/gorm-adapter/v3"
@@ -20,24 +20,22 @@ type Casbin struct {
 func InitCasbin() *Casbin {
 	a, err := gormadapter.NewAdapterByDB(mysql.GetMysqlClient())
 	if err != nil {
-		zap.L().Error(fmt.Sprintf("初始化错误 | Casbin | 原因: %s", err.Error()))
+		utils.ErrorLog("casbin初始化失败", "casbin", err.Error())
 		return nil
 	}
 
 	e, err := casbin.NewEnforcer("./static/casbin/model.conf", a)
 	if err != nil {
-		zap.L().Error(fmt.Sprintf("初始化错误 | Casbin | 原因: %s", err.Error()))
-
+		utils.ErrorLog("casbin初始化失败", "casbin", err.Error())
 		return nil
 	}
 
 	if err := e.LoadPolicy(); err != nil {
-		zap.L().Error(fmt.Sprintf("初始化错误 | Casbin | 原因: %s", err.Error()))
-
+		utils.ErrorLog("casbin初始化失败", "casbin", err.Error())
 		return nil
 	}
 
-	zap.L().Info("初始化成功 | Casbin | casbin初始化成功")
+	zap.L().Info("casbin初始化成功", zap.String("module", "casbin"))
 
 	return &Casbin{
 		casbinEnforcer: e,
@@ -62,7 +60,7 @@ func (c *Casbin) DeletePolicy(sub string, obj string, act string) bool {
 
 	ok, err := c.casbinEnforcer.RemovePolicy(sub, obj, act)
 	if !ok {
-		zap.L().Error(fmt.Sprintf("Casbin错误 | 移除casbin policy 失败 | 原因: %s", err.Error()))
+		utils.ErrorLog("移除casbin policy失败", "casbin", err.Error())
 	}
 	return ok
 }
@@ -74,7 +72,7 @@ func (c *Casbin) AddPolicy(sub string, obj string, act string) bool {
 
 	ok, err := c.casbinEnforcer.AddPolicy(sub, obj, act)
 	if !ok {
-		zap.L().Error(fmt.Sprintf("Casbin错误 | 添加casbin policy 失败 | 原因: %s", err.Error()))
+		utils.ErrorLog("添加casbin policy失败", "casbin", err.Error())
 	}
 	return ok
 }
