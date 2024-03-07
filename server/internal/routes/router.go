@@ -1,9 +1,8 @@
 package routes
 
 import (
-	"net/http"
-
 	"github.com/gin-gonic/gin"
+	"interastral-peace.com/alnitak/internal/api/v1"
 	"interastral-peace.com/alnitak/internal/middleware"
 )
 
@@ -44,6 +43,8 @@ func CollectRoutes(r *gin.Engine) *gin.Engine {
 		CollectMenuRoutes(v1)
 		// 视频相关路由
 		CollectVideoRoutes(v1)
+		// 资源相关路由
+		CollectResourceRoutes(v1)
 		// 分区相关路由
 		CollectPartitionRoutes(v1)
 		// 上传相关路由
@@ -51,9 +52,7 @@ func CollectRoutes(r *gin.Engine) *gin.Engine {
 	}
 
 	//获取静态文件
-	r.StaticFS("/api/image", http.Dir("./upload/image"))
-	r.StaticFS("/api/video", http.Dir("./upload/video"))
-	r.StaticFS("/api/config", http.Dir("./upload/config"))
+	r.GET("/api/image/:file", api.GetImgFile)
 
 	return r
 }

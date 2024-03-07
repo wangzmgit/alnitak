@@ -15,7 +15,6 @@ import (
 	"interastral-peace.com/alnitak/internal/domain/vo"
 	"interastral-peace.com/alnitak/internal/global"
 	"interastral-peace.com/alnitak/pkg/jwt"
-	jwt_parse "interastral-peace.com/alnitak/pkg/jwt"
 	"interastral-peace.com/alnitak/utils"
 )
 
@@ -87,7 +86,7 @@ func UserLogin(ctx *gin.Context, loginReq dto.LoginReq) (accessToken, refreshTok
 
 func UpdateToken(ctx *gin.Context, tokenReq dto.TokenReq) (accessToken, refreshToken string, err error) {
 	// 验证并解析token
-	_, claims, err := jwt_parse.ParseToken(tokenReq.RefreshToken)
+	_, claims, err := jwt.ParseToken(tokenReq.RefreshToken)
 	if err != nil {
 		utils.ErrorLog("token验证失败", "user", err.Error())
 		return "", "", errors.New("token验证失败")
@@ -110,7 +109,7 @@ func UpdateToken(ctx *gin.Context, tokenReq dto.TokenReq) (accessToken, refreshT
 	}
 
 	// 刷新accessToken
-	accessToken, err = jwt_parse.GenerateAccessToken(claims.UserId)
+	accessToken, err = jwt.GenerateAccessToken(claims.UserId)
 	if err != nil {
 		utils.ErrorLog("AccessToken生成失败", "user", err.Error())
 		return "", "", errors.New("Token生成失败")
@@ -153,7 +152,7 @@ func GetUserInfo(userId uint) (user vo.UserInfoResp) {
 		}
 
 		// 存到redis
-		cache.SetUser(user)
+		cache.SetUserInfo(user)
 	}
 
 	return
@@ -172,7 +171,7 @@ func GetUserBaseInfo(userId uint) (user vo.UserInfoResp) {
 		}
 
 		// 存到redis
-		cache.SetUser(user)
+		cache.SetUserInfo(user)
 	}
 
 	// 过滤掉敏感信息

@@ -16,6 +16,11 @@ func Auth() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		// 读取验证token
 		tokenString := ctx.GetHeader("Authorization")
+		if tokenString == "" {
+			resp.Result(ctx, 3000, nil, "TOKEN无效")
+			ctx.Abort()
+			return
+		}
 		// 验证并解析token
 		_, claims, err := jwt_parse.ParseToken(tokenString)
 		if err != nil {
@@ -32,7 +37,8 @@ func Auth() gin.HandlerFunc {
 				return
 			}
 
-			resp.FailWithMessage(ctx, "验证失败")
+			// resp.FailWithMessage(ctx, "验证失败")
+			resp.Result(ctx, 2000, nil, "token验证失败")
 			ctx.Abort()
 			return
 		}
@@ -58,7 +64,8 @@ func Auth() gin.HandlerFunc {
 			ctx.Set("roleCode", user.Role)
 			ctx.Next()
 		} else {
-			resp.FailWithMessage(ctx, "token验证失败")
+			// resp.FailWithMessage(ctx, "token验证失败")
+			resp.Result(ctx, 2000, nil, "token验证失败")
 			ctx.Abort()
 		}
 	}

@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/spf13/viper"
 	"interastral-peace.com/alnitak/internal/domain/dto"
 	"interastral-peace.com/alnitak/internal/domain/model"
 	"interastral-peace.com/alnitak/internal/global"
@@ -22,17 +23,17 @@ type TranscodingTarget struct {
 }
 
 // 获取视频信息
-func ProcessVideoInfo(input string) (dto.TranscodingInfo, error) {
+func ProcessVideoInfo(input string) (*dto.TranscodingInfo, error) {
 	var transcodingInfo dto.TranscodingInfo
 	videoData, err := getVideoInfo(input)
 	if err != nil {
 		utils.ErrorLog("读取视频信息失败", "transcoding", err.Error())
-		return transcodingInfo, err
+		return &transcodingInfo, err
 	}
 
 	if videoData.Stream[0].CodecName != "h264" {
 		utils.ErrorLog("视频编码不为h264", "transcoding", err.Error())
-		return transcodingInfo, errors.New("not h264")
+		return &transcodingInfo, errors.New("not h264")
 	}
 
 	//计算最大分辨率
@@ -42,10 +43,10 @@ func ProcessVideoInfo(input string) (dto.TranscodingInfo, error) {
 	//获取视频时长
 	transcodingInfo.Duration, _ = strconv.ParseFloat(videoData.Stream[0].Duration, 64)
 
-	return transcodingInfo, err
+	return &transcodingInfo, err
 }
 
-func VideoTransCoding(transcodingInfo dto.TranscodingInfo) {
+func VideoTransCoding(transcodingInfo *dto.TranscodingInfo) {
 	var wg sync.WaitGroup
 	targets := getTranscodingTarget(transcodingInfo)
 	wg.Add(len(targets))
@@ -55,11 +56,23 @@ func VideoTransCoding(transcodingInfo dto.TranscodingInfo) {
 			fileName := c.Resolution + "_" + c.BitrateRate + "_" + c.FPS
 			tsFileName := transcodingInfo.OutputDir + fileName + ".ts"
 			// 压缩视频
-			pressingVideo(transcodingInfo.InputFile, tsFileName, c.Resolution, c.BitrateRate)
+			err := pressingVideo(transcodingInfo.InputFile, tsFileName, c.Resolution, c.BitrateRate)
+			if err != nil {
+				wg.Done()
+				return
+			}
 			// 切片
-			m3u8File, _ := generateVideoSlices(tsFileName, transcodingInfo.OutputDir, fileName)
+			m3u8File, err := generateVideoSlices(tsFileName, transcodingInfo.OutputDir, fileName)
+			if err != nil {
+				wg.Done()
+				return
+			}
 			// 读取m3u8写入数据库
-			saveM3u8File(transcodingInfo.ResourceID, fileName, m3u8File)
+			err = saveM3u8File(transcodingInfo, fileName, m3u8File)
+			if err != nil {
+				wg.Done()
+				return
+			}
 
 			//删除临时文件
 			os.Remove(tsFileName)
@@ -71,8 +84,28 @@ func VideoTransCoding(transcodingInfo dto.TranscodingInfo) {
 
 	wg.Wait()
 
+	// 上传oss
+	if viper.GetString("storage.oss_type") != "local" {
+		files, err := os.ReadDir(transcodingInfo.OutputDir)
+		if err != nil {
+			utils.ErrorLog("读取视频文件夹失败", "oss", err.Error())
+			completeTransCoding(transcodingInfo.VideoID, transcodingInfo.ResourceID, global.PROCESSING_FAIL)
+			return
+		}
+
+		for _, f := range files {
+			if f.Name() == "upload.mp4" && !viper.GetBool("storage.upload_mp4_file") {
+				continue
+			}
+
+			objectKey := "video/" + transcodingInfo.DirName + "/" + f.Name()
+			filePath := "./upload/" + objectKey
+			global.Storage.PutObjectFromFile(objectKey, filePath)
+		}
+	}
+
 	// 更新状态
-	completeTransCoding(transcodingInfo.VideoID, transcodingInfo.ResourceID)
+	completeTransCoding(transcodingInfo.VideoID, transcodingInfo.ResourceID, global.WAITING_REVIEW)
 }
 
 // 获取宽度支持的最大分辨率
@@ -110,7 +143,7 @@ func getHeigthRes(height int) int {
 }
 
 // 获取转码目标
-func getTranscodingTarget(videoInfo dto.TranscodingInfo) []TranscodingTarget {
+func getTranscodingTarget(videoInfo *dto.TranscodingInfo) []TranscodingTarget {
 	targets := make([]TranscodingTarget, 0)
 	maxRresolution := utils.Max(getWidthRes(videoInfo.Width), getHeigthRes(videoInfo.Height))
 
@@ -166,7 +199,7 @@ func pressingVideo(inputFile, outputFile, quality, rate string) error {
 
 func generateVideoSlices(inputFile, outputDir, outputName string) (string, error) {
 	outputM3U8 := outputDir + outputName + ".m3u8"
-	outputTs := outputDir + outputName + "_%04d.ts"
+	outputTs := outputDir + outputName + "_%05d.ts"
 
 	command := []string{"-i", inputFile, "-c", "copy",
 		"-map", "0", "-f", "segment", "-segment_list",
@@ -183,34 +216,44 @@ func generateVideoSlices(inputFile, outputDir, outputName string) (string, error
 }
 
 // 保存m3u8文件
-func saveM3u8File(resourceId uint, fileName, m3u8File string) {
+func saveM3u8File(transcodingInfo *dto.TranscodingInfo, fileName, m3u8File string) error {
 	file, err := os.Open(m3u8File)
 	if err != nil {
 		utils.ErrorLog("打开m3u8文件失败", "transcoding", err.Error())
-		return
+		return err
 	}
 
 	bytes, err := io.ReadAll(file)
 	if err != nil {
 		utils.ErrorLog("读取m3u8文件失败", "transcoding", err.Error())
-		return
+		return err
 	}
 
 	file.Close()
 
 	global.Mysql.Create(&model.VideoIndexFile{
-		ResourceID: resourceId,
+		ResourceID: transcodingInfo.ResourceID,
 		Quality:    fileName,
+		DirName:    transcodingInfo.DirName,
 		Content:    string(bytes),
 	})
+
+	return nil
 }
 
 // 完成转码
-func completeTransCoding(videoId, resourceId uint) error {
+func completeTransCoding(videoId, resourceId uint, status int) error {
+	// 查询是否存在转码成功的视频文件
+	var videoFileCount int64
+	global.Mysql.Model(&model.VideoIndexFile{}).Where("resource_id = ?", resourceId).Count(&videoFileCount)
+	if videoFileCount == 0 {
+		status = global.PROCESSING_FAIL
+	}
+
 	// 更新资源状态
 	if err := global.Mysql.Model(&model.Resource{}).Where("id = ?", resourceId).Updates(
 		map[string]interface{}{
-			"status": global.WAITING_REVIEW,
+			"status": status,
 		},
 	).Error; err != nil {
 		utils.ErrorLog("更新资源状态失败", "transcoding", err.Error())

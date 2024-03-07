@@ -45,3 +45,52 @@ func GetVideoStatus(ctx *gin.Context) {
 	// 返回给前端
 	resp.OkWithData(ctx, gin.H{"video": video})
 }
+
+// 提交审核
+func SubmitReview(ctx *gin.Context) {
+	//获取参数
+	var idReq dto.IdReq
+	if err := ctx.Bind(&idReq); err != nil {
+		resp.FailWithMessage(ctx, "请求参数有误")
+		return
+	}
+
+	err := service.SubmitReview(ctx, idReq.ID)
+	if err != nil {
+		resp.FailWithMessage(ctx, err.Error())
+		return
+	}
+
+	// 返回给前端
+	resp.Ok(ctx)
+}
+
+// 获取自己的视频
+func GetUploadVideoList(ctx *gin.Context) {
+	page := utils.StringToInt(ctx.Query("page"))
+	pageSize := utils.StringToInt(ctx.Query("pageSize"))
+
+	if pageSize > 30 {
+		resp.FailWithMessage(ctx, "请求数量过多")
+		return
+	}
+
+	total, videos := service.GetUploadVideoList(ctx, page, pageSize)
+
+	// 返回给前端
+	resp.OkWithData(ctx, gin.H{"total": total, "videos": videos})
+}
+
+// 获取视频信息
+func GetVideoByID(ctx *gin.Context) {
+	vid := utils.StringToUint(ctx.DefaultQuery("vid", "0"))
+
+	video, err := service.GetVideoByID(ctx, vid)
+	if err != nil {
+		resp.FailWithMessage(ctx, err.Error())
+		return
+	}
+
+	// 返回给前端
+	resp.OkWithData(ctx, gin.H{"video": video})
+}

@@ -2,7 +2,6 @@ package service
 
 import (
 	"errors"
-	"fmt"
 	"mime/multipart"
 	"os"
 	"path"
@@ -18,6 +17,9 @@ import (
 func UploadImg(ctx *gin.Context, file *multipart.FileHeader) (string, error) {
 	suffix := path.Ext(file.Filename)
 	fileName := utils.GenerateImgFilename(suffix)
+
+	objectKey := "image/" + fileName
+	filePath := "./upload/image/" + fileName
 	// 参数校验
 	if !utils.IsImgType(suffix) { // 文件后缀
 		return "", errors.New("文件类型错误")
@@ -29,20 +31,19 @@ func UploadImg(ctx *gin.Context, file *multipart.FileHeader) (string, error) {
 	}
 
 	//保存文件
-	if err := ctx.SaveUploadedFile(file, "./upload/image/"+fileName); err != nil {
+	if err := ctx.SaveUploadedFile(file, filePath); err != nil {
 		return "", errors.New("文件上传失败")
 	}
 
-	url := generateFileUrl("image/" + fileName)
-	if viper.GetString("oss.type") != "local" {
-		// TODO: 上传到OSS
+	url := generateFileUrl(objectKey)
+	if viper.GetString("storage.oss_type") != "local" {
+		// 上传到OSS
+		global.Storage.PutObjectFromFile(objectKey, filePath)
 	}
 
 	// 缓存url
 	userId := ctx.GetUint("userId")
 	cache.SetUploadImage(url, userId)
-
-	// TODO:记录日志
 
 	return url, nil
 }
@@ -105,18 +106,8 @@ func UploadVideo(ctx *gin.Context, vid uint, file *multipart.FileHeader) error {
 
 // 生成文件url
 func generateFileUrl(objectKey string) string {
-	if viper.GetString("oss.type") != "local" {
-
-		if viper.GetString("oss.domain") != "" {
-			return fmt.Sprintf("https://%s/%s", viper.GetString("oss.domain"), objectKey)
-		} else {
-			// 暂时只支持阿里云
-			return fmt.Sprintf("https://%s.%s/%s",
-				viper.GetString("oss.bucket"),
-				viper.GetString("oss.endpoint"),
-				objectKey,
-			)
-		}
+	if viper.GetString("storage.oss_type") != "local" {
+		global.Storage.GetObjectUrl(objectKey)
 	}
 
 	return "/api/" + objectKey

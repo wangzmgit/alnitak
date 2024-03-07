@@ -17,7 +17,7 @@ func GetUserInfo(id uint) (user vo.UserInfoResp) {
 	return
 }
 
-func SetUser(user vo.UserInfoResp) {
+func SetUserInfo(user vo.UserInfoResp) {
 	//先序列化user
 	ub, err := json.Marshal(user)
 	if err != nil {

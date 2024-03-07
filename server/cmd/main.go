@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 
+	"github.com/spf13/viper"
 	"interastral-peace.com/alnitak/internal/global"
 	"interastral-peace.com/alnitak/internal/initialize"
 	"interastral-peace.com/alnitak/internal/routes"
@@ -11,6 +12,7 @@ import (
 	"interastral-peace.com/alnitak/pkg/jigsaw"
 	"interastral-peace.com/alnitak/pkg/logger"
 	"interastral-peace.com/alnitak/pkg/mysql"
+	"interastral-peace.com/alnitak/pkg/oss"
 	"interastral-peace.com/alnitak/pkg/redis"
 )
 
@@ -25,7 +27,9 @@ func main() {
 	// 初始化滑块验证码生成
 	jigsaw.Jigsaw()
 	// 初始化OSS
-	// initialize.Oss()
+	if viper.GetString("storage.oss_type") != "local" {
+		global.Storage = oss.InitStorage()
+	}
 	// 初始化mysql
 	global.Mysql = mysql.Init()
 	initialize.InitTables()

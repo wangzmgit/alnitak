@@ -36,13 +36,13 @@ const REFRESH_TOKEN_KEY = "refresh_token_key:"
 const REFRESH_TOKEN_EXPRIRATION_TIME = time.Hour * time.Duration(14*24) // 14 * 24
 
 // 验证token过期时间 n 分钟
-const ACCESS_TOKEN_EXPRIRATION_TIME = time.Minute * time.Duration(10)
+const ACCESS_TOKEN_EXPRIRATION_TIME = time.Minute * time.Duration(1)
 
 // 用户信息缓存标识符
 const USER_INFO_KEY = "user_info_key:"
 
 // 用户信息过期时间 n 小时
-const USER_INFO_EXPIRATION_TIME = time.Hour * time.Duration(24)
+const USER_INFO_EXPIRATION_TIME = time.Hour * time.Duration(120)
 
 // 上传文件缓存标识符
 const UPLOAD_IMAGE_KEY = "upload_image_key:"
@@ -55,3 +55,27 @@ const PARTITION_KEY = "partition_key:"
 
 // 分区过期时间 不过期
 const PARTITION_EXPRIRATION_TIME = 0
+
+// 视频切片状态标识符
+const VIDEO_SLICE_STATUS = "video_slice_key:"
+
+// 视频切片状态未使用过期时间 n 小时
+const VIDEO_SLICE_EXPRIRATION_TIME = time.Hour * time.Duration(24)
+
+// 视频点击量标识符
+const VIDEO_CLICKS_LIMIT_KEY = "video_clicks_limit_key:"
+
+// 点击量过期时间  n 小时
+const VIDEO_CLICKS_LIMIT_EXPRIRATION_TIME = time.Hour * time.Duration(72)
+
+// 视频点击量限制标识符
+const VIDEO_CLICKS_KEY = "video_clicks_key:"
+
+// 视频点击量限制过期时间  n 分钟
+const VIDEO_CLICKS_EXPRIRATION_TIME = time.Minute * time.Duration(30)
+
+// 视频信息缓存标识符
+const VIDEO_INFO_KEY = "video_info_key:"
+
+// 用户信息过期时间 n 小时
+const VIDEO_INFO_EXPIRATION_TIME = time.Hour * time.Duration(120)
