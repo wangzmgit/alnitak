@@ -25,18 +25,24 @@
             <div class="toolbar-right">
               <span>1 人在看</span>
               <span>{{ videoInfo?.clicks }} 播放</span>
-              <span>2024-03-03 20:57:17</span>
+              <span>{{ videoInfo ? formatTime(videoInfo.createdAt) : '' }}</span>
             </div>
           </div>
           <!-- 简介部分 -->
           <div class="video-desc-container">
-            <div class="basic-desc-info" :style="`height: ${foldDesc ? '80px' : 'auto'};`">
+            <div ref="descRef" class="basic-desc-info" :style="`height: ${foldDesc ? foldDescHeight : 'auto'};`">
               <span class="desc-info-text">{{ videoInfo?.desc }}</span>
             </div>
-            <div class="toggle-btn" @click="foldDesc = !foldDesc">
+            <div class="toggle-btn" v-show="showFoldBtn" @click="foldDesc = !foldDesc">
               <span class="toggle-btn-text">{{ foldDesc ? '展开更多' : '收起' }}</span>
             </div>
           </div>
+          <!-- 标签部分 -->
+          <div class="tags-box">
+            <div class="tag" v-for="item in videoInfo?.tags.split(',')">{{ item }}</div>
+          </div>
+          <!-- 评论区 -->
+          <comment-list v-if="videoInfo" :vid="videoInfo.vid"></comment-list>
         </div>
         <div class="right-column">
           <!-- 作者信息 -->
@@ -51,11 +57,14 @@
 import { ref, onMounted, onBeforeUnmount } from "vue";
 import { ElIcon } from "element-plus";
 import { Forbid as ForbidIcon } from "@icon-park/vue-next";
+import { formatTime } from "@/utils/format";
 import AuthorCard from './components/AuthorCard.vue';
 import ArchiveInfo from './components/ArchiveInfo.vue';
+import CommentList from "./components/CommentList.vue";
 import HeaderBar from "@/components/header-bar/index.vue";
 import VideoPlayer from "@/components/video-player/index.vue";
 import { asyncGetVideoInfoAPI } from "@/api/video";
+import { fa } from "element-plus/es/locale";
 
 const route = useRoute();
 
@@ -64,7 +73,7 @@ const videoInfo = ref<VideoType>();
 const videoId = route.params.id.toString();
 const { data } = await asyncGetVideoInfoAPI(videoId);
 if ((data.value as any).code === statusCode.OK) {
-  videoInfo.value =  (data.value as any).data.video as VideoType;
+  videoInfo.value = (data.value as any).data.video as VideoType;
 }
 
 
@@ -76,8 +85,18 @@ const handelResize = () => {
 
 // 简介部分
 const foldDesc = ref(true); // 是否折叠简介
-
+const descRef = ref<HTMLElement>();
+const showFoldBtn = ref(false); // 是否显示展开和折叠按钮
+const foldDescHeight = ref('auto'); // 折叠状态下简介的最大高度
 onMounted(() => {
+  if (descRef.value!.clientHeight >= 80) {
+    showFoldBtn.value = true;
+    foldDescHeight.value = '80px';
+  } else {
+    showFoldBtn.value = false;
+    foldDescHeight.value = 'auto';
+  }
+
   handelResize();
   window.addEventListener("resize", handelResize);
 })
@@ -134,7 +153,6 @@ onBeforeUnmount(() => {
       overflow: hidden;
       white-space: nowrap;
       text-overflow: ellipsis;
-      font-family: PingFang SC, Helvetica Neue, Microsoft YaHei, sans-serif;
     }
 
     .copyright {
@@ -198,13 +216,34 @@ onBeforeUnmount(() => {
       }
     }
   }
+
+  // 标签部分
+  .tags-box {
+    padding-bottom: 6px;
+    margin: 16px 0 20px 0;
+    border-bottom: 1px solid #E3E5E7;
+
+    .tag {
+      color: #61666d;
+      background: #f1f2f3;
+      height: 28px;
+      line-height: 28px;
+      border-radius: 14px;
+      font-size: 13px;
+      padding: 0 12px;
+      box-sizing: border-box;
+      transition: all .3s;
+      display: inline-flex;
+      align-items: center;
+      cursor: pointer;
+      margin: 0 12px 8px 0;
+    }
+  }
 }
 
 .right-column {
   width: 340px;
   margin-left: 30px;
   z-index: 1;
-
-
 }
 </style>

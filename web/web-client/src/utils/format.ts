@@ -17,4 +17,24 @@ export const isUrl = (str: string) => {
 
 export const formatDate = (time: string) => {
     return moment(time).format("YYYY-MM-DD")
-} 
+}
+
+export const formatTime = (time: string) => {
+    return moment(time).format("YYYY-MM-DD hh:mm:ss")
+}
+
+export const formatRelativeTime = (timeStr: string) => {
+    const currentTime = new Date();
+    const time = new Date(timeStr);
+    const diff = (currentTime.getTime() - time.getTime()) / 1000;
+
+    if (diff < 60) {
+        return '刚刚';
+    } else if (diff < 60 * 60) {
+        return Math.floor(diff / 60) + '分钟前';
+    } else if (diff < 60 * 60 * 24) {
+        return Math.floor(diff / (60 * 60)) + '小时前';
+    } else {
+        return formatTime(timeStr);
+    }
+}

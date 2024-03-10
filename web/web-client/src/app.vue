@@ -13,5 +13,11 @@
 body {
   margin: 0;
   padding: 0;
+  font-family: PingFang SC, HarmonyOS Regular, Helvetica Neue, Microsoft YaHei, sans-serif;
+}
+
+@font-face {
+font-family: "HarmonyOS Regular";
+src: url("@/assets/fonts/HarmonyOS_Sans_SC_Regular.ttf");
 }
 </style>

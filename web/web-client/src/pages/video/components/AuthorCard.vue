@@ -37,7 +37,6 @@ const props = defineProps<{
   height: 104px;
   display: flex;
   align-items: center;
-  font-family: PingFang SC, Helvetica Neue, Microsoft YaHei, sans-serif;
 }
 
 .up-info-left {

@@ -7,7 +7,6 @@
 const props = defineProps<{
   url?: string;
   size: number;
-  iconSize: number;
 }>();
 </script>
 
