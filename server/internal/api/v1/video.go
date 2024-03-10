@@ -82,10 +82,10 @@ func GetUploadVideoList(ctx *gin.Context) {
 }
 
 // 获取视频信息
-func GetVideoByID(ctx *gin.Context) {
+func GetVideoById(ctx *gin.Context) {
 	vid := utils.StringToUint(ctx.DefaultQuery("vid", "0"))
 
-	video, err := service.GetVideoByID(ctx, vid)
+	video, err := service.GetVideoById(ctx, vid)
 	if err != nil {
 		resp.FailWithMessage(ctx, err.Error())
 		return

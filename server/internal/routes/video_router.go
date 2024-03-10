@@ -23,7 +23,7 @@ func CollectVideoRoutes(r *gin.RouterGroup) {
 	}
 
 	// 获取视频信息
-	videoGroup.GET("getVideoById", api.GetVideoByID)
+	videoGroup.GET("getVideoById", api.GetVideoById)
 	// 获取视频文件
 	videoGroup.GET("getVideoFile", api.GetVideoFile)
 	// 获取视频切片

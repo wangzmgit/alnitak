@@ -125,7 +125,7 @@ func FindVideoById(id uint) (video model.Video, err error) {
 }
 
 // 获取视频信息
-func GetVideoByID(ctx *gin.Context, videoId uint) (vo.VideoResp, error) {
+func GetVideoById(ctx *gin.Context, videoId uint) (vo.VideoResp, error) {
 
 	video := GetVideoInfo(videoId)
 	if video.ID == 0 {

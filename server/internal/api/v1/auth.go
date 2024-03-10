@@ -102,7 +102,7 @@ func UpdateToken(ctx *gin.Context) {
 
 	accessToken, refreshToken, err := service.UpdateToken(ctx, tokenReq)
 	if err != nil {
-		resp.FailWithMessage(ctx, err.Error())
+		resp.Result(ctx, 2000, nil, err.Error())
 		return
 	}
 

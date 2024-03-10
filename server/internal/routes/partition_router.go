@@ -17,7 +17,7 @@ func CollectPartitionRoutes(route *gin.RouterGroup) {
 		//添加分区
 		partitionAuth.POST("/addPartition", api.AddPartition)
 		//删除分区
-		partitionAuth.POST("/deletePartition", api.DeletePartition)
+		partitionAuth.DELETE("/deletePartition/:id", api.DeletePartition)
 	}
 
 }

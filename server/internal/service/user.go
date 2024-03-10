@@ -94,7 +94,7 @@ func UpdateToken(ctx *gin.Context, tokenReq dto.TokenReq) (accessToken, refreshT
 
 	// 读取缓存
 	if !cache.IsRefreshTokenExist(claims.UserId, tokenReq.RefreshToken) { // refreshToken 存在
-		utils.ErrorLog("无效Token", "user", err.Error())
+		utils.ErrorLog("无效Token", "user", "token不存在")
 		return "", "", errors.New("无效Token")
 	}
 
@@ -203,6 +203,12 @@ func FindUserByEmail(email string) (user model.User, err error) {
 // 通过用户邮箱或用户名查询用户
 func FindUserByEmailOrUsername(username string) (user model.User, err error) {
 	err = global.Mysql.Where("`email` = ? or `username` = ?", username, username).First(&user).Error
+	return
+}
+
+// 通过用户名查询多个用户
+func FindUserIdsByName(names []string) (ids []uint) {
+	global.Mysql.Model(model.User{}).Where("username in (?)", names).Pluck("id", &ids)
 	return
 }
 

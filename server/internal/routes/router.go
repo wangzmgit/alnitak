@@ -49,6 +49,8 @@ func CollectRoutes(r *gin.Engine) *gin.Engine {
 		CollectPartitionRoutes(v1)
 		// 上传相关路由
 		CollectUploadRoutes(v1)
+		// 评论回复相关路由
+		CollectCommentRoutes(v1)
 	}
 
 	//获取静态文件
