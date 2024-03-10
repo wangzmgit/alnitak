@@ -27,14 +27,40 @@ service.interceptors.request.use(async (config) => {
     } else {
       //如果没有accessToken且有refreshTokenoken
       if (storage.get('refreshToken')) {
-        const tokenRes = await updateTokenAPI(storage.get('refreshToken'));
-        if (tokenRes.data.code === statusCode.OK) {
-          const token = tokenRes.data.data.token;
-          const refreshToken = tokenRes.data.data.refreshToken;
+        // 只发送一次刷新token请求
+        if (!isRefreshing) {
+          isRefreshing = true;
+          const tokenRes = await updateTokenAPI(storage.get('refreshToken'));
+          isRefreshing = false;
+          if (tokenRes.data.code === statusCode.OK) {
+            const token = tokenRes.data.data.token;
+            const refreshToken = tokenRes.data.data.refreshToken;
 
-          storage.set("token", token, 5);
-          storage.set("refreshToken", refreshToken, 14 * 24 * 60);
-          config.headers.Authorization = token;
+            storage.set("token", token, 5);
+            storage.set("refreshToken", refreshToken, 14 * 24 * 60);
+            config.headers.Authorization = token;
+
+            //token刷新前的401请求队列重试
+            if (requests.length > 0) {
+              requests.forEach(cb => cb(token))
+              requests = []
+            }
+            return service.request(config);
+          }
+        } else {
+          const token = storage.get('token');
+          const reqToken = config.headers.Authorization; // 该请求发起时携带的token
+          if (token && token !== reqToken) { //token已经更新就重试请求
+            config.headers.Authorization = storage.get('token');
+            return service(config)
+          } else { // token未更新则放在队列中，更新后再释放
+            return new Promise((resolve) => {
+              requests.push((t: string) => {
+                config.headers.Authorization = t
+                resolve(service(config));
+              })
+            })
+          }
         }
       }
     }
