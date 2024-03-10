@@ -129,8 +129,8 @@ const getCommentList = async () => {
   const res = await getCommentListAPI(props.vid, pagination.page, pagination.pageSize);
   if (res.data.code === statusCode.OK) {
     commentCount.value = res.data.data.total;
-    commentList.value = res.data.data.comments;
-    if (commentList.value.length < pagination.pageSize) {
+    commentList.value = commentList.value.concat(res.data.data.comments);
+    if (res.data.data.comments < pagination.pageSize) {
       pagination.noMore = true;
     }
   }
