@@ -52,7 +52,7 @@ func AddComment(ctx *gin.Context, addCommentReq dto.AddCommentReq) (vo.CommentRe
 }
 
 // 获取评论
-func GetComment(ctx *gin.Context, vid, page, pageSize uint) ([]vo.CommentResp, int64, error) {
+func GetComment(ctx *gin.Context, vid uint, page, pageSize int) ([]vo.CommentResp, int64, error) {
 	var total int64
 	var comments []vo.CommentResp
 
@@ -60,7 +60,7 @@ func GetComment(ctx *gin.Context, vid, page, pageSize uint) ([]vo.CommentResp, i
 	err := global.Mysql.Debug().Model(&model.Comment{}).Select(vo.COMMENT_FIELD).
 		Joins("LEFT JOIN `comment` AS reply ON `comment`.id = `reply`.parent_id").
 		Where("`comment`.parent_id = 0 and `comment`.deleted_at is null").
-		Group("`comment`.id").
+		Group("`comment`.id").Limit(pageSize).Offset((page - 1) * pageSize).
 		Find(&comments).Error
 	if err != nil {
 		utils.ErrorLog("获取评论失败", "comment", err.Error())
@@ -76,8 +76,8 @@ func GetComment(ctx *gin.Context, vid, page, pageSize uint) ([]vo.CommentResp, i
 }
 
 // 获取回复
-func GetReply(ctx *gin.Context, commentId, page, pageSize uint) ([]vo.ReplyResp, error) {
-	return FindReplyList(commentId, int(page), int(pageSize))
+func GetReply(ctx *gin.Context, commentId uint, page, pageSize int) ([]vo.ReplyResp, error) {
+	return FindReplyList(commentId, page, pageSize)
 }
 
 // 删除评论回复

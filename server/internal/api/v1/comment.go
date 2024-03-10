@@ -35,8 +35,8 @@ func AddComment(ctx *gin.Context) {
 // 获取评论
 func GetComment(ctx *gin.Context) {
 	vid := utils.StringToUint(ctx.Query("vid"))
-	page := utils.StringToUint(ctx.Query("page"))
-	pageSize := utils.StringToUint(ctx.Query("pageSize"))
+	page := utils.StringToInt(ctx.Query("page"))
+	pageSize := utils.StringToInt(ctx.Query("pageSize"))
 
 	if pageSize > 100 {
 		resp.FailWithMessage(ctx, "请求数量过多")
@@ -56,8 +56,8 @@ func GetComment(ctx *gin.Context) {
 // 获取回复
 func GetReply(ctx *gin.Context) {
 	vid := utils.StringToUint(ctx.Query("commentId"))
-	page := utils.StringToUint(ctx.Query("page"))
-	pageSize := utils.StringToUint(ctx.Query("pageSize"))
+	page := utils.StringToInt(ctx.Query("page"))
+	pageSize := utils.StringToInt(ctx.Query("pageSize"))
 
 	if pageSize > 100 {
 		resp.FailWithMessage(ctx, "请求数量过多")
