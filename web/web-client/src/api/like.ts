@@ -6,11 +6,11 @@ export const getLikeStatusAPI = (vid: number) => {
 }
 
 //点赞
-export const likeAPI = (id: number) => {
-  return request.post('v1/archive/like', { id });
+export const likeAPI = (vid: number) => {
+  return request.post('v1/archive/like', { vid });
 }
 
 //取消赞
-export const cancelLikeAPI = (id: number) => {
-  return request.post('v1/archive/cancelLike', { id })
+export const cancelLikeAPI = (vid: number) => {
+  return request.post('v1/archive/cancelLike', { vid })
 }

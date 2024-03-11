@@ -20,7 +20,7 @@
           <!-- 点赞收藏等数据 -->
           <div class="video-toolbar">
             <div class="toolbar-left">
-              <archive-info></archive-info>
+              <archive-info v-if="videoInfo" :vid="videoInfo.vid"></archive-info>
             </div>
             <div class="toolbar-right">
               <span>1 人在看</span>
