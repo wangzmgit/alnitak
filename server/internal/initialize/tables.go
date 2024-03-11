@@ -17,4 +17,7 @@ func InitTables() {
 	global.Mysql.AutoMigrate(&model.Resource{})       // 视频资源表
 	global.Mysql.AutoMigrate(&model.VideoIndexFile{}) // 视频播放索引文件表
 	global.Mysql.AutoMigrate(&model.Comment{})        // 评论回复表
+	global.Mysql.AutoMigrate(&model.Like{})           // 点赞表
+	global.Mysql.AutoMigrate(&model.Collect{})        // 收藏表
+	global.Mysql.AutoMigrate(&model.Collection{})     // 收藏夹表
 }
