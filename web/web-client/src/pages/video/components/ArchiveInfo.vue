@@ -2,37 +2,86 @@
   <div class="archive-data">
     <!--点赞收藏-->
     <div class="archive-item">
-      <el-icon :class="[likeAnimation, true ? 'active' : 'icon']" @click="likeClick">
+      <el-icon :class="[likeAnimation, archive.hasLike ? 'active' : 'icon']" @click="likeClick">
         <like-icon></like-icon>
       </el-icon>
-      <p>1</p>
+      <p>{{ stat.like }}</p>
     </div>
     <div class="archive-item">
-      <el-icon :class="true ? 'active' : 'icon'" @click="showCollect = true">
+      <el-icon :class="archive.hasCollect ? 'active' : 'icon'" @click="showCollect = true">
         <collect-icon></collect-icon>
       </el-icon>
-      <p>1</p>
+      <p>{{ stat.collect }}</p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onBeforeMount } from 'vue';
 import { ElIcon } from 'element-plus';
 import LikeIcon from "@/components/icons/LikeIcon.vue";
 import CollectIcon from "@/components/icons/CollectIcon.vue";
+import { getArchiveStatAPI } from "@/api/archive";
+import { getLikeStatusAPI, likeAPI, cancelLikeAPI } from "@/api/like";
 
+const props = defineProps<{
+  vid: number;
+}>();
 
+// 点赞收藏数据
+const stat = ref<{ like: number, collect: number }>({
+  like: 0,
+  collect: 0
+});
 
+// 是否点赞收藏
+const archive = reactive({
+  hasCollect: false,
+  hasLike: false
+})
+
+const loading = ref(true);
 const showCollect = ref(false);
 const likeAnimation = ref('');
 
-//点赞点赞按钮
-const likeClick = () => {
-  likeAnimation.value = 'like-active';
+//获取点赞收藏关注信息
+const getArchiveStat = async () => {
+  const res = await getArchiveStatAPI(props.vid);
+  if (res.data.code === statusCode.OK) {
+    stat.value = res.data.data.stat;
+  }
 }
 
+// 获取是否点赞
+const getLikeStatus = async () => {
+  const res = await getLikeStatusAPI(props.vid);
+  if (res.data.code === statusCode.OK) {
+    archive.hasLike = res.data.data.like;
+  }
+}
 
+//点赞点赞按钮
+const likeClick = async () => {
+  if (loading.value) return;
+  if (!archive.hasLike) {
+    //调用点赞接口
+    await likeAPI(props.vid);
+    likeAnimation.value = 'like-active';
+    stat.value.like++;
+  } else {
+    await cancelLikeAPI(props.vid);
+    stat.value.like--;
+  }
+
+  archive.hasLike = !archive.hasLike;
+}
+
+onBeforeMount(async () => {
+  await getArchiveStat();
+  await getLikeStatus();
+
+  loading.value = false;
+})
 </script>
 
 <style lang="scss" scoped>
