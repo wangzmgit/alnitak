@@ -13,6 +13,7 @@
       </el-icon>
       <p>{{ stat.collect }}</p>
     </div>
+    <collection-list v-if="showCollect" :vid="vid" @close="closeCollectionCard"></collection-list>
   </div>
 </template>
 
@@ -23,6 +24,8 @@ import LikeIcon from "@/components/icons/LikeIcon.vue";
 import CollectIcon from "@/components/icons/CollectIcon.vue";
 import { getArchiveStatAPI } from "@/api/archive";
 import { getLikeStatusAPI, likeAPI, cancelLikeAPI } from "@/api/like";
+import { getCollectStatusAPI } from '@/api/collect';
+import CollectionList from './CollectionList.vue';
 
 const props = defineProps<{
   vid: number;
@@ -34,15 +37,11 @@ const stat = ref<{ like: number, collect: number }>({
   collect: 0
 });
 
-// 是否点赞收藏
-const archive = reactive({
+const loading = ref(true);
+const archive = reactive({ // 是否点赞收藏
   hasCollect: false,
   hasLike: false
 })
-
-const loading = ref(true);
-const showCollect = ref(false);
-const likeAnimation = ref('');
 
 //获取点赞收藏关注信息
 const getArchiveStat = async () => {
@@ -60,8 +59,16 @@ const getLikeStatus = async () => {
   }
 }
 
-//点赞点赞按钮
-const likeClick = async () => {
+// 获取是否收藏
+const getCollectStatus = async () => {
+  const res = await getCollectStatusAPI(props.vid);
+  if (res.data.code === statusCode.OK) {
+    archive.hasCollect = res.data.data.collect;
+  }
+}
+
+const likeAnimation = ref('');
+const likeClick = async () => { // 点赞点赞按钮
   if (loading.value) return;
   if (!archive.hasLike) {
     //调用点赞接口
@@ -76,9 +83,25 @@ const likeClick = async () => {
   archive.hasLike = !archive.hasLike;
 }
 
+
+const showCollect = ref(false);
+// 关闭收藏弹窗
+const closeCollectionCard = (val: number) => {
+  if (val === 1) {
+    stat.value.collect++;
+    archive.hasCollect = true;
+  } else if (val === -1) {
+    stat.value.collect--;
+    archive.hasCollect = false;
+  }
+  
+  showCollect.value = false;
+}
+
 onBeforeMount(async () => {
   await getArchiveStat();
   await getLikeStatus();
+  await getCollectStatus();
 
   loading.value = false;
 })
