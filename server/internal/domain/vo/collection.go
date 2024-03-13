@@ -5,8 +5,8 @@ import (
 )
 
 const (
-	COLLECTION_LIST_FIELD = "`id`,`cover`,`name`,`desc`,`open`,`createdAt`"
-	COLLECTION_FIELD      = "`id`,`uid`,`cover`,`name`,`desc`,`open`,`createdAt`"
+	COLLECTION_LIST_FIELD = "`id`,`cover`,`name`,`desc`,`open`,`created_at`"
+	COLLECTION_FIELD      = "`id`,`uid`,`cover`,`name`,`desc`,`open`,`created_at`"
 )
 
 // 收藏夹

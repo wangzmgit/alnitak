@@ -79,12 +79,11 @@ func DeleteCollection(ctx *gin.Context, id uint) error {
 }
 
 // 获取收藏夹列表
-func GetCollectionList(ctx *gin.Context, page, pageSize int) (total int64, collections []vo.CollectionListResp) {
+func GetCollectionList(ctx *gin.Context) (total int64, collections []vo.CollectionListResp) {
 	userId := ctx.GetUint("userId")
 
 	global.Mysql.Model(&model.Collection{}).Where("uid = ?", userId).Count(&total)
-	global.Mysql.Model(&model.Collection{}).Select(vo.COLLECTION_LIST_FIELD).
-		Where("uid = ?", userId).Limit(pageSize).Offset((page - 1) * pageSize).Scan(&collections)
+	global.Mysql.Debug().Model(&model.Collection{}).Select(vo.COLLECTION_LIST_FIELD).Where("uid = ?", userId).Scan(&collections)
 
 	return
 }
