@@ -64,7 +64,6 @@ import CommentList from "./components/CommentList.vue";
 import HeaderBar from "@/components/header-bar/index.vue";
 import VideoPlayer from "@/components/video-player/index.vue";
 import { asyncGetVideoInfoAPI } from "@/api/video";
-import { fa } from "element-plus/es/locale";
 
 const route = useRoute();
 
@@ -74,8 +73,9 @@ const videoId = route.params.id.toString();
 const { data } = await asyncGetVideoInfoAPI(videoId);
 if ((data.value as any).code === statusCode.OK) {
   videoInfo.value = (data.value as any).data.video as VideoType;
+} else {
+  // TODO: 处理视频信息不存在
 }
-
 
 const videoMainWidth = ref(0);
 const handelResize = () => {

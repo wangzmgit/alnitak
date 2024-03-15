@@ -17,7 +17,7 @@
         </div>
         <!-- 关注按钮部分 -->
         <div class="up-info-btn-panel">
-          <div class="up-info-btn">关注</div>
+          <div class="up-info-btn" @click="followBtnClick">{{ btnText }}</div>
         </div>
       </div>
     </div>
@@ -25,10 +25,48 @@
 </template>
 
 <script setup lang="ts">
+import { onBeforeMount, computed } from "vue";
+import { ElMessage } from "element-plus";
+import { statusCode } from "@/utils/status-code";
+import { relationCode } from "@/utils/relation-code";
+import { getUserRelationAPI, followAPI, unfollowAPI } from "@/api/relation";
 
 const props = defineProps<{
   info: UserInfoType
 }>()
+
+const relation = ref(relationCode.NOT_FOLLOWING);
+const getUserRelation = async () => {
+  const res = await getUserRelationAPI(props.info.uid);
+  if (res.data.code === statusCode.OK) {
+    relation.value = res.data.data.relation;
+  }
+}
+
+const btnText = computed(() => {
+  switch (relation.value) {
+    case relationCode.FOLLOWED:
+      return "已关注";
+    case relationCode.NOT_FOLLOWING:
+      return "关注";
+    case relationCode.MUTUAL_FANS:
+      return "已互粉";
+  }
+})
+
+const followBtnClick = async () => {
+  const reqFunc = relation.value === relationCode.NOT_FOLLOWING ? followAPI : unfollowAPI;
+  const res = await reqFunc(props.info.uid);
+  if (res.data.code === statusCode.OK) {
+    getUserRelation();
+  } else {
+    ElMessage.error(res.data.msg);
+  }
+}
+
+onBeforeMount(() => {
+  getUserRelation();
+})
 </script>
 
 <style lang="scss" scoped>
