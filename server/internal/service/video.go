@@ -146,7 +146,7 @@ func GetVideoInfo(videoId uint) (video vo.VideoResp) {
 		global.Mysql.Model(&model.Video{}).Select(vo.VIDEO_FIELD).
 			Where("id = ? and status = ?", videoId, global.AUDIT_APPROVED).Scan(&video)
 		if video.ID == 0 {
-			utils.ErrorLog("视频信息不存在", "user", "")
+			utils.ErrorLog("视频信息不存在", "video", "")
 			return
 		}
 

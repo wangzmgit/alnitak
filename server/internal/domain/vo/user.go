@@ -2,6 +2,10 @@ package vo
 
 import "time"
 
+const (
+	USER_BASE_INFO_FIELD = "`id`,`username`,`sign`,`avatar`,`gender`"
+)
+
 type UserInfoResp struct {
 	ID        uint      `json:"uid"`
 	Username  string    `json:"name"`
@@ -13,4 +17,12 @@ type UserInfoResp struct {
 	Status    uint      `json:"status"`
 	Birthday  time.Time `json:"birthday"`
 	CreatedAt time.Time `json:"createdAt"`
+}
+
+type UserBaseInfoResp struct {
+	ID       uint   `json:"uid"`
+	Username string `json:"name"`
+	Sign     string `json:"sign"`
+	Avatar   string `json:"avatar"`
+	Gender   int    `json:"gender"`
 }

@@ -59,7 +59,7 @@ func GetReply(ctx *gin.Context) {
 	page := utils.StringToInt(ctx.Query("page"))
 	pageSize := utils.StringToInt(ctx.Query("pageSize"))
 
-	if pageSize > 100 {
+	if pageSize > 30 {
 		resp.FailWithMessage(ctx, "请求数量过多")
 		return
 	}

@@ -83,7 +83,7 @@ func GetCollectionList(ctx *gin.Context) (total int64, collections []vo.Collecti
 	userId := ctx.GetUint("userId")
 
 	global.Mysql.Model(&model.Collection{}).Where("uid = ?", userId).Count(&total)
-	global.Mysql.Debug().Model(&model.Collection{}).Select(vo.COLLECTION_LIST_FIELD).Where("uid = ?", userId).Scan(&collections)
+	global.Mysql.Model(&model.Collection{}).Select(vo.COLLECTION_LIST_FIELD).Where("uid = ?", userId).Scan(&collections)
 
 	return
 }

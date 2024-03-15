@@ -57,7 +57,7 @@ func GetComment(ctx *gin.Context, vid uint, page, pageSize int) ([]vo.CommentRes
 	var comments []vo.CommentResp
 
 	global.Mysql.Model(&model.Comment{}).Where("vid = ?", vid).Count(&total)
-	err := global.Mysql.Debug().Model(&model.Comment{}).Select(vo.COMMENT_FIELD).
+	err := global.Mysql.Model(&model.Comment{}).Select(vo.COMMENT_FIELD).
 		Joins("LEFT JOIN `comment` AS reply ON `comment`.id = `reply`.parent_id").
 		Where("`comment`.parent_id = 0 and `comment`.deleted_at is null").
 		Group("`comment`.id").Limit(pageSize).Offset((page - 1) * pageSize).

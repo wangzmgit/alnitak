@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"interastral-peace.com/alnitak/internal/domain/model"
+	"interastral-peace.com/alnitak/internal/domain/vo"
 	"interastral-peace.com/alnitak/internal/global"
 	"interastral-peace.com/alnitak/utils"
 )
@@ -38,7 +39,7 @@ func Follow(ctx *gin.Context, targetUid uint) error {
 		relation.Relation = global.MUTUAL_FANS
 	}
 
-	if relation.ID == 0 { // 之前为关注过插入一条数据
+	if relation.ID == 0 { // 之前未关注过插入一条数据
 		relation.Uid = userId
 		relation.TargetUid = targetUid
 		if err := tx.Create(&relation).Error; err != nil {
@@ -59,7 +60,7 @@ func Follow(ctx *gin.Context, targetUid uint) error {
 	return nil
 }
 
-func UnFollow(ctx *gin.Context, targetUid uint) error {
+func Unfollow(ctx *gin.Context, targetUid uint) error {
 	//判断关注的是否为自己
 	userId := ctx.GetUint("userId")
 	if targetUid == userId {
@@ -92,6 +93,8 @@ func UnFollow(ctx *gin.Context, targetUid uint) error {
 		return errors.New("取关失败")
 	}
 
+	tx.Commit()
+
 	return nil
 }
 
@@ -101,6 +104,51 @@ func GetUserRelation(ctx *gin.Context, targetUid uint) int {
 	relation := FindUserRelation(userId, targetUid)
 
 	return relation.Relation
+}
+
+// 获取关注列表
+func GetFollowings(ctx *gin.Context, userId uint, page, pageSize int) (users []vo.UserBaseInfoResp, err error) {
+	// 查询关注的用户ID
+	userIds := global.Mysql.Model(&model.Relation{}).Select("targetUid").
+		Where("uid = ? and (relation = ? or relation = ?)", userId, global.FOLLOWED, global.MUTUAL_FANS).
+		Limit(pageSize).Offset((page - 1) * pageSize)
+
+	// 查询用户信息
+	if err := global.Mysql.Model(&model.User{}).Select(vo.USER_BASE_INFO_FIELD).
+		Where("id in (?)", userIds).Scan(&users).Error; err != nil {
+		utils.ErrorLog("获取关注列表失败", "relation", err.Error())
+		return users, errors.New("获取失败")
+	}
+
+	return users, nil
+}
+
+// 获取粉丝列表
+func GetFollowers(ctx *gin.Context, userId uint, page, pageSize int) (users []vo.UserBaseInfoResp, err error) {
+	// 查询关注的用户ID
+	userIds := global.Mysql.Model(&model.Relation{}).Select("uid").
+		Where("targetUid = ? and (relation = ? or relation = ?)", userId, global.FOLLOWED, global.MUTUAL_FANS).
+		Limit(pageSize).Offset((page - 1) * pageSize)
+
+	// 查询用户信息
+	if err := global.Mysql.Model(&model.User{}).Select(vo.USER_BASE_INFO_FIELD).
+		Where("id in (?)", userIds).Scan(&users).Error; err != nil {
+		utils.ErrorLog("获取粉丝列表失败", "relation", err.Error())
+		return users, errors.New("获取失败")
+	}
+
+	return users, nil
+}
+
+// 获取关注和粉丝数
+func GetFollowCount(ctx *gin.Context, userId uint) (following, follower int64) {
+	global.Mysql.Model(&model.Relation{}).Select("targetUid").
+		Where("uid = ? and (relation = ? or relation = ?)", userId, global.FOLLOWED, global.MUTUAL_FANS).Count(&following)
+
+	global.Mysql.Model(&model.Relation{}).Select("uid").
+		Where("targetUid = ? and (relation = ? or relation = ?)", userId, global.FOLLOWED, global.MUTUAL_FANS).Count(&follower)
+
+	return
 }
 
 // 查询用户关系
