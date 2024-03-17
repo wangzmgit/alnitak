@@ -78,12 +78,12 @@ func GetVideoFile(ctx *gin.Context, resourceId uint, quality string) (string, er
 	global.Mysql.Where("resource_id = ? and quality = ?", resourceId, quality).First(&file)
 
 	res := ""
+	key := uuid.New().String()
+	cache.SetVideoSlice(key, file.DirName)
 	for _, line := range strings.Split(file.Content, "\n") {
 		//根据关键词覆盖当前行
 		if strings.Contains(line, ".ts") {
-			key := uuid.New().String()
-			cache.SetVideoSliceStatus(key)
-			res += "/api/video/getVideoSlices?dir=" + file.DirName + "&file=" + line + "&key=" + key + "\n"
+			res += "/api/v1/video/slice/" + line + "?key=" + key + "\n"
 		} else {
 			res += line + "\n"
 		}
@@ -92,14 +92,9 @@ func GetVideoFile(ctx *gin.Context, resourceId uint, quality string) (string, er
 	return res, nil
 }
 
-// 获取视频切片是否可用
-func GetVideoSliceAvailableStatus(key string) bool {
-	if cache.GetVideoSliceStatus(key) == cache.VIDEO_SLICE_NOT_USED {
-		cache.DelVideoSliceStatus(key)
-		return true
-	}
-
-	return false
+// 获取视频切所在文件目录
+func GetVideoSliceDir(key string) string {
+	return cache.GetVideoSlice(key)
 }
 
 // 获取自己上传的视频

@@ -15,11 +15,11 @@ import (
 // 获取视频文件
 func GetVideoFile(ctx *gin.Context) {
 	quality := ctx.Query("quality")
-	resourceId := utils.StringToUint(ctx.Query("resource_id"))
+	resourceId := utils.StringToUint(ctx.Query("resourceId"))
 
 	file, err := service.GetVideoFile(ctx, resourceId, quality)
 	if err != nil {
-		resp.FailWithMessage(ctx, err.Error())
+		resp.ForbiddenWithMessage(ctx, err.Error())
 		return
 	}
 
@@ -30,11 +30,11 @@ func GetVideoFile(ctx *gin.Context) {
 // 获取视频切片
 func GetVideoSlice(ctx *gin.Context) {
 	key := ctx.Query("key")
-	dir := ctx.Query("dir")
-	file := ctx.Query("file")
+	file := ctx.Param("file")
 
-	if !service.GetVideoSliceAvailableStatus(key) {
-		resp.Result(ctx, http.StatusForbidden, map[string]interface{}{}, "ok")
+	dir := service.GetVideoSliceDir(key)
+	if dir == "" {
+		resp.Forbidden(ctx)
 		return
 	}
 
@@ -44,21 +44,10 @@ func GetVideoSlice(ctx *gin.Context) {
 		return
 	}
 
+	// TODO: 1. OSS 2. OSS + 自定义域名 3. OSS + CDN
 	// 使用oss且但不使用cdn
 	redirect := global.Storage.GetObjectUrl("video/" + dir + "/" + file)
 	ctx.Redirect(http.StatusMovedPermanently, redirect)
-}
-
-// cdn远程鉴权
-func VideoRemoteAuth(ctx *gin.Context) {
-	key := ctx.Query("key")
-
-	if !service.GetVideoSliceAvailableStatus(key) {
-		resp.Result(ctx, http.StatusForbidden, map[string]interface{}{}, "ok")
-		return
-	} else {
-		resp.Ok(ctx)
-	}
 }
 
 // 获取图片文件

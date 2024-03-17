@@ -21,4 +21,5 @@ func InitTables() {
 	global.Mysql.AutoMigrate(&model.Collect{})        // 收藏表
 	global.Mysql.AutoMigrate(&model.Collection{})     // 收藏夹表
 	global.Mysql.AutoMigrate(&model.Relation{})       // 关系表
+	global.Mysql.AutoMigrate(&model.Danmaku{})        // 弹幕表
 }

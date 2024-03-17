@@ -24,10 +24,10 @@ func CollectVideoRoutes(r *gin.RouterGroup) {
 
 	// 获取视频信息
 	videoGroup.GET("getVideoById", api.GetVideoById)
+	// 获取视频资源支持的分辨率信息
+	videoGroup.GET("getResourceQuality", api.GetResourceQuality)
 	// 获取视频文件
 	videoGroup.GET("getVideoFile", api.GetVideoFile)
 	// 获取视频切片
-	videoGroup.GET("getVideoSlice", api.GetVideoSlice)
-	// cdn远程鉴权
-	videoGroup.GET("videoRemoteAuth", api.VideoRemoteAuth)
+	videoGroup.GET("slice/:file", api.GetVideoSlice)
 }

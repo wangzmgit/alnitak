@@ -55,3 +55,15 @@ func GetVideoResources(videoId uint) (resources []vo.ResourceResp) {
 
 	return
 }
+
+// 获取视频资源支持的分辨率信息
+func GetResourceQuality(ctx *gin.Context, id uint) ([]string, error) {
+	var quality []string
+	if err := global.Mysql.Model(&model.VideoIndexFile{}).Where("resource_id = ?", id).
+		Pluck("quality", &quality).Error; err != nil {
+		utils.ErrorLog("分辨率信息获取失败", "resource", err.Error())
+		return nil, errors.New("获取失败")
+	}
+
+	return quality, nil
+}

@@ -57,3 +57,11 @@ func FailWithMessage(c *gin.Context, message string) {
 func FailWithDetailed(c *gin.Context, data interface{}, message string) {
 	Result(c, ERROR, data, message)
 }
+
+func Forbidden(c *gin.Context) {
+	c.JSON(http.StatusForbidden, Response{Code: http.StatusForbidden, Data: nil, Msg: ""})
+}
+
+func ForbiddenWithMessage(c *gin.Context, message string) {
+	c.JSON(http.StatusForbidden, Response{Code: http.StatusForbidden, Data: nil, Msg: message})
+}
