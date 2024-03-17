@@ -1,5 +1,5 @@
-import { globalConfig } from "./global-config";
 import { isUrl } from "./format";
+import { globalConfig } from "./global-config";
 
 export const getResourceUrl = (originalUrl: string) => {
     // 如果本身就是一个url,或者前后端同源,直接返回

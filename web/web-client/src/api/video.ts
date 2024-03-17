@@ -27,3 +27,13 @@ export const asyncGetVideoInfoAPI = async (videoId: number | string) => {
   return await useAsyncData(() => $fetch(`${baseURL}/api/v1/video/getVideoById?vid=${videoId}`));
 }
 
+// 获取视频支持的分辨率
+export const getResourceQualityApi = async (resourceId: number | string) => {
+  return request.get(`v1/video/getResourceQuality?resourceId=${resourceId}`)
+}
+
+// 获取视频文件URL
+export const getVideoFileUrl = (resourceId:number,quality:string) => {
+  return `${baseURL}/api/v1/video/getVideoFile?resourceId=${resourceId}&quality=${quality}`;
+}
+

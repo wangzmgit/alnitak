@@ -5,7 +5,8 @@
       <div class="mian-content">
         <div class="left-column" :style="{ width: `${videoMainWidth}px` }">
           <div class="video-player">
-            <video-player></video-player>
+            <video-player v-if="videoInfo && showPlayer" :video-info="videoInfo" :part="currentPart"></video-player>
+            <div v-else class="skeleton"></div>
           </div>
           <!-- 标题和版权信息 -->
           <div class="video-title-box">
@@ -47,6 +48,10 @@
         <div class="right-column">
           <!-- 作者信息 -->
           <author-card v-if="videoInfo" :info="videoInfo.author"></author-card>
+          <!-- 视频分集 -->
+          <div v-if="videoInfo && videoInfo.resources.length > 1">
+            <part-list :resources="videoInfo.resources" :active="currentPart" @change="changePart"></part-list>
+          </div>
         </div>
       </div>
     </div>
@@ -58,6 +63,7 @@ import { ref, onMounted, onBeforeUnmount } from "vue";
 import { ElIcon } from "element-plus";
 import { Forbid as ForbidIcon } from "@icon-park/vue-next";
 import { formatTime } from "@/utils/format";
+import PartList from "./components/PartList.vue";
 import AuthorCard from './components/AuthorCard.vue';
 import ArchiveInfo from './components/ArchiveInfo.vue';
 import CommentList from "./components/CommentList.vue";
@@ -66,6 +72,7 @@ import VideoPlayer from "@/components/video-player/index.vue";
 import { asyncGetVideoInfoAPI } from "@/api/video";
 
 const route = useRoute();
+const router = useRouter();
 
 // 获取视频信息
 const videoInfo = ref<VideoType>();
@@ -80,12 +87,23 @@ if ((data.value as any).code === statusCode.OK) {
 const videoMainWidth = ref(0);
 const handelResize = () => {
   // w = (16 / 9) *  (屏幕高度 - marginTop - 96px - headerBar高度)
-  videoMainWidth.value = (16 / 9) * (window.innerHeight - 176);
+  videoMainWidth.value = (16 / 9) * (window.innerHeight - 170);
 }
+
+// 视频分集
+const currentPart = ref(1);
+const changePart = (target: number) => {
+  if (videoInfo.value?.resources[target - 1]) {
+    currentPart.value = target;
+  }
+  router.replace({ query: { p: currentPart.value } });
+}
+
 
 // 简介部分
 const foldDesc = ref(true); // 是否折叠简介
 const descRef = ref<HTMLElement>();
+const showPlayer = ref(false);
 const showFoldBtn = ref(false); // 是否显示展开和折叠按钮
 const foldDescHeight = ref('auto'); // 折叠状态下简介的最大高度
 onMounted(() => {
@@ -99,6 +117,10 @@ onMounted(() => {
 
   handelResize();
   window.addEventListener("resize", handelResize);
+
+  nextTick(() => {
+    showPlayer.value = true;
+  })
 })
 
 onBeforeUnmount(() => {
@@ -122,7 +144,6 @@ onBeforeUnmount(() => {
     width: calc(100% - 100px);
     margin: auto 50px;
     position: relative;
-    // background-color: antiquewhite;
   }
 }
 
@@ -130,12 +151,18 @@ onBeforeUnmount(() => {
   flex: 1;
 
   .video-player {
-    background-color: aquamarine;
+    position: relative;
     margin: 0 auto;
     width: 100%;
     /*16:9*/
     min-width: 680px;
     min-height: 382px;
+
+    .skeleton {
+      width: 100%;
+      padding-bottom: 56.25%;
+      background-color: #f0f2f5;
+    }
   }
 
   .video-title-box {

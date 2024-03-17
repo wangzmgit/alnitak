@@ -3191,6 +3191,11 @@ hasown@^2.0.0:
   dependencies:
     function-bind "^1.1.2"
 
+hls.js@^1.5.7:
+  version "1.5.7"
+  resolved "https://registry.npmmirror.com/hls.js/-/hls.js-1.5.7.tgz#e069e78fe962a422d16aa17a2bfc2f1e2321089d"
+  integrity sha512-Hnyf7ojTBtXHeOW1/t6wCBJSiK1WpoKF9yg7juxldDx8u3iswrkPt2wbOA/1NiwU4j27DSIVoIEJRAhcdMef/A==
+
 hookable@^5.5.3:
   version "5.5.3"
   resolved "https://registry.npmmirror.com/hookable/-/hookable-5.5.3.tgz"
@@ -5882,6 +5887,11 @@ vue-router@^4.2.5:
   integrity sha512-DIUpKcyg4+PTQKfFPX88UWhlagBEBEfJ5A8XDXRJLUnZOvcpMF8o/dnL90vpVkGaPbjvXazV/rC1qBKrZlFugw==
   dependencies:
     "@vue/devtools-api" "^6.5.0"
+
+vue-wplayer@^0.8.0:
+  version "0.8.0"
+  resolved "https://registry.npmmirror.com/vue-wplayer/-/vue-wplayer-0.8.0.tgz#d40292166fd2148f29bce55fc1562c15910c5dfe"
+  integrity sha512-glToiYZRxwlDIDFwYpCbYc+kc376yDR1YifIL3eQvLGHTSwubK2f9C4K4O3YBo95v0MAKU3faei8ewuARiEVrA==
 
 vue@^3.3.8:
   version "3.3.11"
