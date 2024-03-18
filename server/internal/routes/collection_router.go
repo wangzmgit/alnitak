@@ -21,7 +21,7 @@ func CollectCollectionRoutes(r *gin.RouterGroup) {
 			// 修改收藏夹
 			collectionAuth.PUT("editCollection", api.EditCollection)
 			// 删除收藏夹
-			collectionAuth.DELETE("deleteCollection", api.DeleteCollection)
+			collectionAuth.DELETE("deleteCollection/:id", api.DeleteCollection)
 		}
 
 	}

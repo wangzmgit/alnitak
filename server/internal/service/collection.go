@@ -27,8 +27,10 @@ func AddCollection(ctx *gin.Context, addCollectionReq dto.AddCollectionReq) erro
 
 func EditCollection(ctx *gin.Context, editCollectionReq dto.EditCollectionReq) error {
 	userId := ctx.GetUint("userId")
-	if cache.GetUploadImage(editCollectionReq.Cover) != userId {
-		return errors.New("文件链接无效")
+	if editCollectionReq.Cover != "" {
+		if cache.GetUploadImage(editCollectionReq.Cover) != userId {
+			return errors.New("文件链接无效")
+		}
 	}
 
 	collection, err := FindCollectionById(editCollectionReq.ID)
