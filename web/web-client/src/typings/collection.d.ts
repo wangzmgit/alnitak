@@ -4,8 +4,17 @@ interface CollectionType {
   cover?: string,
   desc?: string,
   open?: boolean,
-  created_at?: string
+  createdAt: string
 
   // 本地用的数据
   checked: boolean
+}
+
+
+interface EditCollectionType {
+  id: number,
+  name?: string,
+  cover?: string,
+  desc?: string,
+  open?: boolean,
 }

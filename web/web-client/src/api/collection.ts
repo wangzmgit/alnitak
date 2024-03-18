@@ -10,4 +10,12 @@ export const getCollectionListAPI = () => {
   return request.get('v1/collection/getCollectionList');
 }
 
+// 编辑收藏夹
+export const editCollectionAPI = (collection: EditCollectionType) => {
+  return request.put('v1/collection/editCollection', collection);
+}
 
+// 删除收藏夹
+export const deleteCollectionAPI = (id: number) => {
+  return request.delete(`v1/collection/deleteCollection/${id}`);
+}

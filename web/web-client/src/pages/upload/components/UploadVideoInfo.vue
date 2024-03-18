@@ -38,7 +38,7 @@
 <script setup lang="ts">
 import { ref, onMounted, reactive } from "vue";
 import { statusCode } from "@/utils/status-code";
-import CoverUploader from "./CoverUploader.vue";
+import CoverUploader from "@/components/cover-uploader/index.vue";
 import PartitionSelector from "./PartitionSelector.vue";
 import FormSkeleton from "@/components/form-skeleton/index.vue";
 // import { getPartitionAPI, uploadVideoInfoAPI, modifyVideoInfoAPI } from "@leaf/apis";
