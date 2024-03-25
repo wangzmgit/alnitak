@@ -45,7 +45,7 @@ service.interceptors.request.use(async (config) => {
               requests.forEach(cb => cb(token))
               requests = []
             }
-            return service.request(config);
+            return config;
           }
         } else {
           const token = storage.get('token');
@@ -57,7 +57,7 @@ service.interceptors.request.use(async (config) => {
             return new Promise((resolve) => {
               requests.push((t: string) => {
                 config.headers.Authorization = t
-                resolve(service(config));
+                resolve(config);
               })
             })
           }
