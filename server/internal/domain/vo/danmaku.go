@@ -5,9 +5,9 @@ const (
 )
 
 type DanmakuResp struct {
-	ID    uint   `json:"id"`
-	Time  uint   `json:"time"`
-	Type  int    `json:"type"`
-	Color string `json:"color"`
-	Text  string `json:"text"`
+	ID    uint    `json:"id"`
+	Time  float32 `json:"time"`
+	Type  int     `json:"type"`
+	Color string  `json:"color"`
+	Text  string  `json:"text"`
 }
