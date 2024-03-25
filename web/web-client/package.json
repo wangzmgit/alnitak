@@ -27,6 +27,6 @@
     "moment": "^2.30.1",
     "pinia": "^2.1.7",
     "vue-picture-cropper": "^0.7.0",
-    "vue-wplayer": "^0.8.0"
+    "wplayer-next": "^1.0.0"
   }
 }

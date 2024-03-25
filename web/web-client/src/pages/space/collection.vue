@@ -70,8 +70,7 @@ const deleteCollection = (id: number, index: number) => {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning',
-  }
-  ).then(async () => {
+  }).then(async () => {
     const res = await deleteCollectionAPI(id);
     if (res.data.code === statusCode.OK) {
       collectionList.value.splice(index, 1);

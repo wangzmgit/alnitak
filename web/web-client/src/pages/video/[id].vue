@@ -5,8 +5,10 @@
       <div class="mian-content">
         <div class="left-column" :style="{ width: `${videoMainWidth}px` }">
           <div class="video-player">
-            <video-player v-if="videoInfo && showPlayer" :video-info="videoInfo" :part="currentPart"></video-player>
-            <div v-else class="skeleton"></div>
+            <client-only>
+              <video-player v-if="videoInfo" :video-info="videoInfo" :part="currentPart"></video-player>
+            </client-only>
+            <div v-if="!showPlayer" class="skeleton"></div>
           </div>
           <!-- 标题和版权信息 -->
           <div class="video-title-box">

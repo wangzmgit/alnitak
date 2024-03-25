@@ -24,8 +24,8 @@
 import { ref } from "vue";
 // import { NIcon } from 'naive-ui';
 import { Close } from '@icon-park/vue-next';
-import LoginIllustration from "./component/LoginIllustration.vue";
-import LoginForm from './component/LoginForm.vue'
+import LoginIllustration from "./components/LoginIllustration.vue";
+import LoginForm from './components/LoginForm.vue'
 // import RegisterForm from './component/RegisterForm.vue'
 
 const emits = defineEmits(["close", "success"]);

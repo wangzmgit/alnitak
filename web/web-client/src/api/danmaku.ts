@@ -1,7 +1,7 @@
 import request from "@/utils/request";
 
 //发送弹幕
-export const sendDanmakuAPI = (danmaku: AddDanmakuType) => {
+export const sendDanmakuAPI = (danmaku: DanmakuType) => {
   return request.post('v1/danmaku/sendDanmaku', danmaku);
 }
 
