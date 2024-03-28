@@ -16,7 +16,7 @@ type Operate struct {
 	Agent        string        `gorm:"column:agent;comment:代理"`                        // 代理
 	ErrorMessage string        `gorm:"column:error_message;comment:错误信息"`              // 错误信息
 	Body         string        `gorm:"type:text;column:body;comment:请求Body"`           // 请求Body
-	Resp         string        `gorm:"type:text;column:resp;comment:响应Body"`           // 响应Body
+	Msg          string        `gorm:"type:text;column:msg;comment:响应Msg"`             // 响应Msg
 	UserID       int           `gorm:"column:user_id;comment:用户id"`                    // 用户id
 }
 

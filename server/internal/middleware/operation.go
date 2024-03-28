@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -86,21 +87,11 @@ func OperationRecord() gin.HandlerFunc {
 		record.ErrorMessage = c.Errors.ByType(gin.ErrorTypePrivate).String()
 		record.Status = c.Writer.Status()
 		record.Latency = latency
-		record.Resp = writer.body.String()
 
-		if strings.Contains(c.Writer.Header().Get("Pragma"), "public") ||
-			strings.Contains(c.Writer.Header().Get("Expires"), "0") ||
-			strings.Contains(c.Writer.Header().Get("Cache-Control"), "must-revalidate, post-check=0, pre-check=0") ||
-			strings.Contains(c.Writer.Header().Get("Content-Type"), "application/force-download") ||
-			strings.Contains(c.Writer.Header().Get("Content-Type"), "application/octet-stream") ||
-			strings.Contains(c.Writer.Header().Get("Content-Type"), "application/vnd.ms-excel") ||
-			strings.Contains(c.Writer.Header().Get("Content-Type"), "application/download") ||
-			strings.Contains(c.Writer.Header().Get("Content-Disposition"), "attachment") ||
-			strings.Contains(c.Writer.Header().Get("Content-Transfer-Encoding"), "binary") {
-			if len(record.Resp) > bufferSize {
-				// 截断
-				record.Body = "超出记录长度"
-			}
+		reg := regexp.MustCompile(`"msg"\s*:\s*"([^"]+)"`)
+		match := reg.FindStringSubmatch(writer.body.String())
+		if len(match) == 2 {
+			record.Msg = match[1]
 		}
 
 		if err := service.AddOperate(&record); err != nil {

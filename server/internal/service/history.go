@@ -45,13 +45,11 @@ func AddHistory(ctx *gin.Context, historyReq dto.HistoryReq) error {
 	return nil
 }
 
-func GetHistoryList(ctx *gin.Context, page, pageSize int) (videos []vo.VideoResp, err error) {
+func GetHistoryList(ctx *gin.Context, page, pageSize int) (videos []vo.HistoryVideoResp, err error) {
 	userId := ctx.GetUint("userId")
-	videoIds := global.Mysql.Model(&model.History{}).Select("vid").Where("userId = ?", userId).
-		Limit(pageSize).Offset((page - 1) * pageSize)
-
-	if err := global.Mysql.Model(&model.Video{}).Select(vo.VIDEO_FIELD).
-		Where("id in (?)", videoIds).Scan(&videos).Error; err != nil {
+	if err := global.Mysql.Model(&model.History{}).Select(vo.HISTORY_VIDEO_FIELD).
+		Joins("LEFT JOIN `video` ON `video`.id = `history`.vid").Where("`history`.uid = ?", userId).
+		Limit(pageSize).Offset((page - 1) * pageSize).Find(&videos).Error; err != nil {
 		utils.ErrorLog("获取历史记录视频失败", "history", err.Error())
 		return videos, errors.New("获取失败")
 	}
