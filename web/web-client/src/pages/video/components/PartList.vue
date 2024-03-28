@@ -21,6 +21,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
+import { toDuration } from "@/utils/format";
 
 const emits = defineEmits(['change']);
 const props = withDefaults(defineProps<{
@@ -31,13 +32,6 @@ const props = withDefaults(defineProps<{
 })
 
 const current = ref(props.active);
-const toDuration = (duration: number) => {
-  let m: number = Math.floor(duration / 60);
-  let s: number = Math.floor(duration % 60);
-  const mm = m < 10 ? "0" + m : m;
-  const ss = s < 10 ? "0" + s : s;
-  return mm + ":" + ss;
-}
 
 const changePart = (part: number) => {
   current.value = part + 1;
