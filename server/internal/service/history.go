@@ -49,7 +49,8 @@ func GetHistoryList(ctx *gin.Context, page, pageSize int) (videos []vo.HistoryVi
 	userId := ctx.GetUint("userId")
 	if err := global.Mysql.Model(&model.History{}).Select(vo.HISTORY_VIDEO_FIELD).
 		Joins("LEFT JOIN `video` ON `video`.id = `history`.vid").Where("`history`.uid = ?", userId).
-		Limit(pageSize).Offset((page - 1) * pageSize).Find(&videos).Error; err != nil {
+		Order("`history`.`updated_at` desc").Limit(pageSize).Offset((page - 1) * pageSize).
+		Find(&videos).Error; err != nil {
 		utils.ErrorLog("获取历史记录视频失败", "history", err.Error())
 		return videos, errors.New("获取失败")
 	}

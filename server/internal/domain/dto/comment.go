@@ -7,4 +7,5 @@ type AddCommentReq struct {
 	ParentID      uint
 	ReplyUserID   uint
 	ReplyUserName string
+	ReplyContent  string
 }

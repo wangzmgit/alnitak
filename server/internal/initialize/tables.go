@@ -23,4 +23,9 @@ func InitTables() {
 	global.Mysql.AutoMigrate(&model.Relation{})       // 关系表
 	global.Mysql.AutoMigrate(&model.Danmaku{})        // 弹幕表
 	global.Mysql.AutoMigrate(&model.History{})        // 历史记录表
+	global.Mysql.AutoMigrate(&model.Announce{})       // 公告表
+	global.Mysql.AutoMigrate(&model.LikeMessage{})    // 点赞消息表
+	global.Mysql.AutoMigrate(&model.AtMessage{})      // @消息表
+	global.Mysql.AutoMigrate(&model.ReplyMessage{})   // 回复消息表
+	global.Mysql.AutoMigrate(&model.AtMessage{})      // 私信消息表
 }

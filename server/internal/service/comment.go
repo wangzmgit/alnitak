@@ -2,7 +2,6 @@ package service
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -35,18 +34,20 @@ func AddComment(ctx *gin.Context, addCommentReq dto.AddCommentReq) (vo.CommentRe
 		return vo.CommentResp{}, errors.New("评论失败")
 	}
 
-	if addCommentReq.ParentID == 0 {
-		// TODO: 通知给视频作者
-		fmt.Println("通知给视频作者")
-	} else if addCommentReq.ReplyUserID != 0 {
-		// TODO: 通知给回复目标
-		fmt.Println("通知给回复目标")
-	} else {
-		// TODO: 通知给评论作者
-		fmt.Println("通知给评论作者")
-	}
+	// 发送回复通知
+	InsertReplyMessage(addCommentReq, comment.ID, userId)
 
-	// TODO: 处理@通知
+	// 处理@通知
+	length := len(atUserIds)
+	newAtMsg := make([]model.AtMessage, length)
+	for i := 0; i < length; i++ {
+		newAtMsg[i].Uid = atUserIds[i]
+		newAtMsg[i].Vid = addCommentReq.Vid
+		newAtMsg[i].Sid = userId
+	}
+	if err := global.Mysql.Create(&newAtMsg).Error; err != nil {
+		utils.ErrorLog("创建AT信息失败失败", "comment", err.Error())
+	}
 
 	return vo.CommentToCommentResp(comment), nil
 }
@@ -99,6 +100,9 @@ func DeleteComment(ctx *gin.Context, id uint) error {
 	if comment.Uid != userId && userId != video.Uid {
 		return errors.New("评论或回复不存在")
 	}
+
+	// 移除评论回复通知
+	RemoveReplyMessage(comment.ID)
 
 	if err := global.Mysql.Where("id = ?", id).Delete(&model.Comment{}).Error; err != nil {
 		utils.ErrorLog("删除评论失败", "comment", err.Error())

@@ -40,8 +40,8 @@ func Like(ctx *gin.Context, likeReq dto.LikeReq) error {
 	}
 
 	// 查询视频作者并添加点赞通知
-	// video := GetVideoInfo(videoId)
-	// TODO: 通知作者点赞信息
+	video := GetVideoInfo(videoId)
+	InsertLikeMessage(userId, video.ID, video.Uid)
 
 	return nil
 }
@@ -68,8 +68,7 @@ func CancelLike(ctx *gin.Context, likeReq dto.LikeReq) error {
 	}
 
 	// 查询视频作者并删除点赞通知
-	// video := GetVideoInfo(videoId)
-	// TODO: 删除点赞通知
+	RemoveLikeMessage(videoId, userId)
 
 	return nil
 }
