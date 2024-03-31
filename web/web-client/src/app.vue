@@ -17,7 +17,11 @@ body {
 }
 
 @font-face {
-font-family: "HarmonyOS Regular";
-src: url("@/assets/fonts/HarmonyOS_Sans_SC_Regular.ttf");
+  font-family: "HarmonyOS Regular";
+  src: url("@/assets/fonts/HarmonyOS_Sans_SC_Regular.ttf");
+}
+
+a {
+  text-decoration: none;
 }
 </style>

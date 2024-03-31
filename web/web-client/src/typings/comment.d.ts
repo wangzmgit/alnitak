@@ -1,10 +1,11 @@
 interface AddCommentType {
-  vid: number,
-  content: string,
-  parentId: number,
-  replyUserId?: number,
-  replyUserName?: string,
-  at: Array<string>
+  vid: number;
+  content: string;
+  parentId: number;
+  replyUserId?: number;
+  replyUserName?: string;
+  at: string[];
+  replyContent: string;
 }
 
 

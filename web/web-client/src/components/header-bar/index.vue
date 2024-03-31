@@ -49,7 +49,7 @@
         <div class="login-btn">登录</div>
       </div>
       <!-- 图形按钮 -->
-      <nuxt-link class="icon-btn" to="/space/message">
+      <nuxt-link class="icon-btn" to="/message">
         <message-icon class="icon"></message-icon>
         <div class="icon-text">消息</div>
       </nuxt-link>

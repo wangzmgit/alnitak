@@ -158,7 +158,8 @@ const commentForm = reactive<AddCommentType>({
   parentId: 0,
   replyUserId: 0,
   replyUserName: "",
-  at: []
+  at: [],
+  replyContent: ""
 })
 
 const submitComment = async () => {
@@ -203,13 +204,16 @@ const showReplyBox = async (comment: CommentType, reply?: ReplyType) => {
   })
   comment.showReplyBox = true;
   commentForm.content = '';
+  commentForm.replyContent = "";
   commentForm.parentId = comment.id;
 
   if (reply) {
     commentForm.replyUserId = reply.author.uid;
     commentForm.replyUserName = reply.author.name;
+    commentForm.replyContent = reply.content;
     replyTip.value = `回复 @${reply.author.name}: `
   } else {
+    commentForm.replyContent = comment.content;
     replyTip.value = `回复 @${comment.author.name}: `
   }
 

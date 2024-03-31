@@ -100,7 +100,7 @@ const menuList = [
   {
     key: 'space-message',
     name: '消息',
-    to: '/space/message',
+    to: '/message/announce',
     icon: MessageIcon,
   },
   {
