@@ -125,8 +125,8 @@ func UpdateToken(ctx *gin.Context, tokenReq dto.TokenReq) (accessToken, refreshT
 }
 
 func Logout() {
-	// 删除token
-	// 移除用户cookie
+	//TODO: 删除token
+	//TODO: 移除用户cookie
 
 }
 

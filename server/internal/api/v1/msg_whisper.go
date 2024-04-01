@@ -10,9 +10,8 @@ import (
 
 // 获取消息Websocket连接
 func GetWhisperConnect(ctx *gin.Context) {
-	// userId := ctx.GetUint("userId")
 	// 升级为websocket长链接
-	// ws.MsgWsHandler(ctx.Writer, ctx.Request, userId)
+	service.GetWhisperConnect(ctx)
 }
 
 // 发送私信

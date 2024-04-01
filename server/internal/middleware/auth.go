@@ -70,3 +70,20 @@ func Auth() gin.HandlerFunc {
 		}
 	}
 }
+
+func WsAuth() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		// 读取验证token
+		tokenString := ctx.Query("token")
+		// 验证并解析token
+		_, claims, err := jwt_parse.ParseToken(tokenString)
+		if err != nil {
+			resp.Result(ctx, 2000, nil, "token验证失败")
+			ctx.Abort()
+			return
+		}
+
+		ctx.Set("userId", claims.UserId)
+		ctx.Next()
+	}
+}

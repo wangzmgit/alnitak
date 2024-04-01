@@ -24,7 +24,7 @@ func CollectMessageRoutes(r *gin.RouterGroup) {
 		messageAuth.GET("getReplyMsg", api.GetReplyMessage)
 
 		// 获取私信列表
-		messageAuth.GET("getWhisperMsg", api.GetWhisperList)
+		messageAuth.GET("getWhisperList", api.GetWhisperList)
 		// 获取私信详情
 		messageAuth.GET("getWhisperDetails", api.GetMessageDetails)
 		// 发送私信
@@ -36,5 +36,5 @@ func CollectMessageRoutes(r *gin.RouterGroup) {
 	// 获取公告
 	messageGroup.GET("getAnnounce", api.GetAnnounce)
 	// 连接消息ws
-	messageGroup.GET("ws", api.GetWhisperConnect)
+	messageGroup.GET("ws", middleware.WsAuth(), api.GetWhisperConnect)
 }

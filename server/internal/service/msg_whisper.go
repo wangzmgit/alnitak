@@ -3,7 +3,7 @@ package service
 import (
 	"encoding/json"
 	"errors"
-	"net/http"
+	"strconv"
 	"sync"
 
 	"github.com/gin-gonic/gin"
@@ -22,9 +22,10 @@ var (
 	whisperMux     sync.Mutex                               // 互斥锁
 )
 
-func GetWhisperConnect(ctx *gin.Context, w http.ResponseWriter, r *http.Request) {
+func GetWhisperConnect(ctx *gin.Context) {
 	userId := ctx.GetUint("userId")
-	conn, err := ws.CreateWsConn(w, r)
+	deleteWhisperMsgClient(userId, nil)
+	conn, err := ws.CreateWsConn(ctx.Writer, ctx.Request)
 	if err != nil {
 		utils.ErrorLog("升级websocket失败", "whisper", err.Error())
 		return
@@ -36,7 +37,8 @@ func GetWhisperConnect(ctx *gin.Context, w http.ResponseWriter, r *http.Request)
 	// 获取该客户端的消息通道
 	m, exist := getWhisperMsgChannel(userId)
 	if !exist {
-		addWhisperMsgChannel(userId, make(chan interface{}))
+		m = make(chan interface{})
+		addWhisperMsgChannel(userId, m)
 	}
 
 	// 设置客户端关闭ws链接回调函数
@@ -45,6 +47,7 @@ func GetWhisperConnect(ctx *gin.Context, w http.ResponseWriter, r *http.Request)
 		return nil
 	})
 
+	utils.InfoLog("用户("+strconv.Itoa(int(userId))+")连接成功", "whisper")
 	ws.WsHandler(conn, userId, nil, m, deleteWhisperMsgClient)
 }
 
@@ -95,7 +98,7 @@ func GetWhisperList(ctx *gin.Context) (messages []vo.WhisperGroupResp) {
 		Where("id in (?)", messageIds).Order("created_at desc").Find(&messages)
 
 	for i := 0; i < len(messages); i++ {
-		messages[i].User = GetUserBaseInfo(messages[i].Uid)
+		messages[i].User = GetUserBaseInfo(messages[i].Fid)
 	}
 
 	return
@@ -154,6 +157,9 @@ func addWhisperMsgChannel(id interface{}, m chan interface{}) {
 // 移除私信连接和管道
 func deleteWhisperMsgClient(id, groupId interface{}) {
 	whisperMux.Lock()
+	if whisperClient[id] != nil {
+		whisperClient[id].Close()
+	}
 	delete(whisperClient, id)
 	delete(whisperChannel, id)
 	whisperMux.Unlock()
