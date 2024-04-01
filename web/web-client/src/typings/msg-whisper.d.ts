@@ -5,7 +5,7 @@ interface WhisperType {
 
 interface WhisperListType {
   user: UserInfoType;
-  createdAt: string | Date;
+  createdAt: string;
   status: boolean;
 }
 
