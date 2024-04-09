@@ -4,6 +4,7 @@ import (
 	"errors"
 	"math"
 	"strconv"
+	"time"
 
 	"github.com/bwmarrin/snowflake"
 	"github.com/gin-gonic/gin"
@@ -139,6 +140,75 @@ func SetUserIdCookie(ctx *gin.Context, userId uint) {
 	ctx.SetCookie("user_id_md5", ckMd5, math.MaxInt32, "/", "", false, true)
 }
 
+// 编辑用户信息
+func EditUserInfo(ctx *gin.Context, editUserInfoReq dto.EditUserInfoReq) error {
+	userId := ctx.GetUint("userId")
+
+	// 检查用户名是否重复
+	if u, _ := FindUserByName(editUserInfoReq.Name); u.ID != 0 && u.ID != userId {
+		return errors.New("用户名已存在")
+	}
+
+	// 检测文件是否有效
+	current, _ := FindUserById(userId)
+	if editUserInfoReq.Avatar != current.Avatar && cache.GetUploadImage(editUserInfoReq.Avatar) != userId {
+		editUserInfoReq.Avatar = current.Avatar
+	}
+
+	birthday, err := time.Parse("2006-01-02", editUserInfoReq.Birthday)
+	if err != nil {
+		utils.ErrorLog("日期转换失败", "user", err.Error())
+		birthday = time.Unix(0, 0)
+	}
+	if err := global.Mysql.Model(&model.User{}).Where("id = ?", userId).Updates(
+		map[string]interface{}{
+			"avatar":   editUserInfoReq.Avatar,
+			"username": editUserInfoReq.Name,
+			"gender":   editUserInfoReq.Gender,
+			"birthday": birthday,
+			"sign":     editUserInfoReq.Sign,
+		},
+	).Error; err != nil {
+		return err
+	}
+
+	//移除缓存
+	cache.DelUserInfo(userId)
+
+	return nil
+
+}
+
+func ResetPwdCheck(ctx *gin.Context, email string) error {
+	user, _ := FindUserByEmail(email)
+	if user.ID == 0 {
+		return errors.New("用户不存在")
+	}
+
+	// 更新验证状态
+	cache.SetResetPwdCheckStatus(email, 1)
+
+	return nil
+}
+
+func ModifyPwd(ctx *gin.Context, modifyPwdReq dto.ModifyPwdReq) error {
+	if cache.GetEmailCode(modifyPwdReq.Email) != modifyPwdReq.Code { // 验证邮箱验证码
+		return errors.New("邮箱验证错误")
+	}
+
+	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(modifyPwdReq.Password), bcrypt.DefaultCost)
+	if err := global.Mysql.Model(&model.User{}).Where("email = ?", modifyPwdReq.Email).
+		Update("password", hashedPassword).Error; err != nil {
+		utils.ErrorLog("修改密码失败", "user", err.Error())
+		return errors.New("修改失败")
+	}
+
+	// 删除验证状态
+	cache.DelResetPwdCheckStatus(modifyPwdReq.Email)
+
+	return nil
+}
+
 // 获取用户信息
 func GetUserInfo(userId uint) (user vo.UserInfoResp) {
 	var err error
@@ -197,6 +267,12 @@ func FindUserInfoById(id uint) (user vo.UserInfoResp, err error) {
 // 通过用户邮箱查询用户
 func FindUserByEmail(email string) (user model.User, err error) {
 	err = global.Mysql.Where("`email` = ?", email).First(&user).Error
+	return
+}
+
+// 通过用户名查询用户
+func FindUserByName(name string) (user model.User, err error) {
+	err = global.Mysql.Where("`username` = ?", name).First(&user).Error
 	return
 }
 

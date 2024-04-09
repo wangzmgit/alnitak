@@ -87,3 +87,24 @@ func DeleteComment(ctx *gin.Context) {
 	// 返回
 	resp.Ok(ctx)
 }
+
+// 获取视频评论列表
+func GetCommentList(ctx *gin.Context) {
+	vid := utils.StringToUint(ctx.Query("vid"))
+	page := utils.StringToInt(ctx.Query("page"))
+	pageSize := utils.StringToInt(ctx.Query("pageSize"))
+
+	if pageSize > 100 {
+		resp.FailWithMessage(ctx, "请求数量过多")
+		return
+	}
+
+	comments, total, err := service.GetCommentList(ctx, vid, page, pageSize)
+	if err != nil {
+		resp.FailWithMessage(ctx, err.Error())
+		return
+	}
+
+	// 返回
+	resp.OkWithData(ctx, gin.H{"comments": comments, "total": total})
+}

@@ -32,3 +32,20 @@ type RegisterReq struct {
 	// 验证ID
 	CaptchaId string
 }
+
+// 编辑用户信息
+type EditUserInfoReq struct {
+	Avatar   string
+	Name     string
+	Gender   int
+	Birthday string
+	Sign     string
+}
+
+// 修改用户密码
+type ModifyPwdReq struct {
+	Email     string
+	Password  string
+	Code      string
+	CaptchaId string
+}

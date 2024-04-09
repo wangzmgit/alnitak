@@ -11,8 +11,8 @@ import (
 func GetReplyMessage(ctx *gin.Context, page, pageSize int) (total int64, msg []vo.ReplyMessageResp) {
 	userId := ctx.GetUint("userId")
 
-	global.Mysql.Model(&model.ReplyMessage{}).Where("uid = ?", userId).Count(&total)
-	global.Mysql.Model(&model.ReplyMessage{}).Where("uid = ?", userId).Limit(pageSize).Offset((page - 1) * pageSize).Scan(&msg)
+	global.Mysql.Model(&model.ReplyMessage{}).Where("uid = ? and sid != ?", userId, userId).Count(&total)
+	global.Mysql.Model(&model.ReplyMessage{}).Where("uid = ? and sid != ?", userId, userId).Limit(pageSize).Offset((page - 1) * pageSize).Scan(&msg)
 	for i := 0; i < len(msg); i++ {
 		msg[i].User = GetUserInfo(msg[i].Sid)
 		msg[i].Video = GetVideoInfo(msg[i].Vid)
@@ -43,13 +43,11 @@ func InsertReplyMessage(addCommentReq dto.AddCommentReq, commentId, userId uint)
 		// 通知给视频作者
 		video := GetVideoInfo(addCommentReq.Vid)
 		msg.Uid = video.Uid
-	} else if addCommentReq.ReplyUserID != 0 {
-		// 通知给回复目标
-		msg.Uid = addCommentReq.ReplyUserID
 	}
 
-	if msg.Uid == msg.Sid {
-		return nil
+	if addCommentReq.ReplyUserID != 0 {
+		// 通知给回复目标
+		msg.Uid = addCommentReq.ReplyUserID
 	}
 
 	return global.Mysql.Create(&msg).Error

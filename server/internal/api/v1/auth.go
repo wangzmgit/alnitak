@@ -15,14 +15,12 @@ func Register(ctx *gin.Context) {
 	// 获取参数
 	var registerReq dto.RegisterReq
 	if err := ctx.Bind(&registerReq); err != nil {
-		ctx.Set("msg", "请求参数有误")
 		resp.FailWithMessage(ctx, "请求参数有误")
 		return
 	}
 
 	// 参数校验
 	if !utils.VerifyEmail(registerReq.Email) {
-		ctx.Set("msg", "邮箱格式错误")
 		resp.FailWithMessage(ctx, "邮箱格式错误")
 		return
 	}
@@ -65,13 +63,14 @@ func Login(ctx *gin.Context) {
 		resp.FailWithMessage(ctx, "密码长度不能小于6位")
 		return
 	}
-
 	// 如果人机验证通过，删除登录尝试次数
-	if cache.GetCaptchaStatus(loginReq.CaptchaId) == global.CAPTCHA_STATUS_PASS {
-		// 删除登录尝试次数
-		cache.DelLoginTryCount(loginReq.Email)
-		// 删除人机验证状态
-		cache.DelCaptchaStatus(loginReq.CaptchaId)
+	if utils.VerifyStringLength(loginReq.CaptchaId, ">", 0) {
+		if cache.GetCaptchaStatus(loginReq.CaptchaId) == global.CAPTCHA_STATUS_PASS {
+			// 删除登录尝试次数
+			cache.DelLoginTryCount(loginReq.Email)
+			// 删除人机验证状态
+			cache.DelCaptchaStatus(loginReq.CaptchaId)
+		}
 	}
 
 	// 读取登录尝试次数，超过3次进行滑块验证

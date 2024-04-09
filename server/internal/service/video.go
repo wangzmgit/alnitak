@@ -31,6 +31,7 @@ func UploadVideoInfo(ctx *gin.Context, uploadVideoReq dto.UploadVideoReq) (uint,
 		Title:       uploadVideoReq.Title,
 		Cover:       uploadVideoReq.Cover,
 		Desc:        uploadVideoReq.Desc,
+		Tags:        uploadVideoReq.Tags,
 		Copyright:   uploadVideoReq.Copyright,
 		PartitionId: uploadVideoReq.PartitionId,
 		Status:      global.CREATED_VIDEO,
@@ -113,15 +114,53 @@ func GetUploadVideoList(ctx *gin.Context, page, pageSize int) (total int64, vide
 	return
 }
 
-// 通过视频ID查询视频
-func FindVideoById(id uint) (video model.Video, err error) {
-	err = global.Mysql.Where("`id` = ?", id).First(&video).Error
-	return
+func EditVideoInfo(ctx *gin.Context, editVideoReq dto.EditVideoReq) error {
+	userId := ctx.GetUint("userId")
+	if cache.GetUploadImage(editVideoReq.Cover) != userId {
+		return errors.New("文件链接无效")
+	}
+
+	if err := global.Mysql.Model(&model.Video{}).Where("id = ?", editVideoReq.Vid).Updates(
+		map[string]interface{}{
+			"title":     editVideoReq.Title,
+			"cover":     editVideoReq.Cover,
+			"desc":      editVideoReq.Desc,
+			"tags":      editVideoReq.Tags,
+			"copyright": editVideoReq.Copyright,
+			"status":    global.WAITING_REVIEW,
+		},
+	).Error; err != nil {
+		utils.ErrorLog("修改视频失败", "video", err.Error())
+		return errors.New("修改失败")
+	}
+
+	// 删除视频信息缓存
+	cache.DelVideoInfo(editVideoReq.Vid)
+
+	return nil
+}
+
+func DeleteVideo(ctx *gin.Context, id uint) error {
+	var video model.Video
+	userId := ctx.GetUint("userId")
+	global.Mysql.Model(&model.Video{}).Where("id = ? and uid = ?", id, userId).First(&video)
+	if video.ID == 0 {
+		return errors.New("视频不存在")
+	}
+
+	if err := global.Mysql.Where("id = ?", id).Delete(&model.Video{}).Error; err != nil {
+		utils.ErrorLog("删除视频失败", "video", err.Error())
+		return errors.New("删除视频失败")
+	}
+
+	// 删除视频信息缓存
+	cache.DelVideoInfo(id)
+
+	return nil
 }
 
 // 获取视频信息
 func GetVideoById(ctx *gin.Context, videoId uint) (vo.VideoResp, error) {
-
 	video := GetVideoInfo(videoId)
 	if video.ID == 0 {
 		return video, errors.New("视频信息不存在")
@@ -132,6 +171,20 @@ func GetVideoById(ctx *gin.Context, videoId uint) (vo.VideoResp, error) {
 	video.Clicks = GetVideoClicks(video.ID)
 
 	return video, nil
+}
+
+// 获取所有的视频列表
+func GetAllVideoList(ctx *gin.Context) (videos []vo.AllVideoResp) {
+	userId := ctx.GetUint("userId")
+	global.Mysql.Model(&model.Video{}).Select("`id`,`title`").Where("uid = ?", userId).Scan(&videos)
+
+	return
+}
+
+// 通过视频ID查询视频
+func FindVideoById(id uint) (video model.Video, err error) {
+	err = global.Mysql.Where("`id` = ?", id).First(&video).Error
+	return
 }
 
 // 获取视频信息

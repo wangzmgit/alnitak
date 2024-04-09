@@ -27,3 +27,7 @@ func SetVideoInfo(video vo.VideoResp) {
 
 	global.Redis.Set(VIDEO_INFO_KEY+utils.UintToString(video.ID), ub, VIDEO_INFO_EXPIRATION_TIME)
 }
+
+func DelVideoInfo(id uint) {
+	global.Redis.Del(VIDEO_INFO_KEY + utils.UintToString(id))
+}

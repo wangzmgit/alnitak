@@ -79,3 +79,9 @@ const VIDEO_INFO_KEY = "video_info_key:"
 
 // 用户信息过期时间 n 小时
 const VIDEO_INFO_EXPIRATION_TIME = time.Hour * time.Duration(120)
+
+// 重置密码验证状态
+const RESET_PWD_CHECK_KEY = "reset_pwd_check_key:"
+
+// 重置密码验证状态过期时间 n 分钟
+const RESET_PWD_CHECK_EXPRIRATION_TIME = time.Minute * time.Duration(30)

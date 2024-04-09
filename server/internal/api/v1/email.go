@@ -26,10 +26,15 @@ func SendRegisterEmailCode(ctx *gin.Context) {
 		return
 	}
 
+	if utils.VerifyStringLength(sendEmailReq.CaptchaId, "=", 0) {
+		captchaId := cache.CreateCaptchaStatus()
+		resp.Result(ctx, -1, gin.H{"captchaId": captchaId}, "需要人机验证")
+		return
+	}
+
 	// 如果未进行人机验证
 	if cache.GetCaptchaStatus(sendEmailReq.CaptchaId) == global.CAPTCHA_STATUS_ABSENT {
 		captchaId := cache.CreateCaptchaStatus()
-
 		resp.Result(ctx, -1, gin.H{"captchaId": captchaId}, "需要人机验证")
 		return
 	}

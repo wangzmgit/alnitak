@@ -112,6 +112,33 @@ func DeleteComment(ctx *gin.Context, id uint) error {
 	return nil
 }
 
+// 获取评论列表
+func GetCommentList(ctx *gin.Context, vid uint, page, pageSize int) ([]vo.CommentListResp, int64, error) {
+	userId := ctx.GetUint("userId")
+
+	db := global.Mysql.Model(&model.ReplyMessage{})
+	if vid != 0 {
+		if video, _ := FindVideoById(vid); video.Uid != userId {
+			return nil, 0, errors.New("视频不存在")
+		}
+		db = db.Where("vid = ?", vid)
+	} else {
+		db = db.Where("vid in (?)", global.Mysql.Model(&model.Video{}).Select("id").Where("uid = ?", userId))
+	}
+
+	var total int64
+	var comments []vo.CommentListResp
+	db.Count(&total)
+	db.Limit(pageSize).Offset((page - 1) * pageSize).Scan(&comments)
+	for i := 0; i < len(comments); i++ {
+		comments[i].Author = GetUserInfo(comments[i].Sid)
+		comments[i].TargetUser = GetUserInfo(comments[i].Uid)
+		comments[i].Video = GetVideoInfo(comments[i].Vid)
+	}
+
+	return comments, total, nil
+}
+
 func FindCommentById(id uint) (comment model.Comment, err error) {
 	err = global.Mysql.First(&comment, id).Error
 	return

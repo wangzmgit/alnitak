@@ -8,12 +8,18 @@ import (
 	"interastral-peace.com/alnitak/internal/domain/vo"
 	"interastral-peace.com/alnitak/internal/global"
 	"interastral-peace.com/alnitak/internal/resp"
+	"interastral-peace.com/alnitak/utils"
 )
 
 // 获取滑块验证码
 func GetSliderCaptcha(ctx *gin.Context) {
 	//获取参数
 	captchaId := ctx.DefaultQuery("captchaId", "")
+
+	if utils.VerifyStringLength(captchaId, "=", 0) {
+		resp.FailWithMessage(ctx, "获取失败")
+		return
+	}
 
 	// 参数校验
 	if cache.GetCaptchaStatus(captchaId) != global.CAPTCHA_STATUS_NOT_USED {

@@ -43,3 +43,8 @@ type UploadVideoResp struct {
 	CreatedAt time.Time `json:"createdAt"`
 	Clicks    int64     `json:"clicks" gorm:"-"`
 }
+
+type AllVideoResp struct {
+	ID    uint   `json:"vid"`
+	Title string `json:"title"`
+}

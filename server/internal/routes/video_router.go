@@ -13,13 +13,19 @@ func CollectVideoRoutes(r *gin.RouterGroup) {
 	videoAuth.Use(middleware.Auth())
 	{
 		// 上传视频信息
-		videoAuth.POST("/uploadVideoInfo", api.UploadVideoInfo)
+		videoAuth.POST("uploadVideoInfo", api.UploadVideoInfo)
 		// 获取上传视频状态信息
-		videoAuth.GET("/getVideoStatus", api.GetVideoStatus)
+		videoAuth.GET("getVideoStatus", api.GetVideoStatus)
 		// 提交审核
-		videoAuth.POST("/submitReview", api.SubmitReview)
+		videoAuth.POST("submitReview", api.SubmitReview)
 		// 获取上传的视频
-		videoAuth.GET("/getUploadVideo", api.GetUploadVideoList)
+		videoAuth.GET("getUploadVideo", api.GetUploadVideoList)
+		// 编辑视频信息
+		videoAuth.PUT("editVideoInfo", api.EditVideoInfo)
+		// 删除视频
+		videoAuth.DELETE("deleteVideo/:id", api.DeleteVideo)
+		// 获取所有的视频列表
+		videoAuth.GET("getAllVideoList", api.GetAllVideoList)
 	}
 
 	// 获取视频信息

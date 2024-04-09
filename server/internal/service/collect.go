@@ -84,13 +84,19 @@ func GetCollectVideo(ctx *gin.Context, collectionId uint, page, pageSize int) (t
 		return total, videos, errors.New("收藏夹不存在")
 	}
 
-	global.Mysql.Model(&model.Collect{}).Where("id = ? and uid = ?", collectionId, userId).Count(&total)
-	videoIds := global.Mysql.Model(&model.Collect{}).Select("vid").
-		Where("id = ? and uid = ?", collectionId, userId).Limit(pageSize).Offset((page - 1) * pageSize)
+	var videoIds []uint
+	global.Mysql.Model(&model.Collect{}).Where("collection_id = ? and uid = ?", collectionId, userId).Count(&total)
+	global.Mysql.Model(&model.Collect{}).Where("collection_id = ? and uid = ?", collectionId, userId).
+		Limit(pageSize).Offset((page-1)*pageSize).Pluck("vid", &videoIds)
 	if err := global.Mysql.Model(&model.Video{}).Select(vo.VIDEO_FIELD).
 		Where("id in (?)", videoIds).Scan(&videos).Error; err != nil {
 		utils.ErrorLog("获取收藏视频失败", "collect", err.Error())
 		return total, videos, errors.New("获取失败")
+	}
+
+	for i := 0; i < len(videos); i++ {
+		videos[i].Author = GetUserBaseInfo(videos[i].Uid)
+		videos[i].Clicks = GetVideoClicks(videos[i].ID)
 	}
 
 	return

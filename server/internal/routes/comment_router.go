@@ -16,6 +16,8 @@ func CollectCommentRoutes(r *gin.RouterGroup) {
 		commentAuth.POST("/addComment", api.AddComment)
 		// 删除评论或回复
 		commentAuth.DELETE("/deleteComment/:id", api.DeleteComment)
+		// 获取评论列表
+		commentAuth.GET("getCommentList", api.GetCommentList)
 	}
 
 	// 获取评论

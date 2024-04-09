@@ -27,3 +27,7 @@ func SetUserInfo(user vo.UserInfoResp) {
 
 	global.Redis.Set(USER_INFO_KEY+utils.UintToString(user.ID), ub, USER_INFO_EXPIRATION_TIME)
 }
+
+func DelUserInfo(id uint) {
+	global.Redis.Del(USER_INFO_KEY + utils.UintToString(id))
+}

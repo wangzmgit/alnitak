@@ -94,3 +94,48 @@ func GetVideoById(ctx *gin.Context) {
 	// 返回给前端
 	resp.OkWithData(ctx, gin.H{"video": video})
 }
+
+// 获取所有的视频列表
+func GetAllVideoList(ctx *gin.Context) {
+	videos := service.GetAllVideoList(ctx)
+
+	// 返回给前端
+	resp.OkWithData(ctx, gin.H{"videos": videos})
+}
+
+// 编辑视频信息
+func EditVideoInfo(ctx *gin.Context) {
+	var editVideoReq dto.EditVideoReq
+	if err := ctx.Bind(&editVideoReq); err != nil {
+		resp.FailWithMessage(ctx, "请求参数有误")
+		return
+	}
+
+	// 参数校验
+	if utils.VerifyStringLength(editVideoReq.Title, "=", 0) {
+		resp.FailWithMessage(ctx, "视频标题不能为空")
+		return
+	}
+
+	if err := service.EditVideoInfo(ctx, editVideoReq); err != nil {
+		resp.FailWithMessage(ctx, err.Error())
+		return
+	}
+
+	// 返回给前端
+	resp.Ok(ctx)
+}
+
+// 删除视频
+func DeleteVideo(ctx *gin.Context) {
+	// 获取参数
+	id := utils.StringToUint(ctx.Param("id"))
+
+	if err := service.DeleteVideo(ctx, id); err != nil {
+		resp.FailWithMessage(ctx, err.Error())
+		return
+	}
+
+	// 返回
+	resp.Ok(ctx)
+}
