@@ -1,6 +1,6 @@
 <template>
   <div class="login-form">
-    <form-tabs :tabs="tabs" @tab-change="tabChange"></form-tabs>
+    <base-tabs :tabs="tabs" @tab-change="tabChange"></base-tabs>
     <div class="login-panel">
       <div v-if="currentTab === 'account'" class="input-group">
         <div class="input-box">
@@ -38,11 +38,11 @@
 </template>
 
 <script setup lang="ts">
-import FormTabs from "./FormTabs.vue";
 import { isEmail } from "@/utils/format";
 import { loginAPI, emailLoginAPI } from "@/api/auth";
 import type { AxiosResponse } from "axios";
-import { getUserInfoAPI } from "~/api/user";
+import { getUserInfoAPI } from "@/api/user";
+import BaseTabs from "@/components/base-tabs/index.vue";
 
 const emit = defineEmits(["success"]);
 

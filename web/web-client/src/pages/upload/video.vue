@@ -2,11 +2,10 @@
   <div class="video-upload">
     <steps class="step" :data="stepsData" :current="current" :status="currentStatus"></steps>
     <div class="upload-center">
-      <upload-video-info v-if="current === 1" @finish="infoFinish" />
+      <upload-video-info v-if="current === 1" :info="videoInfo" @finish="infoFinish" />
       <upload-video-file v-else-if="current === 2" :vid="videoInfo.vid" :resources="videoInfo.resources"
         @review="videoFinish" />
-      <el-result v-else class="result" :title="getStatusText(videoInfo.status)"
-        :status="getStatusIcon(videoInfo.status)">
+      <el-result v-else class="result" :title="getStatusText(videoInfo.status)" :status="getStatusIcon(videoInfo.status)">
         <template #extra>
           <div v-if="[reviewCode.WRONG_VIDEO_CONTENT, reviewCode.WRONG_VIDEO_INFO].includes(videoInfo.status)">
             <el-button @click="modify">编辑</el-button>
@@ -86,8 +85,9 @@ const videoInfo = ref<VideoStatusType>({
   title: "",
   cover: "",
   desc: "",
+  tags: "",
   copyright: false,
-  partition: 0,
+  partitionId: 0,
   resources: [],
   createdAt: ""
 });

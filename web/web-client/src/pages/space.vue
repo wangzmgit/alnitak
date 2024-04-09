@@ -36,8 +36,8 @@
       </div>
       <div class="space-content">
         <div class="space-menu">
-          <nuxt-link v-for="item in menuList" :to="item.to" class="menu-item"
-            :class="route.name === item.key ? 'menu-item-active' : ''">
+          <nuxt-link v-for="item in menuList" :to="item.to" class="menu-item" :target="item.blank ? '_blank' : '_self'"
+            :class="getMenuName(route.name) === item.key ? 'menu-item-active' : ''">
             <span class="menu-icon">
               <component :is="item.icon" size="18"></component>
             </span>
@@ -53,15 +53,16 @@
 </template>
 
 <script setup lang="ts">
+import { storeToRefs } from 'pinia';
 import HeaderBar from '@/components/header-bar/index.vue';
 import CommonAvatar from '@/components/common-avatar/index.vue';
+import { useVideoCountStore } from "@/composables/video-count-store";
+import { getUserInfoAPI, asyncGetUserBaseInfoAPI } from '@/api/user';
 import {
   Male, Female, VideoTwo, FolderFocus, Upload as UploadIcon,
   History as HistoryIcon, Message as MessageIcon, Config
 } from '@icon-park/vue-next';
-import { useVideoCountStore } from "@/composables/video-count-store";
-import { getUserBaseInfoAPI, asyncGetUserBaseInfoAPI } from '@/api/user';
-import { storeToRefs } from 'pinia';
+import type { RouteRecordName } from 'vue-router';
 
 definePageMeta({
   middleware: ['auth', (to) => {
@@ -95,12 +96,14 @@ const menuList = [
     key: 'upload-video',
     name: '创作中心',
     to: '/upload/video',
+    blank: true,
     icon: UploadIcon,
   },
   {
     key: 'space-message',
     name: '消息',
     to: '/message/announce',
+    blank: true,
     icon: MessageIcon,
   },
   {
@@ -124,8 +127,23 @@ useHead({
   title: `${userInfo.value?.name}的个人中心`
 })
 
-onBeforeMount(() => {
-  console.log('userInfo.value', userInfo.value)
+const getMenuName = (name: RouteRecordName | null | undefined) => {
+  if (name === "space-setting-info" || name === "space-setting-security") {
+    return "space-setting"
+  }
+
+  return name;
+}
+
+onMounted(async () => {
+  // 处理跳转页面回来用户信息为空的问题
+  if (!userInfo.value || userInfo.value.uid === 0) {
+    const res = await getUserInfoAPI();
+    if (res.data.code === statusCode.OK) {
+      userInfo.value = res.data.data.userInfo;
+      document.title = `${userInfo.value?.name}的个人中心`;
+    }
+  }
 })
 </script>
 

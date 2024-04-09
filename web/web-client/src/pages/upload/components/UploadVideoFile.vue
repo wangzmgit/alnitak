@@ -149,8 +149,7 @@ const modifyTitle = async (resource: ResourceType) => {
 .video-box {
   width: 80%;
   margin: 0 auto;
-  padding-bottom: 30px;
-
+  padding-bottom: 10px;
 
   .video-item {
     height: 50px;
@@ -193,10 +192,11 @@ const modifyTitle = async (resource: ResourceType) => {
 }
 
 .upload-next-btn {
-  float: right;
-  margin: 10px 20px 20px;
+  width: 80%;
+  margin: 0 auto;
 
   button {
+    float: right;
     width: 160px;
     height: 40px;
   }

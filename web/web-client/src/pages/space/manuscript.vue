@@ -3,10 +3,10 @@
     <p class="video-title">我的视频</p>
     <ul ref="videoListRef" class="video-list">
       <li class="video-item" v-for="item in videoList">
-        <div class="cover">
+        <nuxt-link class="cover" :to="`/video/${item.vid}`">
           <img class="img" :src="getResourceUrl(item.cover)" />
-        </div>
-        <nuxt-link class="title">{{ item.title }}</nuxt-link>
+        </nuxt-link>
+        <nuxt-link class="title" :to="`/video/${item.vid}`">{{ item.title }}</nuxt-link>
         <div class="meta">
           <div class="play-count">
             <el-icon size="16" :style="{ marginRight: '4px' }">
@@ -19,13 +19,14 @@
       </li>
     </ul>
     <div v-show="showPagination" class="pagination">
-      <el-pagination background layout="prev, pager, next" :page="page" :page-size="pageSize" :total="total" />
+      <el-pagination background layout="prev, pager, next" :page="page" :page-size="pageSize" :total="total"
+        @current-change="pageChange" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onBeforeMount } from 'vue';
+import { ref } from 'vue';
 import { getUploadVideoAPI } from "@/api/video";
 import { ElIcon } from 'element-plus';
 import PlayCountIcon from "@/components/icons/PlayCountIcon.vue";
@@ -35,7 +36,7 @@ import { useVideoCountStore } from '@/composables/video-count-store';
 const page = ref(1);
 const total = ref(0);
 const pageSize = ref(8);
-const showPagination = ref(true);
+const showPagination = ref(false);
 const videoCountStore = useVideoCountStore();
 const videoList = ref<ManuscriptVideoType[]>([]);
 const videoListRef = ref<HTMLElement>();
@@ -50,18 +51,11 @@ const getUploadVideo = async () => {
   }
 }
 
-
-const goVideoPage = (review: number, vid: number) => {
-  //   if (review === reviewCode.AUDIT_APPROVED) {
-  //     router.push({ name: "Video", params: { vid: vid } });
-  //   }
-}
-
 //页码改变
-// const pageChange = (target: number) => {
-//   page.value = target;
-//   getMyVideo();
-// }
+const pageChange = (target: number) => {
+  page.value = target;
+  getUploadVideo();
+}
 
 const sizeChange = () => {
   if (videoListRef.value!.clientWidth === 1076) {
@@ -70,9 +64,6 @@ const sizeChange = () => {
     pageSize.value = 15;
   }
 }
-
-onBeforeMount(() => {
-})
 
 onMounted(() => {
   sizeChange();

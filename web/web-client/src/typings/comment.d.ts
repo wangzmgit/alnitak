@@ -39,3 +39,14 @@ interface ReplyType {
   replyUserId: number;
   replyUserName: string;
 }
+
+interface CommentManageType {
+  video: BaseVideoType;
+  author: UserInfoType;
+  target: UserInfoType;
+  createdAt: string;
+  content: string;
+  targetReplyContent: string;
+  rootContent: string;
+  commentId: string;
+}

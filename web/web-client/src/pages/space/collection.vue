@@ -7,11 +7,11 @@
           <img v-if="item.cover" :src="item.cover" alt="视频封面">
         </div>
         <div class="info-box">
-          <div class="info-title">{{ item.name }}</div>
+          <nuxt-link class="info-title" :to="`/collection/${item.id}`">{{ item.name }}</nuxt-link>
           <div class="info-desc">{{ item.desc }}</div>
           <div class="info-meta">
             <span class="open">{{ item.open ? '公开' : '私密' }}</span>
-            <span class="time">{{ formatTime(item.createdAt) }}</span>
+            <span v-if="item.createdAt" class="time">{{ formatTime(item.createdAt) }}</span>
           </div>
         </div>
         <el-dropdown>
@@ -58,7 +58,7 @@ const editCollection = (collection: CollectionType) => {
 const editFinish = (collection: EditCollectionType) => {
   const index = collectionList.value.findIndex(item => item.id === collection.id);
   if (index !== -1) {
-    collectionList.value[index].name = collection.name;
+    collectionList.value[index].name = collection.name || "";
     collectionList.value[index].cover = collection.cover;
     collectionList.value[index].desc = collection.desc;
     collectionList.value[index].open = collection.open;
@@ -98,6 +98,7 @@ onBeforeMount(() => {
 
 .collection-list {
   list-style: none;
+  padding: 0;
 
   .collection-item {
     display: flex;
@@ -124,13 +125,19 @@ onBeforeMount(() => {
       height: 100px;
 
       .info-title {
-        font-size: 18px;
+        display: block;
+        color: #1f2225;
+        font-size: 16px;
         height: 20px;
         line-height: 20px;
         margin-bottom: 10px;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+
+        &:hover {
+          color: var(--primary-hover-color);
+        }
       }
 
       .info-desc {

@@ -44,77 +44,12 @@ const menuList = [
     icon: VideoIcon,
   },
   {
-    key: 'upload-comment',
+    key: 'upload-comment-manage',
     name: '评论管理',
-    to: '/upload/comment',
+    to: '/upload/comment-manage',
     icon: CommentIcon,
   },
 ]
-// const route = useRoute();
-
-// const { renderIcon } = useRenderIcon();
-// const defaultOption = ref('');//默认激活菜单
-// const menuOptions = [
-//   {
-//     label: () =>
-//       h(
-//         RouterLink,
-//         {
-//           to: {
-//             name: "UploadVideo",
-//           }
-//         },
-//         { default: () => t("upload.publishVideo") }
-//       ),
-//     key: "upload",
-//     icon: renderIcon(Upload),
-//   },
-//   {
-//     label: () =>
-//       h(
-//         RouterLink,
-//         {
-//           to: {
-//             name: "VideoManage",
-//           }
-//         },
-//         { default: () => t("upload.manuscriptManagement") }
-//       ),
-//     key: "content",
-//     icon: renderIcon(Video),
-//   },
-//   {
-//     label: () =>
-//       h(
-//         RouterLink,
-//         {
-//           to: {
-//             name: "CommentManage",
-//           }
-//         },
-//         { default: () => t("upload.commentManagement") }
-//       ),
-//     key: "comment",
-//     icon: renderIcon(Comment),
-//   },
-// ];
-
-// onBeforeMount(() => {
-//   switch (route.name) {
-//     case 'UploadVideo':
-//       defaultOption.value = 'upload';
-//       break;
-//     case 'VideoManage':
-//       defaultOption.value = 'content';
-//       break;
-//     case 'CommentManage':
-//       defaultOption.value = 'comment';
-//       break;
-//     default:
-//       defaultOption.value = 'upload';
-//       break;
-//   }
-// })
 </script>
 
 <style lang="scss" scoped>
@@ -134,7 +69,7 @@ const menuList = [
 
   .upload-container {
     margin-top: 70px;
-    height: calc(100% - 80px);
+    height: calc(100% - 40px);
 
     .upload-menu-container {
       position: fixed;

@@ -1,10 +1,10 @@
 <template>
   <ul class="video-list">
     <li class="video-item" v-for="item in videoList">
-      <div class="cover">
+      <nuxt-link class="cover" :to="`/video/${item.vid}`">
         <img class="img" :src="getResourceUrl(item.cover)" />
-      </div>
-      <nuxt-link class="title">{{ item.title }}</nuxt-link>
+      </nuxt-link>
+      <nuxt-link class="title" :to="`/video/${item.vid}`">{{ item.title }}</nuxt-link>
       <div class="meta">
         <div class="play-count">
           <span class="time">看到 {{ toDuration(item.time) }}</span>

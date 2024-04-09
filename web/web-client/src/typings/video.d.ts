@@ -11,15 +11,27 @@ interface UploadVideoType {
   title: string;
   cover: string;
   desc: string;
+  tags: string;
   copyright: boolean;
   partitionId: number;
 }
 
+// 编辑视频
+interface EditVideoType {
+  vid: number;
+  title: string;
+  cover: string;
+  desc: string;
+  tags: string;
+  copyright: boolean;
+}
+
 // 视频状态
 interface VideoStatusType extends BaseVideoType {
+  tags: string;
   status: number;
   copyright: boolean;
-  partition: number;
+  partitionId: number;
   resources: ResourceType[];
 }
 
@@ -30,11 +42,16 @@ interface ManuscriptVideoType extends BaseVideoType {
 }
 
 // 视频信息
-// 视频信息
 interface VideoType extends BaseVideoType {
   tags: string;
   clicks: number;
   copyright: boolean;
   author: UserInfoType;
   resources: ResourceType[];
+}
+
+// 全部视频列表
+interface AllVideoType  {
+  vid: number;
+  title: string;
 }

@@ -228,6 +228,10 @@ onBeforeUnmount(() => {
       font-size: 15px;
       line-height: 24px;
       overflow: hidden;
+
+      .desc-info-text {
+        white-space: pre-line;
+      }
     }
 
     .toggle-btn {

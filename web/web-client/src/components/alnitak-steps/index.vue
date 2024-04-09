@@ -28,7 +28,7 @@ import { Close as CloseIcon, Check as CheckIcon } from "@icon-park/vue-next";
 
 const props = withDefaults(defineProps<{
   current: number,
-  status: string,
+  status?: string,
   data: string[]
 }>(), {
   status: "process",

@@ -17,6 +17,7 @@ const props = defineProps<{
     key: string;
     label: string;
   }>
+  current?: string;
 }>();
 
 const refMap = new Map<string, any>();
@@ -26,14 +27,17 @@ const setRefMap = (key: string, el: any) => {
 
 const barWidth = ref(0);
 const barLeft = ref(0);
-const currentTab = ref('')
+const currentTab = ref(props.current || "")
 const tabChange = (tab: string) => {
   currentTab.value = tab;
-  const tabDom = refMap.get(tab);
+  resize();
+  emit("tabChange", currentTab.value);
+}
+
+const resize = () => {
+  const tabDom = refMap.get(currentTab.value);
   barWidth.value = tabDom.clientWidth;
   barLeft.value = tabDom.offsetLeft;
-
-  emit("tabChange", currentTab.value);
 }
 
 
@@ -41,6 +45,11 @@ onMounted(() => {
   if (props.tabs[0]) {
     tabChange(props.tabs[0].key)
   }
+  window.addEventListener("resize", resize);
+})
+
+onBeforeUnmount(()=>{
+  window.removeEventListener("resize", resize);
 })
 </script>
 

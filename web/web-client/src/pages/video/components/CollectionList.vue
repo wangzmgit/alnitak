@@ -15,7 +15,7 @@
                 <span class="open">[{{ item.open ? '公开' : '私有' }}]</span>
               </div>
               <div class="item-right">
-                <el-checkbox v-model="item.checked" @click="checkboxClick"/>
+                <el-checkbox v-model="item.checked" @click="checkboxClick" />
               </div>
             </li>
           </ul>
@@ -60,7 +60,9 @@ const collectionList = ref<CollectionType[]>([]);
 const getCollectionList = async () => {    //获取收藏夹列表
   const res = await getCollectionListAPI();
   if (res.data.code === statusCode.OK) {
-    collectionList.value = res.data.data.collections;
+    if (res.data.data.collections) {
+      collectionList.value = res.data.data.collections;
+    }
   }
 }
 
@@ -84,7 +86,7 @@ const collectionClick = (collection: CollectionType) => {
   collection.checked = !collection.checked;
 }
 
-const checkboxClick = (e:Event)=>{
+const checkboxClick = (e: Event) => {
   e.stopPropagation();
 }
 
@@ -97,7 +99,7 @@ const changeAdd = () => {
   if (isAdd.value) {
     //此时input不存在，无法修改焦点
     nextTick(() => {
-      addInput.value!.focus();
+      addInput.value?.focus();
     })
   }
 }
@@ -112,7 +114,7 @@ const addCollection = async () => {
   const res = await addCollectionAPI(collectionName.value);
   if (res.data.code === statusCode.OK) {
     collectionList.value.push({
-      id: res.data.data.id,
+      id: res.data.data.id as number,
       cover: "",
       name: collectionName.value,
       desc: "",
