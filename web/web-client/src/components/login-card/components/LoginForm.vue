@@ -139,8 +139,8 @@ const handelLoginRes = async (res: AxiosResponse<any, any>) => {
       showCaptcha.value = true;
       break;
     case statusCode.OK:
-      storageData.set("token", res.data.data.token, 5);
-      storageData.set("refreshToken", res.data.data.refreshToken, 14 * 24 * 60);
+      storageData.set("token", res.data.data.token, 60);
+      storageData.set("refreshToken", res.data.data.refreshToken, 7 * 24 * 60);
 
       emit("success");
       break;

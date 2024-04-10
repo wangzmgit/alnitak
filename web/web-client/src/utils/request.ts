@@ -36,8 +36,8 @@ service.interceptors.request.use(async (config) => {
             const token = tokenRes.data.data.token;
             const refreshToken = tokenRes.data.data.refreshToken;
 
-            storage.set("token", token, 5);
-            storage.set("refreshToken", refreshToken, 14 * 24 * 60);
+            storage.set("token", token, 60);
+            storage.set("refreshToken", refreshToken, 7 * 24 * 60);
             config.headers.Authorization = token;
 
             //token刷新前的401请求队列重试
@@ -85,8 +85,8 @@ service.interceptors.response.use(async (res) => {
               const token = tokenRes.data.data.token;
               const refreshToken = tokenRes.data.data.refreshToken;
 
-              storage.set("token", token, 5);
-              storage.set("refreshToken", refreshToken, 14 * 24 * 60);
+              storage.set("token", token, 60);
+              storage.set("refreshToken", refreshToken, 7 * 24 * 60);
               res.config.headers.Authorization = token;
 
               //token刷新前的401请求队列重试
