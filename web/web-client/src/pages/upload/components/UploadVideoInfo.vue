@@ -198,7 +198,7 @@ onMounted(async () => {
 
 <style lang="scss" scoped>
 .uploader {
-  margin: 50px auto;
+  margin: 30px auto;
 }
 
 .uploader-skeleton {
@@ -224,7 +224,6 @@ onMounted(async () => {
 
   .tag-input {
     width: 80px;
-
   }
 }
 
@@ -234,7 +233,6 @@ onMounted(async () => {
 
   .upload-next-btn {
     float: right;
-    margin-bottom: 20px;
 
     button {
       width: 160px;

@@ -88,7 +88,7 @@ const changeUpload = (status: string, data?: any) => {
 <style lang="scss" scoped>
 .video-uploader {
   width: 350px;
-  margin: 50px auto;
+  margin: 30px auto;
 
   .upload-tips {
     padding: 24px;

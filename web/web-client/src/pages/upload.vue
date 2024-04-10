@@ -69,7 +69,7 @@ const menuList = [
 
   .upload-container {
     margin-top: 70px;
-    height: calc(100% - 40px);
+    height: calc(100% - 80px);
 
     .upload-menu-container {
       position: fixed;

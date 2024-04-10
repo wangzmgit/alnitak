@@ -2,7 +2,7 @@
   <div class="upload-video">
     <video-uploader :vid="vid" @finish="finishUpload"></video-uploader>
     <div class="video-box">
-      <el-scrollbar height="300px">
+      <el-scrollbar height="310px">
         <div class="video-item" v-for="(item, index) in resourceList">
           <span class="part"> P{{ index + 1 }} </span>
           <div class="title-box">
@@ -152,8 +152,8 @@ const modifyTitle = async (resource: ResourceType) => {
   padding-bottom: 10px;
 
   .video-item {
-    height: 50px;
-    padding: 0 20px;
+    height: 40px;
+    padding: 0 16px;
     display: flex;
     align-items: center;
     justify-content: space-between;

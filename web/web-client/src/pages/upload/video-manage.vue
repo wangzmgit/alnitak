@@ -1,8 +1,9 @@
 <template>
   <div class="upload-video">
+    <p class="title">视频管理</p>
     <div class="video-box">
       <el-scrollbar>
-        <ul class="video-list">
+        <ul class="video-list" v-infinite-scroll="scrollLoad">
           <li class="video-item" v-for="(item, index) in videoList" :key="index">
             <div class="item-left">
               <div class="cover">
@@ -10,7 +11,7 @@
               </div>
             </div>
             <div class="item-center">
-              <nuxt-link class="title" :to="`/video/${item.vid}`">{{ item.title }}</nuxt-link>
+              <nuxt-link class="item-title" :to="`/video/${item.vid}`">{{ item.title }}</nuxt-link>
               <span class="desc">简介：{{ item.desc }}</span>
               <span class="desc">创建于：{{ formatTime(item.createdAt) }}</span>
             </div>
@@ -44,19 +45,31 @@ import { MoreOne as MoreIcon } from '@icon-park/vue-next';
 
 const page = ref(1);
 const total = ref(0);
-const pageSize = 10;
-const showPagination = ref(false);
+const pageSize = 8;
+const noMore = ref(false);
+const loading = ref(false);
 const videoList = ref<Array<VideoType>>([]);
 const getUploadVideo = async () => {
+  if (loading.value || noMore.value) return;
+  loading.value = true;
   const res = await getUploadVideoAPI(page.value, pageSize);
   if (res.data.code === statusCode.OK) {
     total.value = res.data.data.total;
-    videoList.value = res.data.data.videos;
-    showPagination.value = total.value > pageSize;
+    if (res.data.data.videos) {
+      videoList.value = videoList.value.concat(res.data.data.videos);
+    } else {
+      noMore.value = true;
+    }
   }
+  loading.value = false;
 }
 
-// TODO: 分页加载
+const scrollLoad = () => {
+  if (!loading.value) {
+    page.value++;
+    getUploadVideo();
+  }
+}
 
 const deleteVideo = async (vid: number) => {
   // TODO: 删除提醒
@@ -78,9 +91,19 @@ onBeforeMount(() => {
 
 <style lang="scss" scoped>
 .upload-video {
+  padding: 0 18px 0;
+  height: 100%;
+  box-sizing: border-box;
   background-color: #fff;
+
+  .title {
+    font-size: 18px;
+    margin: 0;
+    padding: 16px 0 10px;
+  }
+
   .video-box {
-    height: calc(100% - 40px);
+    height: calc(100% - 60px);
   }
 
   .video-list {
@@ -88,7 +111,7 @@ onBeforeMount(() => {
     box-sizing: border-box;
     width: 100%;
     margin: 0;
-    padding: 16px 16px 10px;
+    padding: 0;
 
     .video-item {
       display: flex;
@@ -121,7 +144,7 @@ onBeforeMount(() => {
       .item-center {
         flex: 1;
 
-        .title {
+        .item-title {
           font-size: 14px;
           color: #212121;
           line-height: 18px;
@@ -157,10 +180,6 @@ onBeforeMount(() => {
         justify-content: center;
       }
     }
-  }
-
-  .page-box {
-    padding: 8px 16px;
   }
 }
 </style>

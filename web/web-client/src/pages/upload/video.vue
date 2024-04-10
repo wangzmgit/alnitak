@@ -28,7 +28,7 @@ import { ElResult, ElButton } from 'element-plus';
 const route = useRoute();
 
 // 当前步骤
-const current = ref(1);
+const current = ref(2);
 const currentStatus = ref("process");
 const stepsData = ["投稿信息", "上传视频", "审核", "完成上传"];
 
