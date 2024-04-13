@@ -13,7 +13,7 @@
         </n-space>
         <n-data-table class="table" remote :columns="columns" :data="tableData" :loading="loading"
           :pagination="pagination" flex-height />
-        <table-action-modal v-model:visible="visible" :edit-data="editData" @refresh="getTableData" />
+        <!-- <table-action-modal v-model:visible="visible" :edit-data="editData" @refresh="getTableData" /> -->
       </div>
     </n-card>
   </div>
@@ -25,15 +25,14 @@ import { formatTime } from '@/utils/format';
 import { Refresh } from "@vicons/ionicons5";
 import useLoading from '@/hooks/loading-hooks';
 import { statusCode } from '@/utils/status-code';
-import { deleteUserAPI, editUserRoleAPI, getUserListAPI } from '@/api/user';
-import { getAllRoleListAPI } from '@/api/role';
-import CommonAvatar from "@/components/common-avatar/index.vue";
-import TableActionModal from './components/table-action-modal.vue';
+import { getVideoListAPI, deleteVideoAPI } from '@/api/video';
+// import TableActionModal from './components/table-action-modal.vue';
 import type { DataTableColumns } from 'naive-ui';
-import { NCard, NIcon, NSelect, NButton, NDataTable, NPopconfirm, NSpace, useMessage } from 'naive-ui';
+import { NCard, NImage, NIcon, NButton, NDataTable, NPopconfirm, NSpace, useMessage } from 'naive-ui';
+import { getResourceUrl } from '@/utils/resource';
 
 const { loading, startLoading, endLoading } = useLoading(false);
-
+// TODO: 展示分区
 const message = useMessage();
 
 const visible = ref(false);
@@ -41,24 +40,16 @@ const openModal = () => {
   visible.value = true;
 }
 
-const roleList = ref<Array<{ code: string, name: string }>>([])
-const getAllRoleList = async () => {
-  const res = await getAllRoleListAPI();
-  if (res.data.code === statusCode.OK) {
-    roleList.value = res.data.data.roles;
-  }
-}
-
-// 编辑用户
-const editData = ref<UserInfoType>();
-const editUser = (row: UserInfoType) => {
+// 编辑视频
+const editData = ref<VideoType>();
+const editVideo = (row: VideoType) => {
   editData.value = row;
   openModal();
 }
 
-// 删除用户
-const deleteUser = async (row: UserInfoType) => {
-  const res = await deleteUserAPI(row.uid);
+// 删除视频
+const deleteVideo = async (row: VideoType) => {
+  const res = await deleteVideoAPI(row.vid);
   if (res.data.code === statusCode.OK) {
     message.success('删除成功');
     await getTableData();
@@ -67,64 +58,55 @@ const deleteUser = async (row: UserInfoType) => {
   }
 }
 
-const columns: DataTableColumns<UserInfoType> = [
+const columns: DataTableColumns<VideoType> = [
   {
-    key: 'uid',
-    title: '序号',
+    key: 'vid',
+    title: 'ID',
     width: 90,
     align: 'center'
   },
   {
     key: 'avatar',
-    title: '头像',
+    title: '封面',
     align: 'center',
-    width: 60,
+    width: 80,
     render: row => {
-      return h(CommonAvatar, {
-        url: row.avatar,
-        size: 30,
-        style: {
-          marginLeft: '3px'
-        }
+      return h(NImage, {
+        src: getResourceUrl(row.cover),
+        width: 60,
+        height: 32,
       })
     }
   },
   {
-    key: 'name',
-    title: '用户名',
+    key: 'title',
+    title: '标题',
     align: 'center'
   },
   {
-    key: 'email',
-    title: '邮箱',
-    align: 'center',
-  },
-  {
-    key: 'sign',
-    title: '个性签名',
-    align: 'center',
-  },
-  {
-    key: 'role',
-    title: '角色',
+    key: 'author',
+    title: '作者',
     align: 'center',
     render: row => {
-      return h(NSelect, {
-        size: "small",
-        defaultValue: row.role,
-        labelField: "name",
-        valueField: "code",
-        options: roleList.value,
-        onUpdateValue: (val: string) => roleChange(row, val)
-      })
+      return row.author.name
     }
   },
   {
+    key: 'desc',
+    title: '简介',
+    align: 'center',
+  },
+  {
+    key: 'tags',
+    title: '标签',
+    align: 'center',
+  },
+  {
     key: 'createdAt',
-    title: '注册时间',
+    title: '上传时间',
     align: 'center',
     render: row => {
-      return row.createdAt ? formatTime(row.createdAt) : ""
+      return formatTime(row.createdAt)
     }
   },
   {
@@ -135,14 +117,14 @@ const columns: DataTableColumns<UserInfoType> = [
     render: row => {
       return h(NSpace, { justify: 'center' }, {
         default: () => [
-          h(NButton, {
-            size: 'small',
-            onClick: () => editUser(row)
-          }, { default: () => '编辑' }),
+          // h(NButton, {
+          //   size: 'small',
+          //   onClick: () => editVideo(row)
+          // }, { default: () => '编辑' }),
           h(NPopconfirm, {
-            onPositiveClick: () => deleteUser(row),
+            onPositiveClick: () => deleteVideo(row),
           }, {
-            default: () => '是否删除用户?',
+            default: () => '是否删除视频?',
             trigger: () => h(NButton, {
               size: 'small',
             }, { default: () => '删除' })
@@ -154,21 +136,12 @@ const columns: DataTableColumns<UserInfoType> = [
   }
 ]
 
-const roleChange = async (row: UserInfoType, val: string) => {
-  const res = await editUserRoleAPI({ uid: row.uid, code: val });
-  if (res.data.code === statusCode.OK) {
-    message.success("修改成功");
-  } else {
-    message.error(res.data.msg || "修改失败");
-  }
-}
-
-const tableData = ref<UserInfoType[]>([]);
+const tableData = ref<VideoType[]>([]);
 const getTableData = async () => {
   startLoading();
   const page = pagination.page || 1;
   const pageSize = pagination.pageSize || 1;
-  const res = await getUserListAPI({ page, pageSize });
+  const res = await getVideoListAPI({ page, pageSize });
   if (res.data.code === statusCode.OK) {
     tableData.value = res.data.data.list;
     pagination.itemCount = res.data.data.total;
@@ -193,9 +166,7 @@ const pagination = reactive({
   }
 });
 
-
 onBeforeMount(async () => {
-  await getAllRoleList();
   await getTableData();
 })
 </script>

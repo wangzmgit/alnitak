@@ -14,7 +14,7 @@
             </n-button>
           </n-space>
         </n-space>
-        <n-data-table class="table" :columns="columns" :data="tableData" :loading="loading" :pagination="pagination"
+        <n-data-table class="table" remote :columns="columns" :data="tableData" :loading="loading" :pagination="pagination"
           flex-height />
         <table-action-modal v-model:visible="visible" :type="modalType" :edit-data="editData" @refresh="getTableData" />
         <drawer-api v-model:visible="visibleApiDrawer" :edit-data="editApiData"></drawer-api>
@@ -120,7 +120,7 @@ const editRoleMenu = async (row: RoleItemType) => {
   openMenuDrawer();
 }
 
-const columns: DataTableColumns<any> = [
+const columns: DataTableColumns<RoleItemType> = [
   {
     key: 'id',
     title: '序号',
@@ -184,7 +184,7 @@ const getTableData = async () => {
   const res = await getRoleListAPI({ page, pageSize });
   if (res.data.code === statusCode.OK) {
     tableData.value = res.data.data.list;
-    pagination.pageCount = res.data.data.total;
+    pagination.itemCount = res.data.data.total;
     endLoading();
   }
 }
@@ -192,15 +192,17 @@ const getTableData = async () => {
 const pagination = reactive({
   page: 1,
   pageSize: 10,
-  pageCount: 0,
+  itemCount: 0,
   showSizePicker: true,
   pageSizes: [10, 15, 20, 25, 30],
   onChange: (page: number) => {
     pagination.page = page;
+    getTableData();
   },
   onUpdatePageSize: (pageSize: number) => {
     pagination.pageSize = pageSize;
     pagination.page = 1;
+    getTableData();
   }
 });
 

@@ -14,8 +14,8 @@
             </n-button>
           </n-space>
         </n-space>
-        <n-data-table class="table" :columns="columns" :data="tableData" :loading="loading" :pagination="pagination"
-          flex-height />
+        <n-data-table class="table" remote :columns="columns" :data="tableData" :loading="loading"
+          :pagination="pagination" flex-height />
         <table-action-modal v-model:visible="visible" :type="modalType" :edit-data="editData" @refresh="getTableData" />
       </div>
     </n-card>
@@ -26,7 +26,7 @@
 import { onBeforeMount, reactive, ref, h } from 'vue';
 import { Refresh } from "@vicons/ionicons5";
 import useLoading from '@/hooks/loading-hooks';
-import {  getApiListAPI, deleteApiAPI } from '@/api/api';
+import { getApiListAPI, deleteApiAPI } from '@/api/api';
 import { statusCode } from '@/utils/status-code';
 import type { DataTableColumns } from 'naive-ui';
 import TableActionModal from './components/table-action-modal.vue';
@@ -36,7 +36,7 @@ const { loading, startLoading, endLoading } = useLoading(false);
 
 const message = useMessage();
 
-const modalType = ref('add');
+const modalType = ref<"add" | "edit">('add');
 const visible = ref(false);
 const openModal = () => {
   visible.value = true;
@@ -66,8 +66,7 @@ const deleteApi = async (row: ApiItemType) => {
   }
 }
 
-
-const columns: DataTableColumns<any> = [
+const columns: DataTableColumns<ApiItemType> = [
   {
     key: 'id',
     title: '序号',
@@ -116,7 +115,6 @@ const columns: DataTableColumns<any> = [
           })
         ]
       })
-
     }
   }
 ]
@@ -129,7 +127,7 @@ async function getTableData() {
   const res = await getApiListAPI({ page, pageSize });
   if (res.data.code === statusCode.OK) {
     tableData.value = res.data.data.list;
-    pagination.pageCount = res.data.data.total;
+    pagination.itemCount = res.data.data.total;
     endLoading();
   }
 }
@@ -137,15 +135,17 @@ async function getTableData() {
 const pagination = reactive({
   page: 1,
   pageSize: 10,
-  pageCount: 0,
+  itemCount: 0,
   showSizePicker: true,
   pageSizes: [10, 15, 20, 25, 30],
   onChange: (page: number) => {
     pagination.page = page;
+    getTableData();
   },
   onUpdatePageSize: (pageSize: number) => {
     pagination.pageSize = pageSize;
     pagination.page = 1;
+    getTableData();
   }
 });
 

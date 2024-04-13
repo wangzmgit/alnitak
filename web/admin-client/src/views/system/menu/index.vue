@@ -78,7 +78,7 @@ const deleteMenu = async (row: MenuItemType) => {
   }
 }
 
-const columns: DataTableColumns<any> = [
+const columns: DataTableColumns<MenuItemType> = [
   {
     key: 'id',
     title: '序号',
