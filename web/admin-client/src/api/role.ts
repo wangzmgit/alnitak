@@ -29,3 +29,8 @@ export const editRoleHomeAPI = (id: number, home: string) => {
 export const deleteRoleAPI = (id: number) => {
   return request.delete(`v1/role/deleteRole/${id}`);
 }
+
+// 获取全部角色列表
+export const getAllRoleListAPI = () => {
+  return request.get("v1/role/getAllRoleList");
+}

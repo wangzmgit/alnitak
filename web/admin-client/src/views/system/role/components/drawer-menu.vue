@@ -1,7 +1,7 @@
 <template>
   <n-drawer v-model:show="modalVisible" :width="500" placement="right">
     <n-drawer-content title="菜单管理" :loading="loading">
-      <n-tree ref="treeRef" block-line :data="treeData" label-field="title" :default-checked-keys="selectedKeys"
+      <n-tree ref="treeRef" block-line :data="(treeData as any)" label-field="title" :default-checked-keys="selectedKeys"
         checkable cascade expand-on-click selectable />
       <template #footer>
         <n-button type="primary" @click="submit">保存</n-button>

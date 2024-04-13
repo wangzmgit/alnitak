@@ -38,7 +38,7 @@ const { loading, startLoading, endLoading } = useLoading(false);
 
 const message = useMessage();
 
-const modalType = ref('add');
+const modalType = ref<"edit" | "add">('add');
 const visible = ref(false);
 const openModal = () => {
   visible.value = true;
