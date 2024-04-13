@@ -181,6 +181,22 @@ func GetAllVideoList(ctx *gin.Context) (videos []vo.AllVideoResp) {
 	return
 }
 
+// 获取用户视频
+func GetVideoByUser(ctx *gin.Context, userId uint, page, pageSize int) (total int64, videos []vo.UploadVideoResp) {
+	global.Mysql.Model(&model.Video{}).
+		Where("uid = ? and status = ?", userId, global.AUDIT_APPROVED).Count(&total)
+	global.Mysql.Model(&model.Video{}).Select(vo.UPLOAD_VIDEO_FIELD).
+		Where("uid = ? and status = ?", userId, global.AUDIT_APPROVED).
+		Limit(pageSize).Offset((page - 1) * pageSize).Scan(&videos)
+
+	// 更新播放量数据
+	for i := 0; i < len(videos); i++ {
+		videos[i].Clicks = GetVideoClicks(videos[i].ID)
+	}
+
+	return
+}
+
 // 通过视频ID查询视频
 func FindVideoById(id uint) (video model.Video, err error) {
 	err = global.Mysql.Where("`id` = ?", id).First(&video).Error

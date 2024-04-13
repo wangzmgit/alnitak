@@ -139,3 +139,20 @@ func DeleteVideo(ctx *gin.Context) {
 	// 返回
 	resp.Ok(ctx)
 }
+
+// 获取用户视频
+func GetVideoByUser(ctx *gin.Context) {
+	userId := utils.StringToUint(ctx.Query("userId"))
+	page := utils.StringToInt(ctx.Query("page"))
+	pageSize := utils.StringToInt(ctx.Query("pageSize"))
+
+	if pageSize > 30 {
+		resp.FailWithMessage(ctx, "请求数量过多")
+		return
+	}
+
+	total, videos := service.GetVideoByUser(ctx, userId, page, pageSize)
+
+	// 返回给前端
+	resp.OkWithData(ctx, gin.H{"total": total, "videos": videos})
+}
