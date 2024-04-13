@@ -1,5 +1,10 @@
 package dto
 
+type VideoListReq struct {
+	Page     int
+	PageSize int
+}
+
 type UploadVideoReq struct {
 	Title       string
 	Cover       string

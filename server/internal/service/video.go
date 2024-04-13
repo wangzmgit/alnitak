@@ -197,6 +197,34 @@ func GetVideoByUser(ctx *gin.Context, userId uint, page, pageSize int) (total in
 	return
 }
 
+// 获取视频列表(后台管理)
+func GetVideoListManage(videoListReq dto.VideoListReq) (total int64, videos []vo.VideoInfoManageResp) {
+	global.Mysql.Model(&model.Video{}).Where("status = ?", global.AUDIT_APPROVED).Count(&total)
+	global.Mysql.Model(&model.Video{}).Where("status = ?", global.AUDIT_APPROVED).
+		Limit(videoListReq.PageSize).Offset((videoListReq.Page - 1) * videoListReq.PageSize).Scan(&videos)
+
+	// 更新播放量和作者数据
+	for i := 0; i < len(videos); i++ {
+		videos[i].Clicks = GetVideoClicks(videos[i].ID)
+		videos[i].Author = GetUserBaseInfo(videos[i].Uid)
+	}
+
+	return
+}
+
+// 删除视频(后台管理)
+func DeleteVideoManage(ctx *gin.Context, id uint) error {
+	if err := global.Mysql.Where("id = ?", id).Delete(&model.Video{}).Error; err != nil {
+		utils.ErrorLog("删除视频失败", "video", err.Error())
+		return errors.New("删除视频失败")
+	}
+
+	// 删除视频信息缓存
+	cache.DelVideoInfo(id)
+
+	return nil
+}
+
 // 通过视频ID查询视频
 func FindVideoById(id uint) (video model.Video, err error) {
 	err = global.Mysql.Where("`id` = ?", id).First(&video).Error

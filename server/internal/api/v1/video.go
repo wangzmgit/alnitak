@@ -156,3 +156,37 @@ func GetVideoByUser(ctx *gin.Context) {
 	// 返回给前端
 	resp.OkWithData(ctx, gin.H{"total": total, "videos": videos})
 }
+
+// 获取视频列表(后台管理)
+func GetVideoListManage(ctx *gin.Context) {
+	// 获取参数
+	var videoListReq dto.VideoListReq
+	if err := ctx.Bind(&videoListReq); err != nil {
+		resp.FailWithMessage(ctx, "请求参数有误")
+		return
+	}
+
+	if videoListReq.PageSize > 100 {
+		resp.FailWithMessage(ctx, "请求数量过多")
+		return
+	}
+
+	total, videos := service.GetVideoListManage(videoListReq)
+
+	// 返回给前端
+	resp.OkWithData(ctx, gin.H{"list": videos, "total": total})
+}
+
+// 删除视频(后台管理)
+func DeleteVideoManage(ctx *gin.Context) {
+	// 获取参数
+	id := utils.StringToUint(ctx.Param("id"))
+
+	if err := service.DeleteVideoManage(ctx, id); err != nil {
+		resp.FailWithMessage(ctx, err.Error())
+		return
+	}
+
+	// 返回
+	resp.Ok(ctx)
+}
