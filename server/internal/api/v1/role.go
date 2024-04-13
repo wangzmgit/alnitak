@@ -57,6 +57,14 @@ func GetRoleList(ctx *gin.Context) {
 	resp.OkWithData(ctx, gin.H{"list": roles, "total": total})
 }
 
+// 获取全部角色
+func GetAllRoleList(ctx *gin.Context) {
+	roles := service.GetAllRoleList(ctx)
+
+	// 返回给前端
+	resp.OkWithData(ctx, gin.H{"roles": roles})
+}
+
 // 编辑角色
 func EditRole(ctx *gin.Context) {
 	// 获取参数
@@ -85,13 +93,9 @@ func EditRole(ctx *gin.Context) {
 // 删除角色
 func DeleteRole(ctx *gin.Context) {
 	// 获取参数
-	var idReq dto.IdReq
-	if err := ctx.Bind(&idReq); err != nil {
-		resp.FailWithMessage(ctx, "请求参数有误")
-		return
-	}
+	id := utils.StringToUint(ctx.Param("id"))
 
-	if err := service.DeleteRole(ctx, idReq.ID); err != nil {
+	if err := service.DeleteRole(ctx, id); err != nil {
 		resp.FailWithMessage(ctx, err.Error())
 		return
 	}

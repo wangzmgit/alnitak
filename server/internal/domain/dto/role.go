@@ -24,3 +24,9 @@ type EditRoleHomeReq struct {
 	ID   uint
 	Home string
 }
+
+// 设置用户角色
+type EditUserRoleReq struct {
+	Uid  uint
+	Code string
+}

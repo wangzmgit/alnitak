@@ -10,3 +10,8 @@ type RoleResp struct {
 	HomePage  string    `json:"homePage"`
 	CreatedAt time.Time `json:"createdAt"`
 }
+
+type AllRoleResp struct {
+	Code string `json:"code"`
+	Name string `json:"name"`
+}

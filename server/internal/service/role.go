@@ -31,6 +31,13 @@ func GetRoleList(page, pageSize int) (total int64, roles []vo.RoleResp) {
 	return
 }
 
+// 获取所有的视频列表
+func GetAllRoleList(ctx *gin.Context) (roles []vo.AllRoleResp) {
+	global.Mysql.Model(&model.Role{}).Select("`name`,`code`").Scan(&roles)
+
+	return
+}
+
 // 编辑角色
 func EditRole(ctx *gin.Context, editRoleReq dto.EditRoleReq) error {
 	if err := global.Mysql.Model(&model.Role{}).Where("id = ?", editRoleReq.ID).Updates(

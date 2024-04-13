@@ -4,6 +4,11 @@ type TokenReq struct {
 	RefreshToken string
 }
 
+type UserListReq struct {
+	Page     int
+	PageSize int
+}
+
 type LoginReq struct {
 	// 用户名
 	Email string
@@ -48,4 +53,14 @@ type ModifyPwdReq struct {
 	Password  string
 	Code      string
 	CaptchaId string
+}
+
+// 编辑用户信息
+type EditUserInfoManageReq struct {
+	Uid        uint
+	Avatar     string
+	SpaceCover string
+	Name       string
+	Email      string
+	Sign       string
 }

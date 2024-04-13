@@ -176,7 +176,6 @@ func EditUserInfo(ctx *gin.Context, editUserInfoReq dto.EditUserInfoReq) error {
 	cache.DelUserInfo(userId)
 
 	return nil
-
 }
 
 func ResetPwdCheck(ctx *gin.Context, email string) error {
@@ -205,6 +204,70 @@ func ModifyPwd(ctx *gin.Context, modifyPwdReq dto.ModifyPwdReq) error {
 
 	// 删除验证状态
 	cache.DelResetPwdCheckStatus(modifyPwdReq.Email)
+
+	return nil
+}
+
+// 获取用户列表
+func GetUserListManage(userListReq dto.UserListReq) (total int64, users []vo.UserInfoManageResp) {
+	global.Mysql.Model(&model.User{}).Count(&total)
+	global.Mysql.Model(&model.User{}).Limit(userListReq.PageSize).
+		Offset((userListReq.Page - 1) * userListReq.PageSize).Scan(&users)
+	return
+}
+
+// 编辑用户信息(后台管理)
+func EditUserInfoManage(ctx *gin.Context, editUserInfoReq dto.EditUserInfoManageReq) error {
+	// 检查用户名是否重复
+	if u, _ := FindUserByName(editUserInfoReq.Name); u.ID != 0 && u.ID != editUserInfoReq.Uid {
+		return errors.New("用户名已存在")
+	}
+
+	// 检查邮箱是否重复
+	if u, _ := FindUserByEmail(editUserInfoReq.Email); u.ID != 0 && u.ID != editUserInfoReq.Uid {
+		return errors.New("邮箱已存在")
+	}
+
+	if err := global.Mysql.Model(&model.User{}).Where("id = ?", editUserInfoReq.Uid).Updates(
+		map[string]interface{}{
+			"avatar":      editUserInfoReq.Avatar,
+			"space_cover": editUserInfoReq.SpaceCover,
+			"username":    editUserInfoReq.Name,
+			"email":       editUserInfoReq.Email,
+			"sign":        editUserInfoReq.Sign,
+		},
+	).Error; err != nil {
+		return err
+	}
+
+	//移除缓存
+	cache.DelUserInfo(editUserInfoReq.Uid)
+
+	return nil
+}
+
+// 编辑角色首页
+func EditUserRole(ctx *gin.Context, editUserRoleReq dto.EditUserRoleReq) error {
+	if err := global.Mysql.Model(&model.User{}).Where("id = ?", editUserRoleReq.Uid).Updates(
+		map[string]interface{}{
+			"role": editUserRoleReq.Code,
+		},
+	).Error; err != nil {
+		utils.ErrorLog("修改用户角色失败", "user", err.Error())
+		return errors.New("修改失败")
+	}
+	return nil
+}
+
+// 删除用户
+func DeleteUser(ctx *gin.Context, id uint) error {
+	if err := global.Mysql.Where("id = ?", id).Delete(&model.User{}).Error; err != nil {
+		utils.ErrorLog("删除用户失败", "user", err.Error())
+		return errors.New("删除失败")
+	}
+
+	//移除缓存
+	cache.DelUserInfo(id)
 
 	return nil
 }

@@ -17,6 +17,8 @@ func CollectRoleRoutes(r *gin.RouterGroup) {
 		roleGroup.POST("addRole", api.AddRole)
 		// 获取角色列表
 		roleGroup.POST("getRoleList", api.GetRoleList)
+		// 获取全部角色
+		roleGroup.GET("getAllRoleList", api.GetAllRoleList)
 		// 编辑角色
 		roleGroup.PUT("editRole", api.EditRole)
 		// 删除角色
