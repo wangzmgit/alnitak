@@ -19,15 +19,14 @@ export const formatDate = (time: string) => {
   return moment(time).format("YYYY-MM-DD")
 }
 
-export const formatTime = (time: string) => {
+export const formatTime = (time: string | Date) => {
   return moment(time).format("YYYY-MM-DD hh:mm:ss")
 }
 
-export const formatRelativeTime = (timeStr: string) => {
+export const formatRelativeTime = (timeStr: string | Date) => {
   const currentTime = new Date();
   const time = new Date(timeStr);
   const diff = (currentTime.getTime() - time.getTime()) / 1000;
-
   if (diff < 60) {
     return '刚刚';
   } else if (diff < 60 * 60) {

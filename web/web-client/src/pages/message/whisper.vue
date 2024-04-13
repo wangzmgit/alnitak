@@ -49,7 +49,7 @@
 import { Base64 } from 'js-base64';
 import { formatRelativeTime } from "@/utils/format";
 import { ElMessage } from 'element-plus';
-import { getUserInfoAPI } from '@/api/user';
+import { getUserBaseInfoAPI, getUserInfoAPI } from '@/api/user';
 import CommonAvatar from '@/components/common-avatar/index.vue';
 import { onBeforeMount, onBeforeUnmount, reactive, ref, nextTick } from 'vue';
 import { getWhisperDetailsAPI, getWhisperListAPI, readWhisperAPI, sendWhisperAPI } from "@/api/msg-whisper";
@@ -86,7 +86,7 @@ const getMsgList = async () => {
 }
 
 //初始化发送的用户
-const initSendUser = (fid: number) => {
+const initSendUser = async (fid: number) => {
   //遍历当前消息列表查找用户
   for (let i = 0; i < msgList.value.length; i++) {
     if (msgList.value[i].user.uid === fid) {
@@ -94,23 +94,22 @@ const initSendUser = (fid: number) => {
       return;
     }
   }
-  // TODO: 获取用户信息并添加到用户列表
-  // getOtherUserInfoAPI(fid).then((res) => {
-  //   if (res.data.code === statusCode.OK) {
-  //     const user = res.data.data.user;
-  //     msgList.value.unshift({
-  //       user: {
-  //         uid: user.uid,
-  //         name: user.name,
-  //         avatar: user.avatar
-  //       },
-  //       created_at: new Date(),
-  //       status: true
-  //     });
-  //     targetUser.name = user.name;
-  //     targetUser.avatar = user.avatar;
-  //   }
-  // })
+  // 获取用户信息并添加到用户列表
+  const res = await getUserBaseInfoAPI(fid);
+  if (res.data.code === statusCode.OK) {
+    const user = res.data.data.userInfo;
+    msgList.value.unshift({
+      user: {
+        uid: user.uid,
+        name: user.name,
+        avatar: user.avatar
+      },
+      createdAt: new Date().toString(),
+      status: true
+    });
+    targetUser.name = user.name;
+    targetUser.avatar = user.avatar;
+  }
 }
 
 //获取消息详情
@@ -236,8 +235,8 @@ const websocketOnmessage = (e: any) => {
 //加载和卸载页面
 const route = useRoute();
 onBeforeMount(async () => {
-  if (route.query.fid) {
-    msgForm.fid = Number(route.query.fid);
+  if (route.query.target) {
+    msgForm.fid = Number(route.query.target);
   }
   await getUserInfo();
   await initWebSocket();

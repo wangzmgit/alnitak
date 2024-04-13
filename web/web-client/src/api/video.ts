@@ -32,9 +32,18 @@ export const deleteVideoAPI = (id: number) => {
   return request.delete(`v1/video/deleteVideo/${id}`);
 }
 
-// 提交审核
+// 获取稿件列表
 export const getUploadVideoAPI = (page: number, pageSize: number) => {
   return request.get(`v1/video/getUploadVideo?page=${page}&pageSize=${pageSize}`);
+}
+
+//获取我的视频
+export const getVideoByUser = (userId: number, page: number, pageSize: number) => {
+  return request.get(`v1/video/getVideoByUser?userId=${userId}&page=${page}&pageSize=${pageSize}`);
+}
+
+export const asyncGetVideoByUser = async (userId: number, page: number, pageSize: number) => {
+  return await useAsyncData(() => $fetch(`${baseURL}/api/v1/video/getVideoByUser?userId=${userId}&page=${page}&pageSize=${pageSize}`));
 }
 
 // 获取视频信息

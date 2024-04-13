@@ -3,7 +3,7 @@
     <div class="header-box">
       <p class="title">评论管理</p>
       <client-only>
-        <el-select v-model="videoId" style="width: 200px" @change="videoIdChange" >
+        <el-select v-model="videoId" style="width: 200px" @change="videoIdChange">
           <el-option label="全部视频" :value="0"></el-option>
           <el-option v-for="item in videoList" :key="item.vid" :label="item.title" :value="item.vid" />
         </el-select>
@@ -169,7 +169,7 @@ onBeforeMount(() => {
           .user-name {
             cursor: pointer;
             color: #767676;
-            margin: 0 2px;
+            margin-right: 3px;
 
             &:hover {
               color: var(--primary-hover-color);

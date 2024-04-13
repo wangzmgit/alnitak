@@ -21,15 +21,15 @@
           <div class="user-data">
             <div>
               <p class="data-title">稿件</p>
-              <p>{{ videoCount }}</p>
+              <p class="data-content">{{ videoCount }}</p>
             </div>
             <div>
               <p class="data-title">关注</p>
-              <p class="data-content">1</p>
+              <nuxt-link class="data-content" to="/space/following">{{ userData.followingCount }}</nuxt-link>
             </div>
             <div>
               <p class="data-title">粉丝</p>
-              <p class="data-content">1</p>
+              <nuxt-link class="data-content" to="/space/follower">{{ userData.followerCount }}</nuxt-link>
             </div>
           </div>
         </div>
@@ -63,6 +63,7 @@ import {
   History as HistoryIcon, Message as MessageIcon, Config
 } from '@icon-park/vue-next';
 import type { RouteRecordName } from 'vue-router';
+import { getFollowDataAPI } from '~/api/relation';
 
 definePageMeta({
   middleware: ['auth', (to) => {
@@ -143,6 +144,29 @@ onMounted(async () => {
       userInfo.value = res.data.data.userInfo;
       document.title = `${userInfo.value?.name}的个人中心`;
     }
+  }
+})
+
+const userData = reactive({
+  loading: true,
+  followingCount: 0,
+  followerCount: 0
+})
+
+//获取关注数和粉丝数
+const getFollowData = async (id: number | string) => {
+  const res = await getFollowDataAPI(id);
+  if (res.data.code === statusCode.OK) {
+    userData.followerCount = res.data.data.follower;
+    userData.followingCount = res.data.data.following;
+  }
+
+  userData.loading = false;
+}
+
+onBeforeMount(() => {
+  if (userInfo.value) {
+    getFollowData(userInfo.value.uid);
   }
 })
 </script>
@@ -241,10 +265,12 @@ onMounted(async () => {
 
         .data-title {
           margin-bottom: 6px;
-          font-weight: bold;
         }
 
-        .data-content:hover {
+        .data-content {
+          color: #fff;
+          margin: 12px 0;
+          display: block;
           cursor: pointer;
         }
       }
