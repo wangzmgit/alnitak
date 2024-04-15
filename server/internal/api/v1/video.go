@@ -190,3 +190,33 @@ func DeleteVideoManage(ctx *gin.Context) {
 	// 返回
 	resp.Ok(ctx)
 }
+
+// 获取待审核视频列表
+func GetReviewList(ctx *gin.Context) {
+	// 获取参数
+	var reviewListReq dto.ReviewListReq
+	if err := ctx.Bind(&reviewListReq); err != nil {
+		resp.FailWithMessage(ctx, "请求参数有误")
+		return
+	}
+
+	if reviewListReq.PageSize > 100 {
+		resp.FailWithMessage(ctx, "请求数量过多")
+		return
+	}
+
+	total, videos := service.GetReviewList(reviewListReq)
+
+	// 返回给前端
+	resp.OkWithData(ctx, gin.H{"list": videos, "total": total})
+}
+
+// 获取待审核视频资源
+func GetReviewResourceList(ctx *gin.Context) {
+	// 获取参数
+	vid := utils.StringToUint(ctx.Query("vid"))
+	resources := service.GetReviewResourceList(vid)
+
+	// 返回给前端
+	resp.OkWithData(ctx, gin.H{"resources": resources})
+}

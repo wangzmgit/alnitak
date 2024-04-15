@@ -117,7 +117,10 @@ func GetUploadVideoList(ctx *gin.Context, page, pageSize int) (total int64, vide
 func EditVideoInfo(ctx *gin.Context, editVideoReq dto.EditVideoReq) error {
 	userId := ctx.GetUint("userId")
 	if cache.GetUploadImage(editVideoReq.Cover) != userId {
-		return errors.New("文件链接无效")
+		// 查询是否与旧封面图一致
+		if v, _ := FindVideoById(editVideoReq.Vid); v.Cover != editVideoReq.Cover {
+			return errors.New("文件链接无效")
+		}
 	}
 
 	if err := global.Mysql.Model(&model.Video{}).Where("id = ?", editVideoReq.Vid).Updates(
@@ -223,6 +226,20 @@ func DeleteVideoManage(ctx *gin.Context, id uint) error {
 	cache.DelVideoInfo(id)
 
 	return nil
+}
+
+// 获取待审核视频列表
+func GetReviewList(reviewListReq dto.ReviewListReq) (total int64, videos []vo.ReviewListResp) {
+	global.Mysql.Model(&model.Video{}).Where("status = ?", global.WAITING_REVIEW).Count(&total)
+	global.Mysql.Model(&model.Video{}).Where("status = ?", global.WAITING_REVIEW).
+		Limit(reviewListReq.PageSize).Offset((reviewListReq.Page - 1) * reviewListReq.PageSize).Scan(&videos)
+
+	// 更新播放量和作者数据
+	for i := 0; i < len(videos); i++ {
+		videos[i].Author = GetUserBaseInfo(videos[i].Uid)
+	}
+
+	return
 }
 
 // 通过视频ID查询视频

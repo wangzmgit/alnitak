@@ -61,3 +61,15 @@ type VideoInfoManageResp struct {
 	Clicks    int64        `json:"clicks" gorm:"-"`
 	Author    UserInfoResp `json:"author" gorm:"-"`
 }
+
+type ReviewListResp struct {
+	ID        uint         `json:"vid"`
+	Uid       uint         `json:"uid"`
+	Title     string       `json:"title"`
+	Cover     string       `json:"cover"`
+	Desc      string       `json:"desc"`
+	CreatedAt time.Time    `json:"createdAt"`
+	Copyright bool         `json:"copyright"`
+	Tags      string       `json:"tags"`
+	Author    UserInfoResp `json:"author" gorm:"-"`
+}

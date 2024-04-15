@@ -26,8 +26,10 @@ func CollectVideoRoutes(r *gin.RouterGroup) {
 		videoAuth.DELETE("deleteVideo/:id", api.DeleteVideo)
 		// 获取所有的视频列表
 		videoAuth.GET("getAllVideoList", api.GetAllVideoList)
-		// 获取审核列表
-
+		// 获取审核列表（后台管理）
+		videoAuth.POST("getReviewList", api.GetReviewList)
+		// 获取审核资源列表（后台管理）
+		videoAuth.GET("getReviewResourceList", api.GetReviewResourceList)
 		// 获取视频列表（后台管理）
 		videoAuth.POST("getVideoListManage", api.GetVideoListManage)
 		// 删除视频（后台管理）

@@ -5,6 +5,11 @@ type VideoListReq struct {
 	PageSize int
 }
 
+type ReviewListReq struct {
+	Page     int
+	PageSize int
+}
+
 type UploadVideoReq struct {
 	Title       string
 	Cover       string

@@ -51,6 +51,14 @@ func DeleteResource(ctx *gin.Context, id uint) error {
 
 // 获取视频资源
 func GetVideoResources(videoId uint) (resources []vo.ResourceResp) {
+	global.Mysql.Model(&model.Resource{}).
+		Where("vid = ? and status = ?", videoId, global.AUDIT_APPROVED).Scan(&resources)
+
+	return
+}
+
+// 获取视频资源
+func GetReviewResourceList(videoId uint) (resources []vo.ResourceResp) {
 	global.Mysql.Model(&model.Resource{}).Where("vid = ?", videoId).Scan(&resources)
 
 	return
