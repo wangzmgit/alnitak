@@ -13,7 +13,7 @@
         </n-space>
         <n-data-table class="table" remote :columns="columns" :data="tableData" :loading="loading"
           :pagination="pagination" flex-height />
-        <!-- <table-action-modal v-model:visible="visible" :edit-data="editData" @refresh="getTableData" /> -->
+        <table-action-drawer  v-model:visible="visibleDrawer" :data="detailsData"></table-action-drawer>
       </div>
     </n-card>
   </div>
@@ -21,41 +21,29 @@
 
 <script setup lang="ts">
 import { h, onBeforeMount, reactive, ref } from 'vue';
-import { formatTime } from '@/utils/format';
 import { Refresh } from "@vicons/ionicons5";
 import useLoading from '@/hooks/loading-hooks';
 import { statusCode } from '@/utils/status-code';
-import { getVideoListAPI, deleteVideoAPI } from '@/api/video';
-// import TableActionModal from './components/table-action-modal.vue';
+import { getReviewListAPI } from '@/api/video';
 import type { DataTableColumns } from 'naive-ui';
-import { NCard, NImage, NIcon, NButton, NDataTable, NPopconfirm, NSpace, useMessage } from 'naive-ui';
 import { getResourceUrl } from '@/utils/resource';
+import TableActionDrawer from './components/table-action-drawer.vue';
+import { NCard, NImage, NIcon, NButton, NDataTable, NSpace, useMessage } from 'naive-ui';
 
 const { loading, startLoading, endLoading } = useLoading(false);
 // TODO: 展示分区
 const message = useMessage();
 
-const visible = ref(false);
-const openModal = () => {
-  visible.value = true;
+const visibleDrawer = ref(false);
+const openDrawer = () => {
+  visibleDrawer.value = true;
 }
 
-// 编辑视频
-const editData = ref<VideoType>();
-const editVideo = (row: VideoType) => {
-  editData.value = row;
-  openModal();
-}
-
-// 删除视频
-const deleteVideo = async (row: VideoType) => {
-  const res = await deleteVideoAPI(row.vid);
-  if (res.data.code === statusCode.OK) {
-    message.success('删除成功');
-    await getTableData();
-  } else {
-    message.error(res.data.msg);
-  }
+// 查看详情
+const detailsData = ref<VideoType>();
+const viewDetails = (row: VideoType) => {
+  detailsData.value = row;
+  openDrawer();
 }
 
 const columns: DataTableColumns<VideoType> = [
@@ -84,30 +72,14 @@ const columns: DataTableColumns<VideoType> = [
     align: 'center'
   },
   {
-    key: 'author',
-    title: '作者',
-    align: 'center',
-    render: row => {
-      return row.author.name
-    }
+    key: 'partition',
+    title: '分区',
+    align: 'center'
   },
   {
     key: 'desc',
     title: '简介',
     align: 'center',
-  },
-  {
-    key: 'tags',
-    title: '标签',
-    align: 'center',
-  },
-  {
-    key: 'createdAt',
-    title: '上传时间',
-    align: 'center',
-    render: row => {
-      return formatTime(row.createdAt)
-    }
   },
   {
     key: 'actions',
@@ -117,18 +89,10 @@ const columns: DataTableColumns<VideoType> = [
     render: row => {
       return h(NSpace, { justify: 'center' }, {
         default: () => [
-          // h(NButton, {
-          //   size: 'small',
-          //   onClick: () => editVideo(row)
-          // }, { default: () => '编辑' }),
-          h(NPopconfirm, {
-            onPositiveClick: () => deleteVideo(row),
-          }, {
-            default: () => '是否删除视频?',
-            trigger: () => h(NButton, {
-              size: 'small',
-            }, { default: () => '删除' })
-          })
+          h(NButton, {
+            size: 'small',
+            onClick: () => viewDetails(row)
+          }, { default: () => '详情' }),
         ]
       })
 
@@ -141,9 +105,9 @@ const getTableData = async () => {
   startLoading();
   const page = pagination.page || 1;
   const pageSize = pagination.pageSize || 1;
-  const res = await getVideoListAPI({ page, pageSize });
+  const res = await getReviewListAPI({ page, pageSize });
   if (res.data.code === statusCode.OK) {
-    if( res.data.data.list) {
+    if (res.data.data.list) {
       tableData.value = res.data.data.list;
     }
     pagination.itemCount = res.data.data.total;

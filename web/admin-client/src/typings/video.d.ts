@@ -3,6 +3,11 @@ interface VideoListParam {
   pageSize: number;
 }
 
+interface ReviewListParam {
+  page: number;
+  pageSize: number;
+}
+
 // 视频信息
 interface VideoType  {
   vid: number;

@@ -18,7 +18,7 @@
           <n-input v-model:value="formModel.title" />
         </n-form-item-grid-item>
         <n-form-item-grid-item :span="12" label="图标" path="icon">
-          <n-popover trigger="hover" placement="bottom" width="400">
+          <n-popover trigger="hover" placement="bottom" :width="400">
             <template #trigger>
               <n-input readonly v-model:value="formModel.icon" />
             </template>
