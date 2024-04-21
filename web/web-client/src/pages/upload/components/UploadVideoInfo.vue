@@ -1,12 +1,17 @@
 <template>
   <div class="upload-video-info">
     <!-- 上传封面文件 -->
-    <cover-uploader class="uploader" v-if="!loadingForm" :cover="videoForm.cover" @finish="finishUpload" />
-    <el-skeleton v-else class="uploader-skeleton" animated>
-      <template #template>
-        <el-skeleton-item style="width: 100%;height: 100%;" />
-      </template>
-    </el-skeleton>
+    <div class="cover">
+      <div class="label">封面</div>
+      <div class="cover-uploader-box">
+        <cover-uploader class="uploader" v-if="!loadingForm" :cover="videoForm.cover" @finish="finishUpload" />
+        <el-skeleton v-else class="uploader-skeleton" animated>
+          <template #template>
+            <el-skeleton-item style="width: 100%;height: 100%;" />
+          </template>
+        </el-skeleton>
+      </div>
+    </div>
     <!-- 视频信息表单 -->
     <el-form class="info-form" :model="videoForm" label-position="left" label-width="80px">
       <el-form-item label="标题">
@@ -19,7 +24,7 @@
         <form-skeleton v-else style="height: 73px;"></form-skeleton>
       </el-form-item>
       <el-form-item label="是否原创">
-        <el-switch v-if="!loadingForm" v-model="videoForm.copyright" />
+        <el-switch v-if="!loadingForm" :disabled="isEdit" v-model="videoForm.copyright" />
         <form-skeleton v-else></form-skeleton>
       </el-form-item>
       <el-form-item label="标签">
@@ -33,12 +38,11 @@
       </el-form-item>
       <el-form-item label="视频分区">
         <form-skeleton v-if="loadingForm"></form-skeleton>
-        <el-input v-else-if="partitionText" disabled :value="partitionText"></el-input>
+        <el-input v-else-if="props.info.partitionId !== 0" disabled :value="partitionText"></el-input>
         <partition-selector v-else :partitions="partitionList" @selected="selectedPartition"></partition-selector>
       </el-form-item>
       <div class="upload-next-btn">
-        <el-button v-if="isModify" type="primary" @click="modifyVideoInfo">修改</el-button>
-        <el-button v-else type="primary" @click="uploadInfo">下一步</el-button>
+        <el-button type="primary" @click="submitVideoInfo">提交</el-button>
       </div>
     </el-form>
   </div>
@@ -47,7 +51,7 @@
 <script setup lang="ts">
 import { ref, onMounted, reactive } from "vue";
 import { statusCode } from "@/utils/status-code";
-import CoverUploader from "@/components/cover-uploader/index.vue";
+import CoverUploader from "./CoverUploader.vue";
 import PartitionSelector from "./PartitionSelector.vue";
 import FormSkeleton from "@/components/form-skeleton/index.vue";
 import { uploadVideoInfoAPI, editVideoAPI } from "@/api/video";
@@ -59,6 +63,7 @@ const props = defineProps<{
   info: VideoStatusType
 }>();
 
+const isEdit = ref(false);
 const descSize = { minRows: 3, maxRows: 3 };
 const videoForm = reactive({
   vid: 0,
@@ -70,7 +75,6 @@ const videoForm = reactive({
   partitionId: 0,
 })
 
-const isModify = ref(false);
 const loadingForm = ref(true);//加载表单
 const partitionText = ref("");//分区名称
 
@@ -108,8 +112,7 @@ const closeTag = (tag: string) => {
   dynamicTags.value.splice(dynamicTags.value.indexOf(tag), 1)
 }
 
-//上传视频信息
-const uploadInfo = async () => {
+const submitVideoInfo = async () => {
   if (!videoForm.cover) {
     ElMessage.error("请上传视频封面");
     return;
@@ -122,31 +125,16 @@ const uploadInfo = async () => {
     ElMessage.error("请选择视频分区");
     return;
   }
-
-  videoForm.tags = dynamicTags.value.join(',');
-  const res = await uploadVideoInfoAPI(videoForm);
-  if (res.data.code === statusCode.OK) {
-    emits('finish', res.data.data.videoId);
-  } else {
-    ElMessage.error(res.data.msg);
-  }
-}
-
-//修改视频信息
-const modifyVideoInfo = async () => {
-  if (!videoForm.cover) {
-    ElMessage.error("请上传视频封面");
-    return;
-  }
-  if (!videoForm.title) {
-    ElMessage.error("请填写视频标题");
+  if (dynamicTags.value.length < 3) {
+    ElMessage.error("标签不能低于3个");
     return;
   }
 
   videoForm.tags = dynamicTags.value.join(',');
-  const res = await editVideoAPI(videoForm);
+  const reqFunc = isEdit.value ? editVideoAPI : uploadVideoInfoAPI;
+  const res = await reqFunc(videoForm);
   if (res.data.code === statusCode.OK) {
-    ElMessage.success("修改成功");
+    ElMessage.success("提交成功");
   }
 }
 
@@ -174,10 +162,13 @@ const getPartitionName = async (id: number) => {
 
 const loadVideoInfo = () => {
   if (props.info.vid) {
-    isModify.value = true;
-    dynamicTags.value = props.info.tags.split(',');
+    if (props.info.tags) {
+      dynamicTags.value = props.info.tags.split(',');
+    }
     Object.assign(videoForm, props.info);
     getPartitionName(props.info.partitionId);
+
+    isEdit.value = props.info.partitionId !== 0;
   }
 }
 
@@ -197,17 +188,39 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
-.uploader {
-  margin: 30px auto;
+.cover {
+  display: flex;
+  align-items: center;
+  margin-bottom: 18px;
+
+  .label {
+    width: 80px;
+    font-size: 14px;
+    color: #606266;
+    margin-left: 130px;
+  }
+
+  .cover-uploader-box {
+    width: 169px;
+    height: 127px;
+
+    .uploader {
+      width: 169px;
+      height: 127px;
+    }
+  }
+
+
+
+  .uploader-skeleton {
+    width: 169px;
+    height: 127px;
+    border-radius: 3px;
+    background-color: #f0f2f5;
+  }
 }
 
-.uploader-skeleton {
-  width: 350px;
-  margin: 50px auto;
-  height: 200px;
-  border-radius: 6px;
-  background-color: #f0f2f5;
-}
+
 
 .tags-box {
   width: 100%;
@@ -232,7 +245,9 @@ onMounted(async () => {
   margin-left: 130px;
 
   .upload-next-btn {
-    float: right;
+    display: flex;
+    justify-content: flex-end;
+    padding-bottom: 16px;
 
     button {
       width: 160px;

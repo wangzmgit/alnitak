@@ -13,7 +13,7 @@
         </n-space>
         <n-data-table class="table" remote :columns="columns" :data="tableData" :loading="loading"
           :pagination="pagination" flex-height />
-        <table-action-drawer  v-model:visible="visibleDrawer" :data="detailsData"></table-action-drawer>
+        <table-action-drawer  v-model:visible="visibleDrawer" :data="detailsData!" @finish="reviewFinish"></table-action-drawer>
       </div>
     </n-card>
   </div>
@@ -109,10 +109,16 @@ const getTableData = async () => {
   if (res.data.code === statusCode.OK) {
     if (res.data.data.list) {
       tableData.value = res.data.data.list;
+    } else {
+      tableData.value = [];
     }
     pagination.itemCount = res.data.data.total;
     endLoading();
   }
+}
+
+const reviewFinish = () => {
+  getTableData();
 }
 
 const pagination = reactive({

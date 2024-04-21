@@ -13,7 +13,13 @@
             <div class="item-center">
               <nuxt-link class="item-title" :to="`/video/${item.vid}`">{{ item.title }}</nuxt-link>
               <span class="desc">简介：{{ item.desc }}</span>
-              <span class="desc">创建于：{{ formatTime(item.createdAt) }}</span>
+              <div class="desc">
+                <span>创建于：{{ formatTime(item.createdAt) }}</span>
+                <span class="status" v-if="getStatusText(item.status)"
+                  :style="`color: ${getStatusTextColor(item.status)}`">{{ getStatusText(item.status) }}</span>
+                <span class="status status-btn" v-if="item.status === reviewCode.REVIEW_FAILED"
+                  @click="showReason(item.vid)">查看原因</span>
+              </div>
             </div>
             <div class="item-right">
               <el-dropdown>
@@ -24,8 +30,7 @@
                 </el-button>
                 <template #dropdown>
                   <el-dropdown-menu>
-                    <el-dropdown-item @click="modifyVideo(item.vid, 'info')">编辑信息</el-dropdown-item>
-                    <el-dropdown-item @click="modifyVideo(item.vid, 'video')">修改视频</el-dropdown-item>
+                    <el-dropdown-item @click="modifyVideo(item.vid)">编辑</el-dropdown-item>
                     <el-dropdown-item @click="deleteVideo(item.vid)">删除稿件</el-dropdown-item>
                   </el-dropdown-menu>
                 </template>
@@ -42,6 +47,7 @@
 import { onBeforeMount, ref } from 'vue';
 import { getUploadVideoAPI, deleteVideoAPI } from '@/api/video';
 import { MoreOne as MoreIcon } from '@icon-park/vue-next';
+import { getReviewRecordAPI } from '~/api/revies';
 
 const page = ref(1);
 const total = ref(0);
@@ -79,9 +85,46 @@ const deleteVideo = async (vid: number) => {
   }
 }
 
+const getStatusText = (status: number) => {
+  switch (status) {
+    // case reviewCode.CREATED_VIDEO:
+    //   return "未提交"
+    case reviewCode.SUBMIT_REVIEW:
+    case reviewCode.WAITING_REVIEW:
+      return "审核中"
+    case reviewCode.REVIEW_FAILED:
+      return "审核不通过"
+    case reviewCode.PROCESSING_FAIL:
+      return "视频处理失败"
+  }
+}
+
+const getStatusTextColor = (status: number) => {
+  switch (status) {
+    case reviewCode.CREATED_VIDEO:
+      return "#999"
+    case reviewCode.SUBMIT_REVIEW:
+    case reviewCode.WAITING_REVIEW:
+      return "var(--primary-hover-color)"
+    case reviewCode.REVIEW_FAILED:
+      return "#f56c6c"
+    case reviewCode.PROCESSING_FAIL:
+      return "#f56c6c"
+  }
+}
+
+const showReason = async (vid: number) => {
+  const res = await getReviewRecordAPI(vid);
+  if (res.data.code === statusCode.OK) {
+    ElMessageBox.alert(res.data.data.review.remark, '', {
+      confirmButtonText: '确认',
+    })
+  }
+}
+
 //前往修改视频
-const modifyVideo = (vid: number, status: string) => {
-  navigateTo({ name: "upload-video", query: { vid: vid, modify: status } });
+const modifyVideo = (vid: number) => {
+  navigateTo({ name: "upload-video", query: { vid: vid } });
 }
 
 onBeforeMount(() => {
@@ -169,6 +212,15 @@ onBeforeMount(() => {
           display: -webkit-box;
           -webkit-line-clamp: 1;
           -webkit-box-orient: vertical;
+        }
+
+        .status {
+          margin-left: 12px;
+          color: var(--primary-hover-color);
+        }
+
+        .status-btn {
+          cursor: pointer;
         }
       }
 

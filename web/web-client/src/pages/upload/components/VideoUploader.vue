@@ -9,6 +9,7 @@
         </div>
         <p class="upload-title">点击或拖拽视频到此处上传视频</p>
         <p class="upload-limit">上传文件大小需小于{{ globalConfig.maxVideoSize }}M,仅支持.mp4格式文件</p>
+        <el-button class="btn" type="primary">上传视频</el-button>
       </div>
     </el-upload>
   </div>
@@ -23,7 +24,7 @@ import { Upload as UploadIcon } from "@icon-park/vue-next";
 
 const emits = defineEmits(["finish"]);
 const props = defineProps<{
-  vid: number
+  vid?: number
 }>();
 
 
@@ -50,7 +51,7 @@ const handleChange = (uploadFile: any) => {
   uploading.value = true;
   uploadFileAPI({
     name: "video",
-    action: `v1/upload/video/${props.vid}`,
+    action: props.vid ? `v1/upload/video/${props.vid}` : `v1/upload/video`,
     file: uploadFile.raw,
     onProgress: (val: any) => {
       changeUpload("uploading", val);
@@ -72,7 +73,7 @@ const changeUpload = (status: string, data?: any) => {
   uploaderKey.value = Date.now();
   switch (status) {
     case "success":
-      emits("finish");
+      emits("finish", data);
       ElMessage.success('上传完成');
       break;
     case "uploading":
@@ -87,8 +88,8 @@ const changeUpload = (status: string, data?: any) => {
 
 <style lang="scss" scoped>
 .video-uploader {
-  width: 350px;
-  margin: 30px auto;
+  width: 80%;
+  margin: 0 auto;
 
   .upload-tips {
     padding: 24px;
@@ -108,6 +109,12 @@ const changeUpload = (status: string, data?: any) => {
       color: #767c82;
       font-size: 14px;
       margin: 8px 0 0 0;
+    }
+
+    .btn {
+      margin-top: 26px;
+      width: 200px;
+      height: 40px;
     }
   }
 }

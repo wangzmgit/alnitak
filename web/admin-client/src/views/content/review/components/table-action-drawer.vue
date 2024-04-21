@@ -25,10 +25,12 @@
         </n-scrollbar>
       </div>
       <template #footer>
-        <n-button class="btn">不通过</n-button>
-        <n-button class="btn" type="primary">通过</n-button>
+        <n-button class="btn" @click="openModal">不通过</n-button>
+        <n-button class="btn" type="primary" @click="reviewVideoApproved">通过</n-button>
       </template>
     </n-drawer-content>
+    <review-modal v-model:visible="visibleModal" :vid="props.data.vid" :video-count="resourceList.length"
+      @finish="reviewFinish"></review-modal>
   </n-drawer>
 </template>
 
@@ -37,13 +39,14 @@ import { computed, reactive, ref, watch } from 'vue';
 import { formatTime } from '@/utils/format';
 import { getReviewResourceListAPI } from "@/api/video";
 import { statusCode } from '@/utils/status-code';
+import { reviewVideoApprovedAPI } from "@/api/review";
+import ReviewModal from './review-modal.vue';
 import { NButton, NTag, NDrawer, NDrawerContent, NScrollbar, NForm, NGrid, NFormItemGridItem } from "naive-ui";
 
-
-const emit = defineEmits(['update:visible']);
+const emit = defineEmits(['update:visible', 'finish']);
 const props = withDefaults(defineProps<{
   visible: boolean; //弹窗可见性
-  data?: VideoType;
+  data: VideoType;
 }>(), {
   visible: false,
 })
@@ -56,6 +59,11 @@ const drawerVisible = computed({
     emit('update:visible', visible);
   }
 });
+
+const visibleModal = ref(false);
+const openModal = () => {
+  visibleModal.value = true;
+}
 
 const resourceList = ref<ResourceType[]>([]);
 const getReviewResourceList = async (vid: number) => {
@@ -71,6 +79,18 @@ const getReviewResourceList = async (vid: number) => {
 
 const playVideo = (r: ResourceType) => {
 
+}
+
+const reviewVideoApproved = async () => {
+  const res = await reviewVideoApprovedAPI({ vid: props.data.vid });
+  if (res.data.code === statusCode.OK) {
+    reviewFinish();
+  }
+}
+
+const reviewFinish = () => {
+  drawerVisible.value = false;
+  emit("finish");
 }
 
 watch(() => props.visible, (newVal) => {

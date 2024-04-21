@@ -45,6 +45,7 @@ interface ManuscriptVideoType extends BaseVideoType {
 interface VideoType extends BaseVideoType {
   tags: string;
   clicks: number;
+  status: number;
   copyright: boolean;
   author: UserInfoType;
   resources: ResourceType[];
