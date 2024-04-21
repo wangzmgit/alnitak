@@ -41,5 +41,5 @@ func GenerateVideoFilename() string {
 	}
 
 	id := node.Generate()
-	return id.String() + ".mp4"
+	return id.String()
 }

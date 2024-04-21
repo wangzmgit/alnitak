@@ -22,6 +22,19 @@ type TranscodingTarget struct {
 	FPS         string // 帧率
 }
 
+// 生成封面
+func GenerateCover(inputFile, outputFile string) error {
+	command := []string{"-i", inputFile, "-vframes", "1", "-y", outputFile}
+
+	_, err := utils.RunCmd(exec.Command("ffmpeg", command...))
+	if err != nil {
+		utils.ErrorLog("提取封面失败", "transcoding", err.Error())
+		return err
+	}
+
+	return nil
+}
+
 // 获取视频信息
 func ProcessVideoInfo(input string) (*dto.TranscodingInfo, error) {
 	var transcodingInfo dto.TranscodingInfo

@@ -16,8 +16,6 @@ func CollectVideoRoutes(r *gin.RouterGroup) {
 		videoAuth.POST("uploadVideoInfo", api.UploadVideoInfo)
 		// 获取上传视频状态信息
 		videoAuth.GET("getVideoStatus", api.GetVideoStatus)
-		// 提交审核
-		videoAuth.POST("submitReview", api.SubmitReview)
 		// 获取上传的视频
 		videoAuth.GET("getUploadVideo", api.GetUploadVideoList)
 		// 编辑视频信息

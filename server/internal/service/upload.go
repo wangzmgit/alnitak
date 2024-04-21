@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/viper"
 	"interastral-peace.com/alnitak/internal/cache"
 	"interastral-peace.com/alnitak/internal/domain/model"
+	"interastral-peace.com/alnitak/internal/domain/vo"
 	"interastral-peace.com/alnitak/internal/global"
 	"interastral-peace.com/alnitak/utils"
 )
@@ -48,60 +49,100 @@ func UploadImg(ctx *gin.Context, file *multipart.FileHeader) (string, error) {
 	return url, nil
 }
 
-func UploadVideo(ctx *gin.Context, vid uint, file *multipart.FileHeader) error {
+func UploadVideoCreate(ctx *gin.Context, file *multipart.FileHeader) (vo.ResourceResp, error) {
 	userId := ctx.GetUint("userId")
-	suffix := path.Ext(file.Filename)
-	// 参数校验
-	if video, _ := FindVideoById(vid); video.ID == 0 || video.Uid != userId {
-		return errors.New("视频不存在")
+
+	videoName, err := SaveUploadVideo(ctx, file)
+	if err != nil {
+		return vo.ResourceResp{}, err
 	}
 
+	uploadVideoPath := "./upload/video/" + videoName + "/upload.mp4"
+	vid, _ := initVideo(userId, uploadVideoPath, file.Filename)
+	if vid == 0 {
+		return vo.ResourceResp{}, errors.New("创建失败")
+	}
+
+	resource, err := CompleteUploadVideo(vid, userId, videoName, file.Filename)
+	if err != nil {
+		return vo.ResourceResp{}, err
+	}
+
+	return resource, nil
+}
+
+func UploadVideoAdd(ctx *gin.Context, vid uint, file *multipart.FileHeader) (vo.ResourceResp, error) {
+	userId := ctx.GetUint("userId")
+	if video, _ := FindVideoById(vid); video.ID == 0 || video.Uid != userId {
+		return vo.ResourceResp{}, errors.New("视频不存在")
+	}
+
+	videoName, err := SaveUploadVideo(ctx, file)
+	if err != nil {
+		return vo.ResourceResp{}, err
+	}
+
+	resource, err := CompleteUploadVideo(vid, userId, videoName, file.Filename)
+	if err != nil {
+		return vo.ResourceResp{}, err
+	}
+
+	return resource, nil
+}
+
+func SaveUploadVideo(ctx *gin.Context, file *multipart.FileHeader) (string, error) {
+	suffix := path.Ext(file.Filename)
 	if !utils.IsVideoType(suffix) { // 文件后缀
-		return errors.New("视频上传失败")
+		return "", errors.New("视频上传失败")
 	}
 
 	//文件大小限制
 	if !utils.FileSize(ctx.GetHeader("Content-Length"), viper.GetInt64("file.max_video_size")) {
-		return errors.New("文件大小超出限制")
+		return "", errors.New("文件大小超出限制")
 	}
 
 	//保存文件
-	newFileName := utils.GenerateVideoFilename()
-	if err := os.Mkdir("./upload/video/"+newFileName, os.ModePerm); err != nil {
-		return errors.New("视频上传失败")
+	videoName := utils.GenerateVideoFilename()
+	if err := os.Mkdir("./upload/video/"+videoName, os.ModePerm); err != nil {
+		return "", errors.New("视频上传失败")
 	}
 
-	uploadVideoPath := "./upload/video/" + newFileName + "/upload.mp4"
+	uploadVideoPath := "./upload/video/" + videoName + "/upload.mp4"
 	if err := ctx.SaveUploadedFile(file, uploadVideoPath); err != nil {
-		return errors.New("文件上传失败")
+		return "", errors.New("文件上传失败")
 	}
 
+	return videoName, nil
+}
+
+func CompleteUploadVideo(vid, userId uint, videoName, title string) (vo.ResourceResp, error) {
+	uploadVideoPath := "./upload/video/" + videoName + "/upload.mp4"
 	transcodingInfo, err := ProcessVideoInfo(uploadVideoPath)
 	if err != nil {
-		return errors.New("读取视频信息失败")
+		return vo.ResourceResp{}, errors.New("读取视频信息失败")
 	}
 
 	// 存入数据库
-	resource := &model.Resource{
+	resource := model.Resource{
 		Vid:      vid,
 		Uid:      userId,
-		Title:    "",
+		Title:    title,
 		Status:   global.VIDEO_PROCESSING,
 		Duration: transcodingInfo.Duration,
 	}
-	if err := global.Mysql.Create(resource).Error; err != nil {
-		return errors.New("保存视频失败")
+	if err := global.Mysql.Create(&resource).Error; err != nil {
+		return vo.ResourceResp{}, errors.New("保存视频失败")
 	}
 
 	// 启动转码服务
 	transcodingInfo.VideoID = vid
-	transcodingInfo.DirName = newFileName
+	transcodingInfo.DirName = videoName
 	transcodingInfo.ResourceID = resource.ID
-	transcodingInfo.OutputDir = "./upload/video/" + newFileName + "/"
+	transcodingInfo.OutputDir = "./upload/video/" + videoName + "/"
 	transcodingInfo.InputFile = transcodingInfo.OutputDir + "upload.mp4"
 	go VideoTransCoding(transcodingInfo)
 
-	return nil
+	return vo.ResourceToResourceResp(resource), nil
 }
 
 // 生成文件url
@@ -111,4 +152,30 @@ func generateFileUrl(objectKey string) string {
 	}
 
 	return "/api/" + objectKey
+}
+
+// 初始化视频
+func initVideo(userId uint, videoPath, title string) (uint, error) {
+	// 生成封面
+	coverName := utils.GenerateImgFilename(".jpg")
+	objectKey := "image/" + coverName
+	filePath := "./upload/image/" + coverName
+
+	GenerateCover(videoPath, filePath)
+	if viper.GetString("storage.oss_type") != "local" {
+		// 上传到OSS
+		global.Storage.PutObjectFromFile(objectKey, filePath)
+	}
+
+	videoId, err := CreateVideo(&model.Video{
+		Uid:    userId,
+		Cover:  generateFileUrl(objectKey),
+		Title:  title,
+		Status: global.CREATED_VIDEO,
+	})
+	if err != nil {
+		return 0, err
+	}
+
+	return videoId, nil
 }

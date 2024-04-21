@@ -14,35 +14,35 @@ import (
 	"interastral-peace.com/alnitak/utils"
 )
 
-func UploadVideoInfo(ctx *gin.Context, uploadVideoReq dto.UploadVideoReq) (uint, error) {
-
+func UploadVideoInfo(ctx *gin.Context, uploadVideoReq dto.UploadVideoReq) error {
 	userId := ctx.GetUint("userId")
 	if cache.GetUploadImage(uploadVideoReq.Cover) != userId {
-		return 0, errors.New("文件链接无效")
+		// 查询是否与旧封面图一致
+		if v, _ := FindVideoById(uploadVideoReq.Vid); v.Cover != uploadVideoReq.Cover {
+			return errors.New("文件链接无效")
+		}
 	}
 
 	if !IsSubpartition(uploadVideoReq.PartitionId) {
-		return 0, errors.New("分区不存在")
+		return errors.New("分区不存在")
 	}
 
-	// 保存到数据库
-	video := model.Video{
-		Uid:         userId,
-		Title:       uploadVideoReq.Title,
-		Cover:       uploadVideoReq.Cover,
-		Desc:        uploadVideoReq.Desc,
-		Tags:        uploadVideoReq.Tags,
-		Copyright:   uploadVideoReq.Copyright,
-		PartitionId: uploadVideoReq.PartitionId,
-		Status:      global.CREATED_VIDEO,
+	if err := global.Mysql.Model(&model.Video{}).Where("id = ?", uploadVideoReq.Vid).Updates(
+		map[string]interface{}{
+			"title":        uploadVideoReq.Title,
+			"cover":        uploadVideoReq.Cover,
+			"desc":         uploadVideoReq.Desc,
+			"tags":         uploadVideoReq.Tags,
+			"copyright":    uploadVideoReq.Copyright,
+			"partition_id": uploadVideoReq.PartitionId,
+			"status":       getVideoStatus(uploadVideoReq.Vid),
+		},
+	).Error; err != nil {
+		utils.ErrorLog("修改视频失败", "video", err.Error())
+		return errors.New("修改失败")
 	}
 
-	if err := global.Mysql.Create(&video).Error; err != nil {
-		utils.ErrorLog("创建视频失败", "video", err.Error())
-		return 0, errors.New("创建视频失败")
-	}
-
-	return video.ID, nil
+	return nil
 }
 
 func GetVideoStatus(ctx *gin.Context, vid uint) (video vo.VideoStatusResp, err error) {
@@ -53,24 +53,9 @@ func GetVideoStatus(ctx *gin.Context, vid uint) (video vo.VideoStatusResp, err e
 	}
 
 	//查询分区下的视频资源
-	video.Resources = GetVideoResources(vid)
+	video.Resources = GetReviewResourceList(vid)
 
 	return video, nil
-}
-
-// 提交审核
-func SubmitReview(ctx *gin.Context, vid uint) error {
-	userId := ctx.GetUint("userId")
-	if err := global.Mysql.Model(&model.Video{}).Where("id = ? and uid = ?", vid, userId).Updates(
-		map[string]interface{}{
-			"status": global.SUBMIT_REVIEW,
-		},
-	).Error; err != nil {
-		utils.ErrorLog("更新资源状态失败", "transcoding", err.Error())
-		return err
-	}
-
-	return nil
 }
 
 // 获取视频文件
@@ -125,12 +110,11 @@ func EditVideoInfo(ctx *gin.Context, editVideoReq dto.EditVideoReq) error {
 
 	if err := global.Mysql.Model(&model.Video{}).Where("id = ?", editVideoReq.Vid).Updates(
 		map[string]interface{}{
-			"title":     editVideoReq.Title,
-			"cover":     editVideoReq.Cover,
-			"desc":      editVideoReq.Desc,
-			"tags":      editVideoReq.Tags,
-			"copyright": editVideoReq.Copyright,
-			"status":    global.WAITING_REVIEW,
+			"title":  editVideoReq.Title,
+			"cover":  editVideoReq.Cover,
+			"desc":   editVideoReq.Desc,
+			"tags":   editVideoReq.Tags,
+			"status": getVideoStatus(editVideoReq.Vid),
 		},
 	).Error; err != nil {
 		utils.ErrorLog("修改视频失败", "video", err.Error())
@@ -242,6 +226,15 @@ func GetReviewList(reviewListReq dto.ReviewListReq) (total int64, videos []vo.Re
 	return
 }
 
+func CreateVideo(video *model.Video) (uint, error) {
+	if err := global.Mysql.Create(video).Error; err != nil {
+		utils.ErrorLog("创建视频失败", "video", err.Error())
+		return 0, errors.New("创建视频失败")
+	}
+
+	return video.ID, nil
+}
+
 // 通过视频ID查询视频
 func FindVideoById(id uint) (video model.Video, err error) {
 	err = global.Mysql.Where("`id` = ?", id).First(&video).Error
@@ -262,11 +255,23 @@ func GetVideoInfo(videoId uint) (video vo.VideoResp) {
 		// 获取作者信息
 		video.Author = GetUserBaseInfo(video.Uid)
 		// 获取视频资源
-		video.Resources = GetVideoResources(videoId)
+		video.Resources = GetVideoResourceByStatus(videoId, global.AUDIT_APPROVED)
 
 		// 存到redis
 		cache.SetVideoInfo(video)
 	}
 
 	return
+}
+
+// 获取视频状态
+func getVideoStatus(videoId uint) int {
+	var count int64
+	global.Mysql.Model(&model.Resource{}).Where("vid = ? and status = ?", videoId, global.VIDEO_PROCESSING).Count(&count)
+	// 如果没有转码中的视频，则更新视频为待审核
+	if count == 0 {
+		return global.WAITING_REVIEW
+	}
+
+	return global.SUBMIT_REVIEW
 }

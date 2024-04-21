@@ -24,13 +24,26 @@ func UploadImg(ctx *gin.Context) {
 	resp.OkWithData(ctx, gin.H{"url": url})
 }
 
-func UploadVideo(ctx *gin.Context) {
-	// 获取视频ID
-	vid := utils.StringToUint(ctx.Param("vid"))
-	if vid == 0 {
-		resp.FailWithMessage(ctx, "请求参数有误")
+func UploadVideoCreate(ctx *gin.Context) {
+	video, err := ctx.FormFile("video")
+	if err != nil {
+		resp.FailWithMessage(ctx, "视频上传失败")
 		return
 	}
+
+	resource, err := service.UploadVideoCreate(ctx, video)
+	if err != nil {
+		resp.FailWithMessage(ctx, err.Error())
+		return
+	}
+
+	// 返回给前端
+	resp.OkWithData(ctx, gin.H{"resource": resource})
+}
+
+func UploadVideoAdd(ctx *gin.Context) {
+	// 获取视频ID
+	vid := utils.StringToUint(ctx.Param("vid"))
 
 	video, err := ctx.FormFile("video")
 	if err != nil {
@@ -38,11 +51,12 @@ func UploadVideo(ctx *gin.Context) {
 		return
 	}
 
-	if err := service.UploadVideo(ctx, vid, video); err != nil {
+	resource, err := service.UploadVideoAdd(ctx, vid, video)
+	if err != nil {
 		resp.FailWithMessage(ctx, err.Error())
 		return
 	}
 
 	// 返回给前端
-	resp.Ok(ctx)
+	resp.OkWithData(ctx, gin.H{"resource": resource})
 }

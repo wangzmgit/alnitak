@@ -7,14 +7,12 @@ import (
 )
 
 func CollectResourceRoutes(r *gin.RouterGroup) {
-	resource := r.Group("resource")
+	resourceGroup := r.Group("resource")
+
+	resourceAuth := resourceGroup.Group("")
+	resourceAuth.Use(middleware.Auth())
 	{
-		//需要用户登录
-		auth := resource.Group("")
-		auth.Use(middleware.Auth())
-		{
-			auth.PUT("modifyTitle", api.ModifyResourceTitle)
-			auth.DELETE("deleteResource/:id", api.DeleteResource)
-		}
+		resourceAuth.PUT("modifyTitle", api.ModifyResourceTitle)
+		resourceAuth.DELETE("deleteResource/:id", api.DeleteResource)
 	}
 }

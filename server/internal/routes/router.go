@@ -63,6 +63,8 @@ func CollectRoutes(r *gin.Engine) *gin.Engine {
 		CollectHistoryRoutes(v1)
 		// 消息相关接口
 		CollectMessageRoutes(v1)
+		// 审核相关接口
+		CollectReviewRoutes(v1)
 	}
 
 	//获取静态文件

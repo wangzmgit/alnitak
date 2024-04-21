@@ -39,6 +39,12 @@ func DeleteResource(ctx *gin.Context, id uint) error {
 		return errors.New("资源不存在")
 	}
 
+	var count int64
+	global.Mysql.Model(&model.Resource{}).Where("vid = ?", resource.Vid).Count(&count)
+	if count <= 1 {
+		return errors.New("至少需要一个视频")
+	}
+
 	if err := global.Mysql.Where("id = ?", id).Delete(&model.Resource{}).Error; err != nil {
 		utils.ErrorLog("删除资源失败", "resource", err.Error())
 		return errors.New("删除资源失败")
@@ -50,9 +56,8 @@ func DeleteResource(ctx *gin.Context, id uint) error {
 }
 
 // 获取视频资源
-func GetVideoResources(videoId uint) (resources []vo.ResourceResp) {
-	global.Mysql.Model(&model.Resource{}).
-		Where("vid = ? and status = ?", videoId, global.AUDIT_APPROVED).Scan(&resources)
+func GetVideoResourceByStatus(videoId uint, status int) (resources []vo.ResourceResp) {
+	global.Mysql.Model(&model.Resource{}).Where("vid = ? and status = ?", videoId, status).Scan(&resources)
 
 	return
 }

@@ -12,6 +12,7 @@ func CollectUploadRoutes(r *gin.RouterGroup) {
 	uploadGroup.Use(middleware.Auth())
 	{
 		uploadGroup.POST("image", api.UploadImg)
-		uploadGroup.POST("video/:vid", api.UploadVideo)
+		uploadGroup.POST("video/:vid", api.UploadVideoAdd)
+		uploadGroup.POST("video", api.UploadVideoCreate)
 	}
 }

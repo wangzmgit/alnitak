@@ -22,14 +22,13 @@ func UploadVideoInfo(ctx *gin.Context) {
 		return
 	}
 
-	videoId, err := service.UploadVideoInfo(ctx, uploadVideoReq)
-	if err != nil {
+	if err := service.UploadVideoInfo(ctx, uploadVideoReq); err != nil {
 		resp.FailWithMessage(ctx, err.Error())
 		return
 	}
 
 	// 返回给前端
-	resp.OkWithData(ctx, gin.H{"videoId": videoId})
+	resp.Ok(ctx)
 }
 
 // 获取视频状态
@@ -44,25 +43,6 @@ func GetVideoStatus(ctx *gin.Context) {
 
 	// 返回给前端
 	resp.OkWithData(ctx, gin.H{"video": video})
-}
-
-// 提交审核
-func SubmitReview(ctx *gin.Context) {
-	//获取参数
-	var idReq dto.IdReq
-	if err := ctx.Bind(&idReq); err != nil {
-		resp.FailWithMessage(ctx, "请求参数有误")
-		return
-	}
-
-	err := service.SubmitReview(ctx, idReq.ID)
-	if err != nil {
-		resp.FailWithMessage(ctx, err.Error())
-		return
-	}
-
-	// 返回给前端
-	resp.Ok(ctx)
 }
 
 // 获取自己的视频

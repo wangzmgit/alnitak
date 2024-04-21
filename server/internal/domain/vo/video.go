@@ -5,7 +5,7 @@ import "time"
 const (
 	VIDEO_FIELD        = "`id`,`uid`,`title`,`cover`,`desc`,`created_at`,`copyright`,`tags`"
 	VIDEO_STATUS_FIELD = "`id`,`title`,`cover`,`desc`,`copyright`,`status`,`partition_id`,`tags`"
-	UPLOAD_VIDEO_FIELD = "`id`,`title`,`cover`,`desc`,`copyright`,`created_at`"
+	UPLOAD_VIDEO_FIELD = "`id`,`title`,`cover`,`desc`,`copyright`,`status`,`created_at`"
 )
 
 type VideoResp struct {
@@ -39,6 +39,7 @@ type UploadVideoResp struct {
 	Title     string    `json:"title"`
 	Cover     string    `json:"cover"`
 	Desc      string    `json:"desc"`
+	Status    int       `json:"status"`
 	Copyright bool      `json:"copyright"`
 	CreatedAt time.Time `json:"createdAt"`
 	Clicks    int64     `json:"clicks" gorm:"-"`

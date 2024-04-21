@@ -11,6 +11,7 @@ type ReviewListReq struct {
 }
 
 type UploadVideoReq struct {
+	Vid         uint
 	Title       string
 	Cover       string
 	Desc        string
@@ -20,10 +21,9 @@ type UploadVideoReq struct {
 }
 
 type EditVideoReq struct {
-	Vid       uint
-	Title     string
-	Cover     string
-	Desc      string
-	Tags      string
-	Copyright bool
+	Vid   uint
+	Title string
+	Cover string
+	Desc  string
+	Tags  string
 }
