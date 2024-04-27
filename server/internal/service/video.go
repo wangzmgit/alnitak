@@ -93,7 +93,7 @@ func GetUploadVideoList(ctx *gin.Context, page, pageSize int) (total int64, vide
 
 	// 更新播放量数据
 	for i := 0; i < len(videos); i++ {
-		videos[i].Clicks = GetVideoClicks(videos[i].ID)
+		videos[i].Clicks += GetVideoClicks(videos[i].ID)
 	}
 
 	return
@@ -101,9 +101,10 @@ func GetUploadVideoList(ctx *gin.Context, page, pageSize int) (total int64, vide
 
 func EditVideoInfo(ctx *gin.Context, editVideoReq dto.EditVideoReq) error {
 	userId := ctx.GetUint("userId")
+	oldVideo, _ := FindVideoById(editVideoReq.Vid)
 	if cache.GetUploadImage(editVideoReq.Cover) != userId {
 		// 查询是否与旧封面图一致
-		if v, _ := FindVideoById(editVideoReq.Vid); v.Cover != editVideoReq.Cover {
+		if oldVideo.Cover != editVideoReq.Cover {
 			return errors.New("文件链接无效")
 		}
 	}
@@ -120,6 +121,9 @@ func EditVideoInfo(ctx *gin.Context, editVideoReq dto.EditVideoReq) error {
 		utils.ErrorLog("修改视频失败", "video", err.Error())
 		return errors.New("修改失败")
 	}
+
+	// 删除缓存中的视频ID信息
+	cache.DelVideoId(oldVideo.PartitionId, oldVideo.ID)
 
 	// 删除视频信息缓存
 	cache.DelVideoInfo(editVideoReq.Vid)
@@ -155,7 +159,7 @@ func GetVideoById(ctx *gin.Context, videoId uint) (vo.VideoResp, error) {
 
 	// 增加播放量(一个ip在同一个视频下，每30分钟可重新增加1播放量)
 	AddVideoClicks(videoId, ctx.ClientIP())
-	video.Clicks = GetVideoClicks(video.ID)
+	video.Clicks += GetVideoClicks(video.ID)
 
 	return video, nil
 }
@@ -178,7 +182,7 @@ func GetVideoByUser(ctx *gin.Context, userId uint, page, pageSize int) (total in
 
 	// 更新播放量数据
 	for i := 0; i < len(videos); i++ {
-		videos[i].Clicks = GetVideoClicks(videos[i].ID)
+		videos[i].Clicks += GetVideoClicks(videos[i].ID)
 	}
 
 	return
@@ -192,7 +196,7 @@ func GetVideoListManage(videoListReq dto.VideoListReq) (total int64, videos []vo
 
 	// 更新播放量和作者数据
 	for i := 0; i < len(videos); i++ {
-		videos[i].Clicks = GetVideoClicks(videos[i].ID)
+		videos[i].Clicks += GetVideoClicks(videos[i].ID)
 		videos[i].Author = GetUserBaseInfo(videos[i].Uid)
 	}
 

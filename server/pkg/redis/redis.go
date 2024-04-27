@@ -83,3 +83,18 @@ func (r *Redis) ZRemRangeByRank(key string, start, stop int64) {
 func (r *Redis) ZRem(key string, member ...interface{}) {
 	r.redisClient.ZRem(r.ctx, key, member...)
 }
+
+// 向集合插入数据
+func (r *Redis) SAdd(key string, member interface{}) {
+	r.redisClient.SAdd(r.ctx, key, member)
+}
+
+// 向集合移除数据
+func (r *Redis) SRem(key string, member interface{}) {
+	r.redisClient.SRem(r.ctx, key, member)
+}
+
+// 随机从集合中获取n个数据
+func (r *Redis) SRandMemberN(key string, count int64) []string {
+	return r.redisClient.SRandMemberN(r.ctx, key, count).Val()
+}

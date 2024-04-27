@@ -40,6 +40,8 @@ func AddPartition(ctx *gin.Context, addPartitionReq dto.AddPartitionReq) error {
 		return errors.New("创建分区失败")
 	}
 
+	global.PartitionMap = GetPartitionMap()
+
 	// 更新缓存
 	var partitions []vo.PartitionResp
 	global.Mysql.Select("id,name,parent_id").Model(&model.Partition{}).Scan(&partitions)
@@ -54,6 +56,10 @@ func DeletePartition(ctx *gin.Context, id uint) error {
 		utils.ErrorLog("删除分区失败", "partition", err.Error())
 		return errors.New("删除分区失败")
 	}
+
+	//TODO: 判断分区下是否存在视频
+
+	global.PartitionMap = GetPartitionMap()
 
 	// 更新缓存
 	var partitions []vo.PartitionResp
@@ -81,4 +87,17 @@ func IsSubpartition(id uint) bool {
 		return true
 	}
 	return false
+}
+
+func GetPartitionMap() map[uint]uint {
+	var partitions []model.Partition
+	global.Mysql.Where("parent_id != 0 ").Find(&partitions)
+
+	// 生成map，key为parentId不为0的id，value为parentId
+	partitionMap := make(map[uint]uint)
+	for _, partition := range partitions {
+		partitionMap[partition.ID] = partition.ParentId
+	}
+
+	return partitionMap
 }

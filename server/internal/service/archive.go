@@ -8,10 +8,16 @@ import (
 )
 
 func GetArchiveStat(ctx *gin.Context, vid uint) (vo.ArchiveStatResp, error) {
+	archive := FindArchiveData(vid)
+
+	return archive, nil
+}
+
+func FindArchiveData(vid uint) vo.ArchiveStatResp {
 	var archive vo.ArchiveStatResp
 
 	global.Mysql.Model(&model.Like{}).Where("vid = ?", vid).Count(&archive.Like)
 	global.Mysql.Model(&model.Collect{}).Distinct("uid").Where("vid = ?", vid).Count(&archive.Collect)
 
-	return archive, nil
+	return archive
 }

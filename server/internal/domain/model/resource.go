@@ -9,7 +9,6 @@ type Resource struct {
 	Title    string  `gorm:"type:varchar(50);comment:'分P使用的标题'"`
 	Duration float64 `gorm:"comment:'视频时长';default:0"`
 	Status   int     `gorm:"comment:'审核状态';not null;index"`
-	// Quality  int     `gorm:"comment:'视频最大质量';"`
 }
 
 func (table *Resource) TableName() string {

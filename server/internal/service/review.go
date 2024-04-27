@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/gin-gonic/gin"
+	"interastral-peace.com/alnitak/internal/cache"
 	"interastral-peace.com/alnitak/internal/domain/dto"
 	"interastral-peace.com/alnitak/internal/domain/model"
 	"interastral-peace.com/alnitak/internal/domain/vo"
@@ -24,16 +25,26 @@ func ReviewVideoApproved(ctx *gin.Context, reviewVideoReq dto.ReviewVideoReq) er
 		return errors.New("更新状态失败")
 	}
 
+	// 统计视频时长并存入数据库
+	var duration float64
+	tx.Model(&model.Resource{}).Where("vid = ?", reviewVideoReq.Vid).Pluck("SUM(duration) as duration", &duration)
+
 	// 更新视频状态为审核通过
-	if err := tx.Model(&model.Video{}).Where("id = ?", reviewVideoReq.Vid).Updates(
-		map[string]interface{}{"status": global.AUDIT_APPROVED},
-	).Error; err != nil {
+	if err := tx.Model(&model.Video{}).Where("id = ?", reviewVideoReq.Vid).Updates(map[string]interface{}{
+		"status":   global.AUDIT_APPROVED,
+		"duration": duration,
+	}).Error; err != nil {
 		tx.Rollback()
 		utils.ErrorLog("更新视频状态失败", "review", err.Error())
 		return errors.New("更新状态失败")
 	}
 
+	// 视频ID添加到redis中
+	video, _ := FindVideoById(reviewVideoReq.Vid)
+	cache.SetVideoId(global.PartitionMap[video.PartitionId], video.ID)
+
 	tx.Commit()
+
 	return nil
 }
 

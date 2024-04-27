@@ -2,6 +2,7 @@ package cache
 
 import (
 	"encoding/json"
+	"strconv"
 
 	"interastral-peace.com/alnitak/internal/domain/vo"
 	"interastral-peace.com/alnitak/internal/global"
@@ -30,4 +31,35 @@ func SetVideoInfo(video vo.VideoResp) {
 
 func DelVideoInfo(id uint) {
 	global.Redis.Del(VIDEO_INFO_KEY + utils.UintToString(id))
+}
+
+func SetVideoId(partitionId, videoId uint) {
+	global.Redis.SAdd(ALL_VIDEO_KEY+strconv.Itoa(int(partitionId))+":", videoId)
+}
+
+func DelAllVideoId() {
+	keys := global.Redis.Keys(ALL_VIDEO_KEY + "*")
+	for _, key := range keys {
+		global.Redis.Del(key)
+	}
+}
+
+func DelVideoId(partitionId, videoId uint) {
+	global.Redis.SRem(ALL_VIDEO_KEY+strconv.Itoa(int(partitionId))+":", videoId)
+}
+
+func GetRandomVideoId(partitionId, videoId uint, count int64) []string {
+	return global.Redis.SRandMemberN(ALL_VIDEO_KEY+strconv.Itoa(int(partitionId))+":", count)
+}
+
+func SetHotVideoId(videoId uint) {
+	global.Redis.SAdd(HOT_VIDEO_KEY, videoId)
+}
+
+func DelHotVideoId() {
+	global.Redis.Del(HOT_VIDEO_KEY)
+}
+
+func GetRandomHotVideoId(count int64) []string {
+	return global.Redis.SRandMemberN(HOT_VIDEO_KEY, count)
 }

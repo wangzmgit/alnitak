@@ -1,6 +1,7 @@
 package service
 
 import (
+	"gorm.io/gorm"
 	"interastral-peace.com/alnitak/internal/cache"
 	"interastral-peace.com/alnitak/internal/domain/model"
 	"interastral-peace.com/alnitak/internal/global"
@@ -10,10 +11,7 @@ import (
 func GetVideoClicks(videoId uint) int64 {
 	clicks, err := cache.GetClicks(videoId)
 	if err != nil {
-		var clicks int64
-		// 从数据库中查询并写入缓存
-		global.Mysql.Model(model.Video{}).Where("id = ?", videoId).Pluck("clicks", &clicks)
-		cache.SetClicks(videoId, clicks)
+		cache.SetClicks(videoId, 0)
 	}
 
 	return clicks
@@ -26,4 +24,10 @@ func AddVideoClicks(videoId uint, ip string) {
 		cache.AddClicks(videoId)
 		cache.SetClicksLimit(videoId, ip)
 	}
+}
+
+// 更新播放量
+func UpdateClicks(videoId uint, clicks int64) error {
+	return global.Mysql.Model(&model.Video{}).Where("id = ?", videoId).
+		UpdateColumn("clicks", gorm.Expr("clicks + ?", clicks)).Error
 }

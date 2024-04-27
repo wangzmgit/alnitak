@@ -4,9 +4,11 @@ import (
 	"flag"
 
 	"github.com/spf13/viper"
+	"interastral-peace.com/alnitak/internal/cron"
 	"interastral-peace.com/alnitak/internal/global"
 	"interastral-peace.com/alnitak/internal/initialize"
 	"interastral-peace.com/alnitak/internal/routes"
+	"interastral-peace.com/alnitak/internal/service"
 	"interastral-peace.com/alnitak/pkg/casbin"
 	"interastral-peace.com/alnitak/pkg/config"
 	"interastral-peace.com/alnitak/pkg/jigsaw"
@@ -33,10 +35,16 @@ func main() {
 	// 初始化mysql
 	global.Mysql = mysql.Init()
 	initialize.InitTables()
+	// 初始化分区数据
+	global.PartitionMap = service.GetPartitionMap()
 	// 初始化缓存
 	global.Redis = redis.Init()
+	initialize.InitCacheData()
 	// 初始化casbin
 	global.Casbin = casbin.InitCasbin()
+
+	// 启动定时任务
+	go cron.StartCronTask()
 
 	// 初始化路由
 	routes.InitRouter()

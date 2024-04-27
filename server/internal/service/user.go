@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/bwmarrin/snowflake"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
 	"golang.org/x/crypto/bcrypt"
@@ -33,15 +32,10 @@ func UserRegister(ctx *gin.Context, registerReq dto.RegisterReq) error {
 
 	// 对密码加密
 	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(registerReq.Password), bcrypt.DefaultCost)
-	// 随机生成不重复的用户名
-	username, err := generateUniqueUsername()
-	if err != nil {
-		return errors.New("用户名生成失败")
-	}
 
 	// 保存到数据库
 	if err := global.Mysql.Create(&model.User{
-		Username: username,
+		Username: generateUniqueUsername(), // 随机生成不重复的用户名
 		Email:    registerReq.Email,
 		Password: string(hashedPassword),
 	}).Error; err != nil {
@@ -352,14 +346,9 @@ func FindUserIdsByName(names []string) (ids []uint) {
 }
 
 // 随机生成一个不重复的用户名
-func generateUniqueUsername() (string, error) {
-	node, err := snowflake.NewNode(1)
-	if err != nil {
-		return "", err
-	}
-
-	id := node.Generate()
+func generateUniqueUsername() string {
+	id := global.SnowflakeNode.Generate()
 
 	// 前缀 + snowflake ID(36进制)
-	return viper.GetString("user.prefix") + strconv.FormatInt(id.Int64(), 36), nil
+	return viper.GetString("user.prefix") + strconv.FormatInt(id.Int64(), 36)
 }

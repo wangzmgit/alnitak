@@ -17,7 +17,7 @@ import (
 
 func UploadImg(ctx *gin.Context, file *multipart.FileHeader) (string, error) {
 	suffix := path.Ext(file.Filename)
-	fileName := utils.GenerateImgFilename(suffix)
+	fileName := generateImgFilename(suffix)
 
 	objectKey := "image/" + fileName
 	filePath := "./upload/image/" + fileName
@@ -102,7 +102,7 @@ func SaveUploadVideo(ctx *gin.Context, file *multipart.FileHeader) (string, erro
 	}
 
 	//保存文件
-	videoName := utils.GenerateVideoFilename()
+	videoName := generateVideoFilename()
 	if err := os.Mkdir("./upload/video/"+videoName, os.ModePerm); err != nil {
 		return "", errors.New("视频上传失败")
 	}
@@ -157,7 +157,7 @@ func generateFileUrl(objectKey string) string {
 // 初始化视频
 func initVideo(userId uint, videoPath, title string) (uint, error) {
 	// 生成封面
-	coverName := utils.GenerateImgFilename(".jpg")
+	coverName := generateImgFilename(".jpg")
 	objectKey := "image/" + coverName
 	filePath := "./upload/image/" + coverName
 
@@ -178,4 +178,16 @@ func initVideo(userId uint, videoPath, title string) (uint, error) {
 	}
 
 	return videoId, nil
+}
+
+// 随机生成图片文件名
+func generateImgFilename(suffix string) string {
+	id := global.SnowflakeNode.Generate()
+	return id.String() + suffix
+}
+
+// 随机视频文件名
+func generateVideoFilename() string {
+	id := global.SnowflakeNode.Generate()
+	return id.String()
 }
