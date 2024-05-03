@@ -51,7 +51,7 @@ const UPLOAD_IMAGE_KEY = "upload_image_key:"
 const UPLOAD_IMAGE_EXPRIRATION_TIME = time.Minute * time.Duration(20)
 
 // 分区缓存标识符
-const PARTITION_KEY = "partition_key:"
+const PARTITION_KEY = "partition_key"
 
 // 分区过期时间 不过期
 const PARTITION_EXPRIRATION_TIME = 0
@@ -90,4 +90,4 @@ const RESET_PWD_CHECK_EXPRIRATION_TIME = time.Minute * time.Duration(30)
 const ALL_VIDEO_KEY = "all_video_key:"
 
 // 热门视频ID
-const HOT_VIDEO_KEY = "hot_video_key:"
+const HOT_VIDEO_KEY = "hot_video_key"

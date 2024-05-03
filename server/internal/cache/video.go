@@ -11,6 +11,9 @@ import (
 
 func GetVideoInfo(id uint) (video vo.VideoResp) {
 	jsonStr := global.Redis.Get(VIDEO_INFO_KEY + utils.UintToString(id))
+	if jsonStr == "" {
+		return
+	}
 	// 反序列化
 	if err := json.Unmarshal([]byte(jsonStr), &video); err != nil {
 		utils.ErrorLog("视频信息反序列化失败", "cache", err.Error())
@@ -34,7 +37,7 @@ func DelVideoInfo(id uint) {
 }
 
 func SetVideoId(partitionId, videoId uint) {
-	global.Redis.SAdd(ALL_VIDEO_KEY+strconv.Itoa(int(partitionId))+":", videoId)
+	global.Redis.SAdd(ALL_VIDEO_KEY+strconv.Itoa(int(partitionId)), videoId)
 }
 
 func DelAllVideoId() {
@@ -45,11 +48,7 @@ func DelAllVideoId() {
 }
 
 func DelVideoId(partitionId, videoId uint) {
-	global.Redis.SRem(ALL_VIDEO_KEY+strconv.Itoa(int(partitionId))+":", videoId)
-}
-
-func GetRandomVideoId(partitionId, videoId uint, count int64) []string {
-	return global.Redis.SRandMemberN(ALL_VIDEO_KEY+strconv.Itoa(int(partitionId))+":", count)
+	global.Redis.SRem(ALL_VIDEO_KEY+strconv.Itoa(int(partitionId)), videoId)
 }
 
 func SetHotVideoId(videoId uint) {
@@ -60,6 +59,10 @@ func DelHotVideoId() {
 	global.Redis.Del(HOT_VIDEO_KEY)
 }
 
-func GetRandomHotVideoId(count int64) []string {
-	return global.Redis.SRandMemberN(HOT_VIDEO_KEY, count)
+func GetHotVideoId() []string {
+	return global.Redis.SMembers(HOT_VIDEO_KEY)
+}
+
+func GetVideoIdByPartition(partitionId uint, count int64) []string {
+	return global.Redis.SRandMemberN(ALL_VIDEO_KEY+strconv.Itoa(int(partitionId)), count)
 }

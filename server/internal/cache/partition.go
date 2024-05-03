@@ -10,6 +10,10 @@ import (
 
 func GetPartition() (partitions []vo.PartitionResp) {
 	jsonStr := global.Redis.Get(PARTITION_KEY)
+	if jsonStr == "" {
+		return
+	}
+
 	// 反序列化
 	if err := json.Unmarshal([]byte(jsonStr), &partitions); err != nil {
 		utils.ErrorLog("分区反序列化失败", "cache", err.Error())

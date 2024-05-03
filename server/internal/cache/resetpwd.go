@@ -8,9 +8,12 @@ import (
 )
 
 // 状态1: 验证成功
-
 func GetResetPwdCheckStatus(email string) int {
 	s := global.Redis.Get(RESET_PWD_CHECK_KEY + email)
+	if s == "" {
+		return 0
+	}
+
 	status, err := strconv.Atoi(s)
 	if err != nil {
 		utils.ErrorLog("重置密码状态转换为int类型失败", "cache", err.Error())

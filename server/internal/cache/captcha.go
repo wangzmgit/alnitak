@@ -18,6 +18,10 @@ func CreateCaptchaStatus() string {
 // 获取验证状态
 func GetCaptchaStatus(captchaId string) int { // 0 不存在 1未验证  2验证成功
 	s := global.Redis.Get(CAPTCHA_STATUS_KEY + captchaId)
+	if s == "" {
+		return 0
+	}
+
 	status, err := strconv.Atoi(s)
 	if err != nil {
 		utils.ErrorLog("人机验证状态转换为int类型失败", "cache", err.Error())

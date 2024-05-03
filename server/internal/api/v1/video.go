@@ -200,3 +200,35 @@ func GetReviewResourceList(ctx *gin.Context) {
 	// 返回给前端
 	resp.OkWithData(ctx, gin.H{"resources": resources})
 }
+
+// 获取热门视频
+func GetHotVideo(ctx *gin.Context) {
+	page := utils.StringToInt(ctx.Query("page"))
+	pageSize := utils.StringToInt(ctx.Query("pageSize"))
+
+	if pageSize > 30 {
+		resp.FailWithMessage(ctx, "请求数量过多")
+		return
+	}
+
+	videos := service.GetHotVideo(ctx, page, pageSize)
+
+	// 返回给前端
+	resp.OkWithData(ctx, gin.H{"videos": videos})
+}
+
+// 获取分区视频
+func GetVideoListByPartition(ctx *gin.Context) {
+	size := utils.StringToInt(ctx.Query("size"))
+	partitionId := utils.StringToUint(ctx.Query("partitionId"))
+
+	if size > 30 {
+		resp.FailWithMessage(ctx, "请求数量过多")
+		return
+	}
+
+	videos := service.GetVideoListByPartition(ctx, size, partitionId)
+
+	// 返回给前端
+	resp.OkWithData(ctx, gin.H{"videos": videos})
+}

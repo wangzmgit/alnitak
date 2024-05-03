@@ -32,6 +32,8 @@ func main() {
 	if viper.GetString("storage.oss_type") != "local" {
 		global.Storage = oss.InitStorage()
 	}
+	// 初始化雪花ID
+	initialize.InitSnowflake()
 	// 初始化mysql
 	global.Mysql = mysql.Init()
 	initialize.InitTables()

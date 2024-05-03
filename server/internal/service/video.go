@@ -230,6 +230,45 @@ func GetReviewList(reviewListReq dto.ReviewListReq) (total int64, videos []vo.Re
 	return
 }
 
+// 获取热门视频
+func GetHotVideo(ctx *gin.Context, page, pageSize int) []vo.VideoResp {
+	ids := cache.GetHotVideoId()
+	videoIds := utils.SlicePagingStr(ids, page, pageSize)
+
+	len := len(videoIds)
+	videos := make([]vo.VideoResp, len)
+	for i := 0; i < len; i++ {
+		id := utils.StringToUint(videoIds[i])
+		if id == 0 {
+			continue
+		}
+		videos[i] = GetVideoInfo(id)
+		// 同步播放量
+		videos[i].Clicks += GetVideoClicks(id)
+	}
+
+	return videos
+}
+
+// 获取分区视频
+func GetVideoListByPartition(ctx *gin.Context, size int, partitionId uint) []vo.VideoResp {
+	videoIds := cache.GetVideoIdByPartition(partitionId, int64(size))
+
+	len := len(videoIds)
+	videos := make([]vo.VideoResp, len)
+	for i := 0; i < len; i++ {
+		id := utils.StringToUint(videoIds[i])
+		if id == 0 {
+			continue
+		}
+		videos[i] = GetVideoInfo(id)
+		// 同步播放量
+		videos[i].Clicks += GetVideoClicks(id)
+	}
+
+	return videos
+}
+
 func CreateVideo(video *model.Video) (uint, error) {
 	if err := global.Mysql.Create(video).Error; err != nil {
 		utils.ErrorLog("创建视频失败", "video", err.Error())

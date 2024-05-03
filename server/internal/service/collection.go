@@ -19,7 +19,7 @@ func AddCollection(ctx *gin.Context, addCollectionReq dto.AddCollectionReq) erro
 		Uid:  userId,
 		Name: addCollectionReq.Name,
 	}).Error; err != nil {
-		utils.ErrorLog("新增收藏夹更新数据库失败", "collection", err.Error())
+		utils.ErrorLog("新增收藏夹失败", "collection", err.Error())
 		return errors.New("新增收藏夹失败")
 	}
 	return nil
@@ -51,7 +51,7 @@ func EditCollection(ctx *gin.Context, editCollectionReq dto.EditCollectionReq) e
 			"open":  editCollectionReq.Open,
 		},
 	).Error; err != nil {
-		utils.ErrorLog("收藏夹更新数据库失败", "collection", err.Error())
+		utils.ErrorLog("收藏夹失败", "collection", err.Error())
 		return errors.New("编辑失败")
 	}
 

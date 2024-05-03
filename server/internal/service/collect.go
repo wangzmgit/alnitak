@@ -36,7 +36,7 @@ func Collect(ctx *gin.Context, addCollectReq dto.AddCollectReq) error {
 		}
 
 		if err := global.Mysql.Create(&newCollects).Error; err != nil {
-			utils.ErrorLog("收藏更新数据库失败", "collect", err.Error())
+			utils.ErrorLog("收藏失败", "collect", err.Error())
 			return errors.New("收藏失败")
 		}
 	}
@@ -45,7 +45,7 @@ func Collect(ctx *gin.Context, addCollectReq dto.AddCollectReq) error {
 	if len(addCollectReq.CancelList) > 0 {
 		if err := global.Mysql.Where("uid = ? and vid = ? and collection_id in ?", userId, videoId, addCollectReq.CancelList).
 			Delete(&model.Collect{}).Error; err != nil {
-			utils.ErrorLog("收藏更新数据库失败", "collect", err.Error())
+			utils.ErrorLog("收藏失败", "collect", err.Error())
 			return errors.New("收藏失败")
 		}
 	}

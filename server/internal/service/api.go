@@ -32,7 +32,7 @@ func AddApi(ctx *gin.Context, addApiReq dto.AddApiReq) error {
 		Category: addApiReq.Category,
 		Desc:     addApiReq.Desc,
 	}).Error; err != nil {
-		utils.ErrorLog("新增API更新数据库失败", "api", err.Error())
+		utils.ErrorLog("新增API失败", "api", err.Error())
 		return errors.New("新增API失败")
 	}
 
@@ -49,7 +49,7 @@ func EditApi(ctx *gin.Context, editApiReq dto.EditApiReq) error {
 			"desc":     editApiReq.Desc,
 		},
 	).Error; err != nil {
-		utils.ErrorLog("编辑API更新数据库失败", "api", err.Error())
+		utils.ErrorLog("编辑API失败", "api", err.Error())
 		return errors.New("编辑API失败")
 	}
 	return nil
@@ -58,7 +58,7 @@ func EditApi(ctx *gin.Context, editApiReq dto.EditApiReq) error {
 // 删除API
 func DeleteApi(ctx *gin.Context, id uint) error {
 	if err := global.Mysql.Where("id = ?", id).Delete(&model.Api{}).Error; err != nil {
-		utils.ErrorLog("删除API更新数据库失败", "api", err.Error())
+		utils.ErrorLog("删除API失败", "api", err.Error())
 		return errors.New("删除API失败")
 	}
 
@@ -77,7 +77,7 @@ func SelectRoleApiList(code string) (apis []vo.ApiResp) {
 func EditRoleApi(ctx *gin.Context, editRoleApiReq dto.EditRoleApiReq) error {
 	role, err := FindRoleById(editRoleApiReq.Id)
 	if err != nil {
-		utils.ErrorLog("编辑角色API更新数据库失败", "api", err.Error())
+		utils.ErrorLog("编辑角色API失败", "api", err.Error())
 		return errors.New("获取角色信息失败")
 	}
 

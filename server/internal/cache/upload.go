@@ -9,6 +9,10 @@ import (
 
 func GetUploadImage(url string) uint {
 	s := global.Redis.Get(UPLOAD_IMAGE_KEY + url)
+	if s == "" {
+		return 0
+	}
+
 	userId, err := strconv.Atoi(s)
 	if err != nil {
 		utils.ErrorLog("用户id转换为uint类型失败", "cache", err.Error())

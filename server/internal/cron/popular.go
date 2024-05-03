@@ -45,7 +45,7 @@ func RefreshPopular() {
 	heap.Init(h)
 	var videos []VideoData
 	nowTime := time.Now() // 获取当前时间
-	zap.L().Info("开始同步视频ID", zap.String("module", "initialize"))
+	zap.L().Info("开始同步视频ID", zap.String("module", "cron"))
 
 	for {
 		if err := global.Mysql.Model(&model.Video{}).Where("status = ?", global.AUDIT_APPROVED).
@@ -81,7 +81,7 @@ func RefreshPopular() {
 		cache.SetHotVideoId(heap.Pop(h).(VideoData).ID)
 	}
 
-	zap.L().Info("视频ID同步完成，耗时:"+time.Since(nowTime).String(), zap.String("initialize", "cron"))
+	zap.L().Info("视频ID同步完成，耗时:"+time.Since(nowTime).String(), zap.String("cron", "cron"))
 }
 
 func hot(weight, t float64) float64 {

@@ -98,3 +98,8 @@ func (r *Redis) SRem(key string, member interface{}) {
 func (r *Redis) SRandMemberN(key string, count int64) []string {
 	return r.redisClient.SRandMemberN(r.ctx, key, count).Val()
 }
+
+// 从集合中获取数据
+func (r *Redis) SMembers(key string) []string {
+	return r.redisClient.SMembers(r.ctx, key).Val()
+}

@@ -9,6 +9,10 @@ import (
 
 func GetLoginTryCount(username string) int {
 	s := global.Redis.Get(LOGIN_TRY_COUNT_KEY + username)
+	if s == "" {
+		return 0
+	}
+
 	count, err := strconv.Atoi(s)
 	if err != nil {
 		utils.ErrorLog("用户登录次数转换int类型失败", "cache", err.Error())

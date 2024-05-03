@@ -35,7 +35,7 @@ func Like(ctx *gin.Context, likeReq dto.LikeReq) error {
 		).Error
 	}
 	if err != nil {
-		utils.ErrorLog("点赞更新数据库失败", "like", err.Error())
+		utils.ErrorLog("点赞失败", "like", err.Error())
 		return errors.New("点赞失败")
 	}
 
@@ -63,7 +63,7 @@ func CancelLike(ctx *gin.Context, likeReq dto.LikeReq) error {
 	if err := global.Mysql.Model(&model.Like{}).Where("uid = ? and vid = ?", userId, videoId).Updates(
 		map[string]interface{}{"is_like": false},
 	).Error; err != nil {
-		utils.ErrorLog("点赞更新数据库失败", "like", err.Error())
+		utils.ErrorLog("点赞失败", "like", err.Error())
 		return errors.New("取消点赞失败")
 	}
 

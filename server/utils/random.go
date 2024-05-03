@@ -4,8 +4,6 @@ import (
 	"math/rand"
 	"strconv"
 	"time"
-
-	"github.com/bwmarrin/snowflake"
 )
 
 // 生成n位数字随机码
@@ -18,28 +16,4 @@ func GenerateNumberCode(length int) string {
 		res += strconv.Itoa(num)
 	}
 	return res
-}
-
-// 随机生成图片文件名
-func GenerateImgFilename(suffix string) string {
-	node, err := snowflake.NewNode(1)
-	if err != nil {
-		ErrorLog("图片文件名生成失败", "random", err.Error())
-		return ""
-	}
-
-	id := node.Generate()
-	return id.String() + suffix
-}
-
-// 随机视频文件名
-func GenerateVideoFilename() string {
-	node, err := snowflake.NewNode(1)
-	if err != nil {
-		ErrorLog("视频文件名生成失败", "random", err.Error())
-		return ""
-	}
-
-	id := node.Generate()
-	return id.String()
 }

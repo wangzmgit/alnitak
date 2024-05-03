@@ -29,7 +29,7 @@ func AddMenu(ctx *gin.Context, addMenuReq dto.AddMenuReq) error {
 		Hidden:    addMenuReq.Hidden,
 		KeepAlive: addMenuReq.KeepAlive,
 	}).Error; err != nil {
-		utils.ErrorLog("新增菜单更新数据库失败", "menu", err.Error())
+		utils.ErrorLog("新增菜单失败", "menu", err.Error())
 		return errors.New("新增菜单失败")
 	}
 	return nil
@@ -54,7 +54,7 @@ func EditMenu(ctx *gin.Context, editMenuReq dto.EditMenuReq) error {
 			"keep_alive": editMenuReq.KeepAlive,
 		},
 	).Error; err != nil {
-		utils.ErrorLog("编辑菜单更新数据库失败", "menu", err.Error())
+		utils.ErrorLog("编辑菜单失败", "menu", err.Error())
 		return errors.New("编辑菜单失败")
 	}
 	return nil
@@ -63,7 +63,7 @@ func EditMenu(ctx *gin.Context, editMenuReq dto.EditMenuReq) error {
 // 删除菜单
 func DeleteMenu(ctx *gin.Context, id uint) error {
 	if err := global.Mysql.Where("id = ?", id).Delete(&model.Menu{}).Error; err != nil {
-		utils.ErrorLog("删除菜单更新数据库失败", "menu", err.Error())
+		utils.ErrorLog("删除菜单失败", "menu", err.Error())
 
 		return errors.New("删除菜单失败")
 	}

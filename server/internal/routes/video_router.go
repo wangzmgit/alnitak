@@ -44,4 +44,8 @@ func CollectVideoRoutes(r *gin.RouterGroup) {
 	videoGroup.GET("slice/:file", api.GetVideoSlice)
 	// 获取用户视频
 	videoGroup.GET("getVideoByUser", api.GetVideoByUser)
+	// 获取热门视频
+	videoGroup.GET("getHotVideo", api.GetHotVideo)
+	// 获取分区视频
+	videoGroup.GET("getVideoListByPartition", api.GetVideoListByPartition)
 }

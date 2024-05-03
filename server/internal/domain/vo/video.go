@@ -3,9 +3,9 @@ package vo
 import "time"
 
 const (
-	VIDEO_FIELD        = "`id`,`uid`,`title`,`cover`,`desc`,`created_at`,`copyright`,`tags`"
-	VIDEO_STATUS_FIELD = "`id`,`title`,`cover`,`desc`,`copyright`,`status`,`partition_id`,`tags`"
-	UPLOAD_VIDEO_FIELD = "`id`,`title`,`cover`,`desc`,`copyright`,`status`,`created_at`"
+	VIDEO_FIELD        = "`id`,`uid`,`title`,`cover`,`desc`,`created_at`,`copyright`,`tags`,`clicks`,`duration`"
+	VIDEO_STATUS_FIELD = "`id`,`title`,`cover`,`desc`,`copyright`,`status`,`partition_id`,`tags`,`clicks`,`duration`"
+	UPLOAD_VIDEO_FIELD = "`id`,`title`,`cover`,`desc`,`copyright`,`status`,`created_at`,`clicks`,`duration`"
 )
 
 type VideoResp struct {
@@ -17,7 +17,8 @@ type VideoResp struct {
 	CreatedAt time.Time      `json:"createdAt"`
 	Copyright bool           `json:"copyright"`
 	Tags      string         `json:"tags"`
-	Clicks    int64          `json:"clicks" gorm:"-"`
+	Duration  float64        `json:"duration"`
+	Clicks    int64          `json:"clicks"`
 	Author    UserInfoResp   `json:"author" gorm:"-"`
 	Resources []ResourceResp `json:"resources" gorm:"-"`
 }
@@ -31,6 +32,7 @@ type VideoStatusResp struct {
 	Status      int            `json:"status"`
 	PartitionId uint           `json:"partitionId"`
 	Tags        string         `json:"tags"`
+	Duration    float64        `json:"duration"`
 	Resources   []ResourceResp `json:"resources" gorm:"-"`
 }
 
@@ -42,7 +44,7 @@ type UploadVideoResp struct {
 	Status    int       `json:"status"`
 	Copyright bool      `json:"copyright"`
 	CreatedAt time.Time `json:"createdAt"`
-	Clicks    int64     `json:"clicks" gorm:"-"`
+	Clicks    int64     `json:"clicks"`
 }
 
 type AllVideoResp struct {
@@ -59,7 +61,8 @@ type VideoInfoManageResp struct {
 	CreatedAt time.Time    `json:"createdAt"`
 	Copyright bool         `json:"copyright"`
 	Tags      string       `json:"tags"`
-	Clicks    int64        `json:"clicks" gorm:"-"`
+	Clicks    int64        `json:"clicks"`
+	Duration  float64      `json:"duration"`
 	Author    UserInfoResp `json:"author" gorm:"-"`
 }
 
@@ -72,5 +75,6 @@ type ReviewListResp struct {
 	CreatedAt time.Time    `json:"createdAt"`
 	Copyright bool         `json:"copyright"`
 	Tags      string       `json:"tags"`
+	Duration  float64      `json:"duration"`
 	Author    UserInfoResp `json:"author" gorm:"-"`
 }
