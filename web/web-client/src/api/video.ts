@@ -61,3 +61,23 @@ export const getVideoFileUrl = (resourceId: number, quality: string) => {
   return `${baseURL}/api/v1/video/getVideoFile?resourceId=${resourceId}&quality=${quality}`;
 }
 
+
+// 获取热门视频
+export const asyncGetHotVideoAPI = async (page: number, pageSize: number) => {
+  return await useAsyncData(() => $fetch(`${baseURL}/api/v1/video/getHotVideo?page=${page}&pageSize=${pageSize}`));
+}
+
+// 获取热门视频
+export const getHotVideoAPI = (page: number, pageSize: number) => {
+  return request.get(`v1/video/getHotVideo?page=${page}&pageSize=${pageSize}`);
+}
+
+// 获取分区视频
+export const asyncGetVideoByPartitionAPI = async (size: number, partitionId: number | string) => {
+  return await useAsyncData(() => $fetch(`${baseURL}/api/v1/video/getVideoListByPartition?size=${size}&partitionId=${partitionId}`));
+}
+
+// 获取分区视频
+export const getVideoByPartitionAPI = (size: number, partitionId: number | string) => {
+  return request.get(`v1/video/getVideoListByPartition?size=${size}&partitionId=${partitionId}`);
+}

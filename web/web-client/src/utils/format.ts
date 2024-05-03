@@ -15,7 +15,7 @@ export const isUrl = (str: string) => {
   return reg.test(str);
 }
 
-export const formatDate = (time: string) => {
+export const formatDate = (time: string | Date) => {
   return moment(time).format("YYYY-MM-DD")
 }
 
@@ -34,7 +34,7 @@ export const formatRelativeTime = (timeStr: string | Date) => {
   } else if (diff < 60 * 60 * 24) {
     return Math.floor(diff / (60 * 60)) + '小时前';
   } else {
-    return formatTime(timeStr);
+    return formatDate(timeStr);
   }
 }
 
