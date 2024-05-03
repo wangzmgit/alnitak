@@ -52,12 +52,29 @@ func AddPartition(ctx *gin.Context, addPartitionReq dto.AddPartitionReq) error {
 
 // 删除分区
 func DeletePartition(ctx *gin.Context, id uint) error {
+	currentPartition, err := FindPartitionById(id)
+	if err != nil {
+		return errors.New("获取分区信息失败")
+	}
+
+	if currentPartition.ParentId == 0 { // 判断是否存在二级分区
+		var partition model.Partition
+		global.Mysql.Where("parent_id = ?", currentPartition.ID).First(&partition)
+		if partition.ID != 0 {
+			return errors.New("当前分区下存在二级分区")
+		}
+	} else { // 判断分区下是否存在视频
+		var video model.Video
+		global.Mysql.Where("partition_id = ?", currentPartition.ID).First(&video)
+		if video.ID != 0 {
+			return errors.New("当前分区下存在视频")
+		}
+	}
+
 	if err := global.Mysql.Where("id = ?", id).Delete(&model.Partition{}).Error; err != nil {
 		utils.ErrorLog("删除分区失败", "partition", err.Error())
 		return errors.New("删除分区失败")
 	}
-
-	//TODO: 判断分区下是否存在视频
 
 	global.PartitionMap = GetPartitionMap()
 
@@ -100,4 +117,10 @@ func GetPartitionMap() map[uint]uint {
 	}
 
 	return partitionMap
+}
+
+// 通过分区ID查询分区
+func FindPartitionById(id uint) (partition model.Partition, err error) {
+	err = global.Mysql.Where("`id` = ?", id).First(&partition).Error
+	return
 }
