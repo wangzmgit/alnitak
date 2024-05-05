@@ -12,72 +12,31 @@ import (
 	"interastral-peace.com/alnitak/utils"
 )
 
-func AddComment(ctx *gin.Context, addCommentReq dto.AddCommentReq) (vo.CommentResp, error) {
-	userId := ctx.GetUint("userId")
-
-	// 处理@的用户
-	atUserIds := FindUserIdsByName(addCommentReq.At)
-
-	// 保存到数据库
-	comment := model.Comment{
-		Vid:           addCommentReq.Vid,
-		Uid:           userId,
-		Content:       addCommentReq.Content,
-		AtUsernames:   strings.Join(addCommentReq.At, ","),
-		AtUserIds:     utils.UintJoin(atUserIds, ","),
-		ParentId:      addCommentReq.ParentID,
-		ReplyUserID:   addCommentReq.ReplyUserID,
-		ReplyUserName: addCommentReq.ReplyUserName,
-	}
-	if err := global.Mysql.Create(&comment).Error; err != nil {
-		utils.ErrorLog("创建评论失败", "comment", err.Error())
-		return vo.CommentResp{}, errors.New("评论失败")
-	}
-
-	// 发送回复通知
-	InsertReplyMessage(addCommentReq, comment.ID, userId)
-
-	// 处理@通知
-	length := len(atUserIds)
-	newAtMsg := make([]model.AtMessage, length)
-	for i := 0; i < length; i++ {
-		newAtMsg[i].Uid = atUserIds[i]
-		newAtMsg[i].Vid = addCommentReq.Vid
-		newAtMsg[i].Sid = userId
-	}
-	if err := global.Mysql.Create(&newAtMsg).Error; err != nil {
-		utils.ErrorLog("创建AT信息失败失败", "comment", err.Error())
-	}
-
-	return vo.CommentToCommentResp(comment), nil
+func AddVideoComment(ctx *gin.Context, addCommentReq dto.AddCommentReq) (vo.CommentResp, error) {
+	return addComment(ctx, addCommentReq, global.CONTENT_TYPE_VIDEO)
 }
 
-// 获取评论
-func GetComment(ctx *gin.Context, vid uint, page, pageSize int) ([]vo.CommentResp, int64, error) {
-	var total int64
-	var comments []vo.CommentResp
-
-	global.Mysql.Model(&model.Comment{}).Where("vid = ?", vid).Count(&total)
-	err := global.Mysql.Model(&model.Comment{}).Select(vo.COMMENT_FIELD).
-		Joins("LEFT JOIN `comment` AS reply ON `comment`.id = `reply`.parent_id").
-		Where("`comment`.parent_id = 0 and `comment`.deleted_at is null").
-		Group("`comment`.id").Limit(pageSize).Offset((page - 1) * pageSize).
-		Find(&comments).Error
-	if err != nil {
-		utils.ErrorLog("获取评论失败", "comment", err.Error())
-		return comments, total, errors.New("获取失败")
-	}
-
-	for i := 0; i < len(comments); i++ {
-		comments[i].Author = GetUserBaseInfo(comments[i].Uid)
-		comments[i].Reply, _ = FindReplyList(comments[i].ID, 1, 3)
-	}
-
-	return comments, total, nil
+func AddArticleComment(ctx *gin.Context, addCommentReq dto.AddCommentReq) (vo.CommentResp, error) {
+	return addComment(ctx, addCommentReq, global.CONTENT_TYPE_ARTICLE)
 }
 
-// 获取回复
-func GetReply(ctx *gin.Context, commentId uint, page, pageSize int) ([]vo.ReplyResp, error) {
+// 获取视频评论
+func GetVideoComment(ctx *gin.Context, vid uint, page, pageSize int) ([]vo.CommentResp, int64, error) {
+	return getComment(ctx, vid, page, pageSize, global.CONTENT_TYPE_VIDEO)
+}
+
+// 获取文章评论
+func GetArticleComment(ctx *gin.Context, vid uint, page, pageSize int) ([]vo.CommentResp, int64, error) {
+	return getComment(ctx, vid, page, pageSize, global.CONTENT_TYPE_ARTICLE)
+}
+
+// 获取视频回复
+func GetVideoReply(ctx *gin.Context, commentId uint, page, pageSize int) ([]vo.ReplyResp, error) {
+	return FindReplyList(commentId, page, pageSize)
+}
+
+// 获取文章回复
+func GetArticleReply(ctx *gin.Context, commentId uint, page, pageSize int) ([]vo.ReplyResp, error) {
 	return FindReplyList(commentId, page, pageSize)
 }
 
@@ -89,7 +48,7 @@ func DeleteComment(ctx *gin.Context, id uint) error {
 		return errors.New("无法获取评论信息")
 	}
 
-	video, err := FindVideoById(comment.Vid)
+	video, err := FindVideoById(comment.Cid)
 	if err != nil {
 		utils.ErrorLog("查询视频失败", "comment", err.Error())
 		return errors.New("无法获取视频信息")
@@ -112,18 +71,105 @@ func DeleteComment(ctx *gin.Context, id uint) error {
 	return nil
 }
 
+// 获取视频评论列表
+func GetVideoCommentList(ctx *gin.Context, cid uint, page, pageSize int) ([]vo.CommentListResp, int64, error) {
+	return getCommentList(ctx, cid, page, pageSize, global.CONTENT_TYPE_VIDEO)
+}
+
+// 获取文章评论列表
+func GetArticleCommentList(ctx *gin.Context, cid uint, page, pageSize int) ([]vo.CommentListResp, int64, error) {
+	return getCommentList(ctx, cid, page, pageSize, global.CONTENT_TYPE_ARTICLE)
+}
+
+func addComment(ctx *gin.Context, addCommentReq dto.AddCommentReq, comentType int) (vo.CommentResp, error) {
+	userId := ctx.GetUint("userId")
+
+	// 处理@的用户
+	atUserIds := FindUserIdsByName(addCommentReq.At)
+
+	// 保存到数据库
+	comment := model.Comment{
+		Cid:           addCommentReq.Cid,
+		Uid:           userId,
+		Content:       addCommentReq.Content,
+		AtUsernames:   strings.Join(addCommentReq.At, ","),
+		AtUserIds:     utils.UintJoin(atUserIds, ","),
+		ParentId:      addCommentReq.ParentID,
+		ReplyUserID:   addCommentReq.ReplyUserID,
+		ReplyUserName: addCommentReq.ReplyUserName,
+		Type:          comentType,
+	}
+	if err := global.Mysql.Create(&comment).Error; err != nil {
+		utils.ErrorLog("创建评论失败", "comment", err.Error())
+		return vo.CommentResp{}, errors.New("评论失败")
+	}
+
+	// 发送回复通知
+	InsertReplyMessage(addCommentReq, comment.ID, userId, comentType)
+
+	// 处理@通知
+	length := len(atUserIds)
+	newAtMsg := make([]model.AtMessage, length)
+	for i := 0; i < length; i++ {
+		newAtMsg[i].Uid = atUserIds[i]
+		newAtMsg[i].Cid = addCommentReq.Cid
+		newAtMsg[i].Sid = userId
+		newAtMsg[i].Type = comentType
+	}
+	if err := global.Mysql.Create(&newAtMsg).Error; err != nil {
+		utils.ErrorLog("创建AT信息失败失败", "comment", err.Error())
+	}
+
+	return vo.CommentToCommentResp(comment), nil
+}
+
+func getComment(ctx *gin.Context, cid uint, page, pageSize, commentType int) ([]vo.CommentResp, int64, error) {
+	var total int64
+	var comments []vo.CommentResp
+
+	global.Mysql.Model(&model.Comment{}).Where("cid = ? and `type` = ?", cid, commentType).Count(&total)
+	err := global.Mysql.Model(&model.Comment{}).Select(vo.COMMENT_FIELD).
+		Joins("LEFT JOIN `comment` AS reply ON `comment`.id = `reply`.parent_id").
+		Where("`comment`.parent_id = 0 and `comment`.deleted_at is null and `comment`.cid = ? and `comment`.`type` = ?", cid, commentType).
+		Group("`comment`.id").Limit(pageSize).Offset((page - 1) * pageSize).
+		Find(&comments).Error
+	if err != nil {
+		utils.ErrorLog("获取评论失败", "comment", err.Error())
+		return comments, total, errors.New("获取失败")
+	}
+
+	for i := 0; i < len(comments); i++ {
+		comments[i].Author = GetUserBaseInfo(comments[i].Uid)
+		comments[i].Reply, _ = FindReplyList(comments[i].ID, 1, 3)
+	}
+
+	return comments, total, nil
+}
+
 // 获取评论列表
-func GetCommentList(ctx *gin.Context, vid uint, page, pageSize int) ([]vo.CommentListResp, int64, error) {
+func getCommentList(ctx *gin.Context, cid uint, page, pageSize, commentType int) ([]vo.CommentListResp, int64, error) {
 	userId := ctx.GetUint("userId")
 
 	db := global.Mysql.Model(&model.ReplyMessage{})
-	if vid != 0 {
-		if video, _ := FindVideoById(vid); video.Uid != userId {
-			return nil, 0, errors.New("视频不存在")
+	if cid != 0 {
+		if commentType == global.CONTENT_TYPE_VIDEO {
+			if video, _ := FindVideoById(cid); video.Uid != userId {
+				return nil, 0, errors.New("内容不存在")
+			}
+		} else {
+			if article, _ := FindArticleById(cid); article.Uid != userId {
+				return nil, 0, errors.New("内容不存在")
+			}
 		}
-		db = db.Where("vid = ?", vid)
+		db = db.Where("cid = ? and `type` = ?", cid, commentType)
 	} else {
-		db = db.Where("vid in (?)", global.Mysql.Model(&model.Video{}).Select("id").Where("uid = ?", userId))
+		if commentType == global.CONTENT_TYPE_VIDEO {
+			db = db.Where("cid in (?) and `type` = ?",
+				global.Mysql.Model(&model.Video{}).Select("id").Where("uid = ?", userId), commentType)
+		} else {
+			db = db.Where("cid in (?) and `type` = ?",
+				global.Mysql.Model(&model.Article{}).Select("id").Where("uid = ?", userId), commentType)
+		}
 	}
 
 	var total int64
@@ -133,7 +179,11 @@ func GetCommentList(ctx *gin.Context, vid uint, page, pageSize int) ([]vo.Commen
 	for i := 0; i < len(comments); i++ {
 		comments[i].Author = GetUserInfo(comments[i].Sid)
 		comments[i].TargetUser = GetUserInfo(comments[i].Uid)
-		comments[i].Video = GetVideoInfo(comments[i].Vid)
+		if commentType == global.CONTENT_TYPE_VIDEO {
+			comments[i].Video = GetVideoInfo(comments[i].Cid)
+		} else {
+			comments[i].Article = GetArticleInfo(comments[i].Cid)
+		}
 	}
 
 	return comments, total, nil

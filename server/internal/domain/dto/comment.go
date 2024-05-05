@@ -1,7 +1,7 @@
 package dto
 
 type AddCommentReq struct {
-	Vid           uint
+	Cid           uint
 	Content       string
 	At            []string
 	ParentID      uint

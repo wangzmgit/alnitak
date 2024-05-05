@@ -9,10 +9,10 @@ import (
 )
 
 var (
-	Mysql         *gorm.DB
-	Redis         *redis.Redis
-	Casbin        *casbin.Casbin
-	Storage       oss.Storage
-	SnowflakeNode *snowflake.Node
-	PartitionMap  map[uint]uint
+	Mysql             *gorm.DB
+	Redis             *redis.Redis
+	Casbin            *casbin.Casbin
+	Storage           oss.Storage
+	SnowflakeNode     *snowflake.Node
+	VideoPartitionMap map[uint]uint
 )

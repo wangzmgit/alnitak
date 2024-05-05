@@ -12,13 +12,23 @@ import (
 	"interastral-peace.com/alnitak/utils"
 )
 
-func GetPartitionList() (partitions []vo.PartitionResp) {
-	partitions = cache.GetPartition()
+func GetPartitionList(partitionType int) (partitions []vo.PartitionResp) {
+	if partitionType == global.CONTENT_TYPE_VIDEO {
+		partitions = cache.GetVideoPartition()
+	} else {
+		partitions = cache.GetArticlePartition()
+	}
+
 	if len(partitions) == 0 {
-		global.Mysql.Select("id,name,parent_id").Model(&model.Partition{}).Scan(&partitions)
+		global.Mysql.Model(&model.Partition{}).Select(vo.PARTITION_FIELD).
+			Where("`type` = ?", partitionType).Scan(&partitions)
 
 		// 存入缓存
-		cache.SetPartition(partitions)
+		if partitionType == global.CONTENT_TYPE_VIDEO {
+			cache.SetVideoPartition(partitions)
+		} else {
+			cache.SetArticlePartition(partitions)
+		}
 	}
 
 	return
@@ -31,6 +41,7 @@ func AddPartition(ctx *gin.Context, addPartitionReq dto.AddPartitionReq) error {
 
 	// 保存到数据库
 	partition := model.Partition{
+		Type:     addPartitionReq.Type,
 		Name:     addPartitionReq.Name,
 		ParentId: addPartitionReq.ParentId,
 	}
@@ -40,12 +51,17 @@ func AddPartition(ctx *gin.Context, addPartitionReq dto.AddPartitionReq) error {
 		return errors.New("创建分区失败")
 	}
 
-	global.PartitionMap = GetPartitionMap()
-
 	// 更新缓存
 	var partitions []vo.PartitionResp
-	global.Mysql.Select("id,name,parent_id").Model(&model.Partition{}).Scan(&partitions)
-	cache.SetPartition(partitions)
+	global.Mysql.Model(&model.Partition{}).Select(vo.PARTITION_FIELD).
+		Where("`type` = ?", addPartitionReq.Type).Scan(&partitions)
+
+	if addPartitionReq.Type == global.CONTENT_TYPE_VIDEO { // 视频分区
+		global.VideoPartitionMap = GetPartitionMap(addPartitionReq.Type)
+		cache.SetVideoPartition(partitions)
+	} else { // 文章分区
+		cache.SetArticlePartition(partitions)
+	}
 
 	return nil
 }
@@ -63,11 +79,19 @@ func DeletePartition(ctx *gin.Context, id uint) error {
 		if partition.ID != 0 {
 			return errors.New("当前分区下存在二级分区")
 		}
-	} else { // 判断分区下是否存在视频
-		var video model.Video
-		global.Mysql.Where("partition_id = ?", currentPartition.ID).First(&video)
-		if video.ID != 0 {
-			return errors.New("当前分区下存在视频")
+	} else { // 判断分区下是否存在视频或文章
+		if currentPartition.Type == global.CONTENT_TYPE_VIDEO {
+			var video model.Video
+			global.Mysql.Where("partition_id = ?", currentPartition.ID).First(&video)
+			if video.ID != 0 {
+				return errors.New("当前分区下存在视频")
+			}
+		} else {
+			var article model.Article
+			global.Mysql.Where("partition_id = ?", currentPartition.ID).First(&article)
+			if article.ID != 0 {
+				return errors.New("当前分区下存在文章")
+			}
 		}
 	}
 
@@ -76,12 +100,17 @@ func DeletePartition(ctx *gin.Context, id uint) error {
 		return errors.New("删除分区失败")
 	}
 
-	global.PartitionMap = GetPartitionMap()
-
 	// 更新缓存
 	var partitions []vo.PartitionResp
-	global.Mysql.Select("id,name,parent_id").Model(&model.Partition{}).Scan(&partitions)
-	cache.SetPartition(partitions)
+	global.Mysql.Model(&model.Partition{}).Select(vo.PARTITION_FIELD).
+		Where("`type` = ?", currentPartition.Type).Scan(&partitions)
+
+	if currentPartition.Type == global.CONTENT_TYPE_VIDEO {
+		global.VideoPartitionMap = GetPartitionMap(global.CONTENT_TYPE_VIDEO)
+		cache.SetVideoPartition(partitions)
+	} else {
+		cache.SetArticlePartition(partitions)
+	}
 
 	return nil
 }
@@ -97,18 +126,18 @@ func IsParentPartitionExist(id uint) bool {
 }
 
 // 是否为子分区
-func IsSubpartition(id uint) bool {
+func IsSubpartition(id uint, partitionType int) bool {
 	var partition model.Partition
-	global.Mysql.First(&partition, id)
+	global.Mysql.Where("id = ? and `type` = ?", id, partitionType).First(&partition)
 	if partition.ID != 0 && partition.ParentId != 0 {
 		return true
 	}
 	return false
 }
 
-func GetPartitionMap() map[uint]uint {
+func GetPartitionMap(partitionType int) map[uint]uint {
 	var partitions []model.Partition
-	global.Mysql.Where("parent_id != 0 ").Find(&partitions)
+	global.Mysql.Where("parent_id != 0 and `type` = ?", partitionType).Find(&partitions)
 
 	// 生成map，key为parentId不为0的id，value为parentId
 	partitionMap := make(map[uint]uint)

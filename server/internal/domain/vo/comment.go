@@ -40,7 +40,7 @@ type ReplyResp struct {
 
 type CommentListResp struct {
 	ID                 uint         `json:"id"`
-	Vid                uint         `json:"vid"`
+	Cid                uint         `json:"cid"`
 	Sid                uint         `json:"sid"`
 	Uid                uint         `json:"uid"`
 	CreatedAt          time.Time    `json:"createdAt"`
@@ -51,6 +51,7 @@ type CommentListResp struct {
 	Author             UserInfoResp `json:"author" gorm:"-"` // 作者
 	TargetUser         UserInfoResp `json:"target" gorm:"-"` // 回复目标
 	Video              VideoResp    `json:"video" gorm:"-"`
+	Article            ArticleResp  `json:"article" gorm:"-"`
 }
 
 func CommentToCommentResp(comment model.Comment) CommentResp {

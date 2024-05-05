@@ -50,11 +50,17 @@ const UPLOAD_IMAGE_KEY = "upload_image_key:"
 // 上传文件过期时间 n 分钟
 const UPLOAD_IMAGE_EXPRIRATION_TIME = time.Minute * time.Duration(20)
 
-// 分区缓存标识符
-const PARTITION_KEY = "partition_key"
+// 视频分区缓存标识符
+const VIDEO_PARTITION_KEY = "video_partition_key"
 
-// 分区过期时间 不过期
-const PARTITION_EXPRIRATION_TIME = 0
+// 视频分区过期时间 不过期
+const VIDEO_PARTITION_EXPRIRATION_TIME = 0
+
+// 文章分区缓存标识符
+const ARTICLE_PARTITION_KEY = "article_partition_key"
+
+// 文章分区过期时间 不过期
+const ARTICLE_PARTITION_EXPRIRATION_TIME = 0
 
 // 视频切片状态标识符
 const VIDEO_SLICE_STATUS = "video_slice_key:"
@@ -91,3 +97,15 @@ const ALL_VIDEO_KEY = "all_video_key:"
 
 // 热门视频ID
 const HOT_VIDEO_KEY = "hot_video_key"
+
+// 文章点击量限制标识符
+const ARTICLE_CLICKS_LIMIT_KEY = "article_clicks_limit_key:"
+
+// 文章点击量限制过期时间  n 分钟
+const ARTICLE_CLICKS_LIMIT_EXPRIRATION_TIME = time.Minute * time.Duration(60)
+
+// 文章点击量标识符
+const ARTICLE_CLICKS_KEY = "article_clicks_key:"
+
+// 文章量过期时间  n 小时
+const ARTICLE_CLICKS_EXPRIRATION_TIME = time.Hour * time.Duration(24)

@@ -15,7 +15,7 @@ import (
 // 获取轮播图
 func GetCarousel(ctx *gin.Context, partitionId uint) (carousels []vo.CarouselResp) {
 	global.Mysql.Model(&model.Carousel{}).Select(vo.CAROUSEL_FIELD).
-		Where("partition_id = ? and use = ?", partitionId, true).Scan(&carousels)
+		Where("partition_id = ? and `use` = ?", partitionId, true).Scan(&carousels)
 
 	return
 }

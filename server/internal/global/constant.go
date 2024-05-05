@@ -31,3 +31,8 @@ const (
 	// 互粉
 	MUTUAL_FANS = 2
 )
+
+const (
+	CONTENT_TYPE_VIDEO   = 0
+	CONTENT_TYPE_ARTICLE = 1
+)

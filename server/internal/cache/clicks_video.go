@@ -9,18 +9,18 @@ import (
 	"interastral-peace.com/alnitak/utils"
 )
 
-func GetClicksLimit(videoId uint, ip string) string {
+func GetVideoClicksLimit(videoId uint, ip string) string {
 	s := global.Redis.Get(VIDEO_CLICKS_LIMIT_KEY + utils.UintToString(videoId) + ":" + ip)
 
 	return s
 }
 
-func SetClicksLimit(videoId uint, ip string) {
+func SetVideoClicksLimit(videoId uint, ip string) {
 	global.Redis.Set(VIDEO_CLICKS_LIMIT_KEY+utils.UintToString(videoId)+":"+ip, 1,
 		VIDEO_CLICKS_LIMIT_EXPRIRATION_TIME)
 }
 
-func GetClicks(videoId uint) (int64, error) {
+func GetVideoClicks(videoId uint) (int64, error) {
 	s := global.Redis.Get(VIDEO_CLICKS_KEY + utils.UintToString(videoId))
 	if s == "" {
 		return 0, errors.New("no record")
@@ -35,24 +35,24 @@ func GetClicks(videoId uint) (int64, error) {
 	return count, nil
 }
 
-func SetClicks(videoId uint, count int64) {
+func SetVideoClicks(videoId uint, count int64) {
 	global.Redis.Set(VIDEO_CLICKS_KEY+utils.UintToString(videoId), count, VIDEO_CLICKS_EXPRIRATION_TIME)
 }
 
 // 删除播放量
-func DelClicks(videoId uint) {
+func DelVideoClicks(videoId uint) {
 	global.Redis.Del(VIDEO_CLICKS_KEY + utils.UintToString(videoId))
 }
 
-func AddClicks(videoId uint) {
+func AddVideoClicks(videoId uint) {
 	global.Redis.Incr(VIDEO_CLICKS_KEY + utils.UintToString(videoId))
 }
 
-func GetClicksKeys() []string {
+func GetVideoClicksKeys() []string {
 	return global.Redis.Keys(VIDEO_CLICKS_KEY + "*")
 }
 
 // 获取点击量过期时间
-func ClickTTL(videoId uint) time.Duration {
+func VideoClickTTL(videoId uint) time.Duration {
 	return global.Redis.TTL(VIDEO_CLICKS_KEY + utils.UintToString(videoId))
 }

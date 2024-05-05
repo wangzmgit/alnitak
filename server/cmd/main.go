@@ -38,7 +38,7 @@ func main() {
 	global.Mysql = mysql.Init()
 	initialize.InitTables()
 	// 初始化分区数据
-	global.PartitionMap = service.GetPartitionMap()
+	global.VideoPartitionMap = service.GetPartitionMap(global.CONTENT_TYPE_VIDEO)
 	// 初始化缓存
 	global.Redis = redis.Init()
 	initialize.InitCacheData()

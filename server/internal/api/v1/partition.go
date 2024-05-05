@@ -10,7 +10,9 @@ import (
 
 // 获取分区
 func GetPartitionList(ctx *gin.Context) {
-	partitions := service.GetPartitionList()
+	partitionType := utils.StringToInt(ctx.DefaultQuery("type", "0"))
+
+	partitions := service.GetPartitionList(partitionType)
 
 	// 返回给前端
 	resp.OkWithData(ctx, gin.H{"partitions": partitions})

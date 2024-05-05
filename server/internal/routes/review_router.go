@@ -14,6 +14,10 @@ func CollectReviewRoutes(r *gin.RouterGroup) {
 	{
 		reviewAuth.POST("reviewVideoApproved", api.ReviewVideoApproved)
 		reviewAuth.POST("reviewVideoFailed", api.ReviewVideoFailed)
-		reviewAuth.GET("getReviewRecord", api.GetReviewRecord)
+		reviewAuth.GET("getVideoReviewRecord", api.GetVideoReviewRecord)
+
+		reviewAuth.POST("reviewArticleApproved", api.ReviewArticleApproved)
+		reviewAuth.POST("reviewArticleFailed", api.ReviewArticleFailed)
+		reviewAuth.GET("getArticleReviewRecord", api.GetArticleReviewRecord)
 	}
 }

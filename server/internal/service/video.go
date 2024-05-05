@@ -23,7 +23,7 @@ func UploadVideoInfo(ctx *gin.Context, uploadVideoReq dto.UploadVideoReq) error 
 		}
 	}
 
-	if !IsSubpartition(uploadVideoReq.PartitionId) {
+	if !IsSubpartition(uploadVideoReq.PartitionId, global.CONTENT_TYPE_VIDEO) {
 		return errors.New("分区不存在")
 	}
 

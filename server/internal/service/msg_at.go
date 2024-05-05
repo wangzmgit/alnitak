@@ -20,11 +20,12 @@ func GetAtMessage(ctx *gin.Context, page, pageSize int) (total int64, msg []vo.A
 	return
 }
 
-func InsertAtMessage(senderId, videoId, targetId uint) error {
+func InsertAtMessage(senderId, videoId, targetId uint, contentType int) error {
 	return global.Mysql.Create(&model.AtMessage{
-		Sid: senderId,
-		Vid: videoId,
-		Uid: targetId,
+		Sid:  senderId,
+		Cid:  videoId,
+		Uid:  targetId,
+		Type: contentType,
 	}).Error
 }
 

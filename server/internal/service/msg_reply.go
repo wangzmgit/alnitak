@@ -22,13 +22,14 @@ func GetReplyMessage(ctx *gin.Context, page, pageSize int) (total int64, msg []v
 }
 
 // 添加回复消息
-func InsertReplyMessage(addCommentReq dto.AddCommentReq, commentId, userId uint) error {
+func InsertReplyMessage(addCommentReq dto.AddCommentReq, commentId, userId uint, contentType int) error {
 	msg := model.ReplyMessage{
-		Vid:                addCommentReq.Vid,
+		Cid:                addCommentReq.Cid,
 		Sid:                userId,
 		CommentId:          commentId,
 		Content:            addCommentReq.Content,
 		TargetReplyContent: addCommentReq.ReplyContent,
+		Type:               contentType,
 	}
 
 	if addCommentReq.ParentID != 0 {
@@ -40,9 +41,16 @@ func InsertReplyMessage(addCommentReq dto.AddCommentReq, commentId, userId uint)
 	}
 
 	if addCommentReq.ParentID == 0 {
-		// 通知给视频作者
-		video := GetVideoInfo(addCommentReq.Vid)
-		msg.Uid = video.Uid
+		if contentType == global.CONTENT_TYPE_VIDEO {
+			// 通知给视频作者
+			video := GetVideoInfo(addCommentReq.Cid)
+			msg.Uid = video.Uid
+		} else {
+			// 通知给文章作者
+			article := GetArticleInfo(addCommentReq.Cid)
+			msg.Uid = article.Uid
+		}
+
 	}
 
 	if addCommentReq.ReplyUserID != 0 {

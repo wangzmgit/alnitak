@@ -13,15 +13,25 @@ func CollectCommentRoutes(r *gin.RouterGroup) {
 	commentAuth.Use(middleware.Auth())
 	{
 		// 发表评论或回复
-		commentAuth.POST("/addComment", api.AddComment)
+		commentAuth.POST("addVideoComment", api.AddVideoComment)
 		// 删除评论或回复
-		commentAuth.DELETE("/deleteComment/:id", api.DeleteComment)
+		commentAuth.DELETE("deleteVideoComment/:id", api.DeleteVideoComment)
 		// 获取评论列表
-		commentAuth.GET("getCommentList", api.GetCommentList)
+		commentAuth.GET("getVideoCommentList", api.GetVideoCommentList)
+		// 发表文章评论或回复
+		commentAuth.POST("addArticleComment", api.AddArticleComment)
+		// 删除评论或回复
+		commentAuth.DELETE("deleteArticleComment/:id", api.DeleteArticleComment)
+		// 获取评论列表
+		commentAuth.GET("getArticleCommentList", api.GetArticleCommentList)
 	}
 
-	// 获取评论
-	commentGroup.GET("getComment", api.GetComment)
-	// 获取回复
-	commentGroup.GET("getReply", api.GetReply)
+	// 获取视频评论
+	commentGroup.GET("getVideoComment", api.GetVideoComment)
+	// 获取视频回复
+	commentGroup.GET("getVideoReply", api.GetVideoReply)
+	// 获取文章评论
+	commentGroup.GET("getArticleComment", api.GetArticleComment)
+	// 获取文章回复
+	commentGroup.GET("getArticleReply", api.GetArticleReply)
 }

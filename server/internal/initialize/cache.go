@@ -32,7 +32,7 @@ func InitCacheData() {
 		}
 
 		for _, video := range videos {
-			cache.SetVideoId(global.PartitionMap[video.PartitionId], video.ID)
+			cache.SetVideoId(global.VideoPartitionMap[video.PartitionId], video.ID)
 		}
 
 		if len(videos) < limit {

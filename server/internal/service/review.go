@@ -12,6 +12,7 @@ import (
 	"interastral-peace.com/alnitak/utils"
 )
 
+// 审核通过(视频)
 func ReviewVideoApproved(ctx *gin.Context, reviewVideoReq dto.ReviewVideoReq) error {
 
 	tx := global.Mysql.Begin()
@@ -41,13 +42,14 @@ func ReviewVideoApproved(ctx *gin.Context, reviewVideoReq dto.ReviewVideoReq) er
 
 	// 视频ID添加到redis中
 	video, _ := FindVideoById(reviewVideoReq.Vid)
-	cache.SetVideoId(global.PartitionMap[video.PartitionId], video.ID)
+	cache.SetVideoId(global.VideoPartitionMap[video.PartitionId], video.ID)
 
 	tx.Commit()
 
 	return nil
 }
 
+// 审核不通过(视频)
 func ReviewVideoFailed(ctx *gin.Context, reviewVideoReq dto.ReviewVideoReq) error {
 	tx := global.Mysql.Begin()
 	// 更新视频状态为审核不通过
@@ -61,9 +63,10 @@ func ReviewVideoFailed(ctx *gin.Context, reviewVideoReq dto.ReviewVideoReq) erro
 
 	// 添加审核记录
 	if err := tx.Create(&model.Review{
-		Vid:    reviewVideoReq.Vid,
+		Cid:    reviewVideoReq.Vid,
 		Status: reviewVideoReq.Status,
 		Remark: reviewVideoReq.Remark,
+		Type:   global.CONTENT_TYPE_VIDEO,
 	}).Error; err != nil {
 		tx.Rollback()
 		utils.ErrorLog("更新视频状态失败", "review", err.Error())
@@ -74,7 +77,8 @@ func ReviewVideoFailed(ctx *gin.Context, reviewVideoReq dto.ReviewVideoReq) erro
 	return nil
 }
 
-func GetReviewRecord(ctx *gin.Context, videoId uint) (vo.ReviewResp, error) {
+// 获取审核记录(视频)
+func GetVideoReviewRecord(ctx *gin.Context, videoId uint) (vo.ReviewResp, error) {
 	userId := ctx.GetUint("userId")
 	video, _ := FindVideoById(videoId)
 	if video.Uid != userId {
@@ -82,8 +86,64 @@ func GetReviewRecord(ctx *gin.Context, videoId uint) (vo.ReviewResp, error) {
 	}
 
 	var review vo.ReviewResp
-	global.Mysql.Model(&model.Review{}).Where("vid = ?", videoId).
-		Select(vo.REVIEW_FIELD).Last(&review)
+	global.Mysql.Model(&model.Review{}).Select(vo.REVIEW_FIELD).
+		Where("cid = ? and `type` = ?", videoId, global.CONTENT_TYPE_VIDEO).Last(&review)
+
+	return review, nil
+}
+
+// 审核通过(文章)
+func ReviewArticleApproved(ctx *gin.Context, reviewArticleReq dto.ReviewArticleReq) error {
+	// 更新文章状态为审核通过
+	if err := global.Mysql.Model(&model.Article{}).Where("id = ?", reviewArticleReq.Aid).Updates(
+		map[string]interface{}{"status": global.AUDIT_APPROVED},
+	).Error; err != nil {
+		utils.ErrorLog("更新文章状态失败", "review", err.Error())
+		return errors.New("更新状态失败")
+	}
+
+	return nil
+}
+
+// 审核不通过(文章)
+func ReviewArticleFailed(ctx *gin.Context, reviewArticleReq dto.ReviewArticleReq) error {
+	tx := global.Mysql.Begin()
+	// 更新文章状态为审核不通过
+	if err := tx.Model(&model.Article{}).Where("id = ?", reviewArticleReq.Aid).Updates(
+		map[string]interface{}{"status": global.REVIEW_FAILED},
+	).Error; err != nil {
+		tx.Rollback()
+		utils.ErrorLog("更新文章状态失败", "review", err.Error())
+		return errors.New("更新状态失败")
+	}
+
+	// 添加审核记录
+	if err := tx.Create(&model.Review{
+		Cid:    reviewArticleReq.Aid,
+		Status: reviewArticleReq.Status,
+		Remark: reviewArticleReq.Remark,
+		Type:   global.CONTENT_TYPE_ARTICLE,
+	}).Error; err != nil {
+		tx.Rollback()
+		utils.ErrorLog("更新文章状态失败", "review", err.Error())
+		return errors.New("更新状态失败")
+	}
+
+	tx.Commit()
+	return nil
+}
+
+// 获取审核记录(文章)
+func GetArticleReviewRecord(ctx *gin.Context, articleId uint) (vo.ReviewResp, error) {
+	userId := ctx.GetUint("userId")
+	article, _ := FindArticleById(articleId)
+	if article.Uid != userId {
+		return vo.ReviewResp{}, errors.New("内容不存在")
+	}
+
+	var review vo.ReviewResp
+	global.Mysql.Model(&model.Review{}).Select(vo.REVIEW_FIELD).
+		Where("cid = ? and `type` = ?", articleId, global.CONTENT_TYPE_ARTICLE).Last(&review)
 
 	return review, nil
 }
