@@ -3,9 +3,6 @@
     <n-card class="user-card" :bordered="false">
       <div class="user-card-content">
         <n-space class="search-bar" justify="space-between">
-          <n-space>
-            <n-button type="primary" @click="addCarousel()">添加轮播图</n-button>
-          </n-space>
           <n-space align="center" :size="18">
             <n-button :disabled="loading" size="small" type="primary" @click="getTableData">
               <n-icon>
@@ -16,7 +13,7 @@
         </n-space>
         <n-data-table class="table" remote :columns="columns" :data="tableData" :loading="loading"
           :pagination="pagination" flex-height />
-        <table-action-drawer v-model:visible="visibleDrawer" :data="detailsData!" :partitions="partitions"
+        <table-action-drawer v-model:visible="visibleDrawer" :data="detailsData!"
           @finish="reviewFinish"></table-action-drawer>
       </div>
     </n-card>
@@ -27,17 +24,16 @@
 import { h, onBeforeMount, reactive, ref } from 'vue';
 import { Refresh } from "@vicons/ionicons5";
 import useLoading from '@/hooks/loading-hooks';
-import {constant} from "@/utils/constant";
 import { statusCode } from '@/utils/status-code';
+import { getReviewArticleListAPI } from '@/api/article';
 import type { DataTableColumns } from 'naive-ui';
 import { getResourceUrl } from '@/utils/resource';
 import TableActionDrawer from './components/table-action-drawer.vue';
-import { getPartitionAPI } from "@/api/partition";
-import { getCarouselListAPI, deleteCarouselAPI } from '@/api/carousel';
-import { NCard, NImage, NIcon, NButton, NDataTable, NSpace, NPopconfirm, useMessage } from 'naive-ui';
+import { NCard, NImage, NIcon, NButton, NDataTable, NSpace, useMessage } from 'naive-ui';
+import { formatTime } from '@/utils/format';
 
 const { loading, startLoading, endLoading } = useLoading(false);
-
+// TODO: 展示分区
 const message = useMessage();
 
 const visibleDrawer = ref(false);
@@ -46,35 +42,34 @@ const openDrawer = () => {
 }
 
 // 查看详情
-const detailsData = ref<CarouselType>();
-const viewDetails = (row: CarouselType) => {
+const detailsData = ref<ArticleType>();
+const viewDetails = (row: ArticleType) => {
   detailsData.value = row;
   openDrawer();
 }
 
-// 添加轮播图
-const addCarousel = () => {
-  openDrawer();
-}
-
-const columns: DataTableColumns<CarouselType> = [
+const columns: DataTableColumns<ArticleType> = [
   {
-    key: 'id',
+    key: 'vid',
     title: 'ID',
     width: 90,
     align: 'center'
   },
   {
-    key: 'img',
+    key: 'avatar',
     title: '封面',
     align: 'center',
     width: 80,
     render: row => {
-      return h(NImage, {
-        src: getResourceUrl(row.img),
-        width: 60,
-        height: 32,
-      })
+      if (row.cover) {
+        return h(NImage, {
+          src: getResourceUrl(row.cover),
+          width: 60,
+          height: 32,
+        })
+      }
+
+      return "无"
     }
   },
   {
@@ -85,32 +80,14 @@ const columns: DataTableColumns<CarouselType> = [
   {
     key: 'partition',
     title: '分区',
-    align: 'center',
-    render: row => {
-      return partitions.value.find(item => item.id === row.partitionId)?.name || '未知'
-    }
+    align: 'center'
   },
   {
-    key: 'color',
-    title: '主题色',
+    key: 'createdAt',
+    title: '上传时间',
     align: 'center',
     render: row => {
-      return h("div", { style: { display: "flex", alignItems: "center", justifyContent: "center" } }, [
-        h("div", { style: { width: "16px", height: "16px", backgroundColor: row.color } })
-      ])
-    }
-  },
-  {
-    key: 'url',
-    title: 'URL',
-    align: 'center',
-  },
-  {
-    key: 'use',
-    title: '是否启用',
-    align: 'center',
-    render: row => {
-      return row.use ? '是' : '否'
+      return formatTime(row.createdAt)
     }
   },
   {
@@ -124,30 +101,23 @@ const columns: DataTableColumns<CarouselType> = [
           h(NButton, {
             size: 'small',
             onClick: () => viewDetails(row)
-          }, { default: () => '编辑' }),
-          h(NPopconfirm, {
-            onPositiveClick: () => deleteCarousel(row),
-          }, {
-            default: () => '是否删除轮播图?',
-            trigger: () => h(NButton, {
-              size: 'small',
-            }, { default: () => '删除' })
-          })
+          }, { default: () => '详情' }),
         ]
       })
+
     }
   }
 ]
 
-const tableData = ref<VideoType[]>([]);
+const tableData = ref<ArticleType[]>([]);
 const getTableData = async () => {
   startLoading();
   const page = pagination.page || 1;
   const pageSize = pagination.pageSize || 1;
-  const res = await getCarouselListAPI({ page, pageSize });
+  const res = await getReviewArticleListAPI({ page, pageSize });
   if (res.data.code === statusCode.OK) {
-    if (res.data.data.carousels) {
-      tableData.value = res.data.data.carousels;
+    if (res.data.data.list) {
+      tableData.value = res.data.data.list;
     } else {
       tableData.value = [];
     }
@@ -177,37 +147,7 @@ const pagination = reactive({
   }
 });
 
-// 分区
-const partitions = ref<PartitionType[]>([]);
-const getPartition = async () => {
-  const res = await getPartitionAPI(constant.CONTNET_TYPE_VIDEO);
-  if (res.data.code === statusCode.OK) {
-    if (res.data.data.partitions) {
-      partitions.value = res.data.data.partitions.filter((item: PartitionType) => {
-        return item.parentId === 0;
-      })
-      partitions.value.unshift({
-        id: 0,
-        name: "首页",
-        parentId: 0,
-        type: constant.CONTNET_TYPE_VIDEO
-      })
-    }
-  }
-}
-
-const deleteCarousel = async (row:CarouselType) => {
-  const res = await deleteCarouselAPI(row.id);
-  if (res.data.code === statusCode.OK) {
-    message.success('删除成功');
-    await getTableData();
-  } else {
-    message.error(res.data.msg);
-  }
-}
-
 onBeforeMount(async () => {
-  await getPartition();
   await getTableData();
 })
 </script>

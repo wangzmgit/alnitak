@@ -61,7 +61,6 @@ export const getVideoFileUrl = (resourceId: number, quality: string) => {
   return `${baseURL}/api/v1/video/getVideoFile?resourceId=${resourceId}&quality=${quality}`;
 }
 
-
 // 获取热门视频
 export const asyncGetHotVideoAPI = async (page: number, pageSize: number) => {
   return await useAsyncData(() => $fetch(`${baseURL}/api/v1/video/getHotVideo?page=${page}&pageSize=${pageSize}`));

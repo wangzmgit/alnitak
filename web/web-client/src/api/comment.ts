@@ -1,26 +1,31 @@
 import request from "@/utils/request";
 
 // 发表评论/回复
-export const addCommentAPI = (addComment: AddCommentType) => {
-  return request.post('v1/comment/addComment', addComment);
+export const addVideoCommentAPI = (addComment: AddCommentType) => {
+  return request.post('v1/comment/addVideoComment', addComment);
 }
 
 // 获取评论
-export const getCommentAPI = (vid: number, page: number, pageSize: number) => {
-  return request.get(`v1/comment/getComment?vid=${vid}&page=${page}&pageSize=${pageSize}`);
+export const getVideoCommentAPI = (vid: number, page: number, pageSize: number) => {
+  return request.get(`v1/comment/getVideoComment?vid=${vid}&page=${page}&pageSize=${pageSize}`);
 }
 
 // 获取回复
-export const getReplyAPI = (commentId: number, page: number, pageSize: number) => {
-  return request.get(`v1/comment/getReply?commentId=${commentId}&page=${page}&pageSize=${pageSize}`);
+export const getVideoReplyAPI = (commentId: number, page: number, pageSize: number) => {
+  return request.get(`v1/comment/getVideoReply?commentId=${commentId}&page=${page}&pageSize=${pageSize}`);
 }
 
 // 获取评论/回复
-export const deleteCommentAPI = (commentId: number) => {
-  return request.delete(`v1/comment/deleteComment/${commentId}`);
+export const deleteVideoCommentAPI = (commentId: number) => {
+  return request.delete(`v1/comment/deleteVideoComment/${commentId}`);
 }
 
-// 获取评论
-export const getCommentListAPI = (vid: number, page: number, pageSize: number) => {
-  return request.get(`v1/comment/getCommentList?vid=${vid}&page=${page}&pageSize=${pageSize}`);
+// 获取视频评论
+export const getVideoCommentListAPI = (vid: number, page: number, pageSize: number) => {
+  return request.get(`v1/comment/getVideoCommentList?vid=${vid}&page=${page}&pageSize=${pageSize}`);
+}
+
+// 获取文章评论
+export const getArticleCommentListAPI = (aid: number, page: number, pageSize: number) => {
+  return request.get(`v1/comment/getArticleCommentList?aid=${aid}&page=${page}&pageSize=${pageSize}`);
 }

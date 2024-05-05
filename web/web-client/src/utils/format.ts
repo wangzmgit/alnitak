@@ -81,3 +81,8 @@ export const toDuration = (duration: number) => {
   const ss = s < 10 ? "0" + s : s;
   return mm + ":" + ss;
 }
+
+// 移除html标签
+export const removeHtml = (val: string) => {
+  return val.replace(/<\/?.+?>/g, "");
+}

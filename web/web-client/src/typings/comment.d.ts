@@ -1,5 +1,5 @@
 interface AddCommentType {
-  vid: number;
+  cid: number;
   content: string;
   parentId: number;
   replyUserId?: number;

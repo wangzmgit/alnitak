@@ -1,10 +1,13 @@
 <template>
-  <div class="upload-video-info">
+  <div class="article-upload">
+    <div class="title-box">
+      <h2 class="title">投稿信息</h2>
+    </div>
     <!-- 上传封面文件 -->
     <div class="cover">
       <div class="label">封面</div>
       <div class="cover-uploader-box">
-        <cover-uploader class="uploader" v-if="!loadingForm" :cover="videoForm.cover" @finish="finishUpload" />
+        <cover-uploader class="uploader" v-if="!loadingForm" :cover="articleForm.cover" @finish="finishUpload" />
         <el-skeleton v-else class="uploader-skeleton" animated>
           <template #template>
             <el-skeleton-item style="width: 100%;height: 100%;" />
@@ -13,19 +16,19 @@
       </div>
     </div>
     <!-- 视频信息表单 -->
-    <el-form class="info-form" :model="videoForm" label-position="left" label-width="80px">
+    <el-form class="info-form" :model="articleForm" label-position="left" label-width="80px">
       <el-form-item label="标题" class="required">
-        <el-input v-if="!loadingForm" v-model="videoForm.title" placeholder="请输入标题" maxlength="50" show-word-limit />
+        <el-input v-if="!loadingForm" v-model="articleForm.title" placeholder="请输入标题" maxlength="50" show-word-limit />
         <form-skeleton v-else></form-skeleton>
-      </el-form-item>
-      <el-form-item label="视频简介">
-        <el-input v-if="!loadingForm" v-model="videoForm.desc" placeholder="简单介绍一下视频~" maxlength="200" show-word-limit
-          type="textarea" :rows="3" :autosize="descSize" resize="none" />
-        <form-skeleton v-else style="height: 73px;"></form-skeleton>
       </el-form-item>
       <el-form-item label="是否原创" class="required">
-        <el-switch v-if="!loadingForm" :disabled="isEdit" v-model="videoForm.copyright" />
+        <el-switch v-if="!loadingForm" :disabled="isEdit" v-model="articleForm.copyright" />
         <form-skeleton v-else></form-skeleton>
+      </el-form-item>
+      <el-form-item label="内容分区" class="required">
+        <form-skeleton v-if="loadingForm"></form-skeleton>
+        <el-input v-else-if="isEdit" disabled :value="partitionText"></el-input>
+        <partition-selector v-else :partitions="partitionList" @selected="selectedPartition"></partition-selector>
       </el-form-item>
       <el-form-item label="标签" class="required">
         <div v-if="!loadingForm" class="tags-box">
@@ -36,41 +39,36 @@
         </div>
         <form-skeleton v-else></form-skeleton>
       </el-form-item>
-      <el-form-item label="视频分区" class="required">
-        <form-skeleton v-if="loadingForm"></form-skeleton>
-        <el-input v-else-if="props.info.partitionId !== 0" disabled :value="partitionText"></el-input>
-        <partition-selector v-else :partitions="partitionList" @selected="selectedPartition"></partition-selector>
-      </el-form-item>
+      <div class="editor-box">
+        <alnitak-editor v-if="!loadingForm" :content="articleForm.content"
+          @update:content="contentChange"></alnitak-editor>
+        <form-skeleton v-else style="height: 300px;"></form-skeleton>
+      </div>
       <div class="upload-next-btn">
-        <el-button type="primary" @click="submitVideoInfo">提交</el-button>
+        <el-button type="primary" @click="submitArticleInfo">提交</el-button>
       </div>
     </el-form>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, reactive } from "vue";
-import { statusCode } from "@/utils/status-code";
-import CoverUploader from "./CoverUploader.vue";
-import PartitionSelector from "./PartitionSelector.vue";
-import FormSkeleton from "@/components/form-skeleton/index.vue";
-import { uploadVideoInfoAPI, editVideoAPI } from "@/api/video";
+import type { ElInput } from 'element-plus';
+import PartitionSelector from "./components/PartitionSelector.vue";
 import { getPartitionAPI } from '@/api/partition';
-import { ElForm, ElFormItem, ElInput, ElSwitch, ElButton, ElSkeleton, ElSkeletonItem, ElMessage } from "element-plus";
+import CoverUploader from "./components/CoverUploader.vue";
+import AlnitakEditor from '@/components/alnitak-editor/index.vue';
+import { uploadArticleInfoAPI, editArticleAPI, getArticleStatusAPI } from "@/api/article";
 
-const emits = defineEmits(["finish"]);
-const props = defineProps<{
-  info: VideoStatusType
-}>();
+const route = useRoute();
 
 const isEdit = ref(false);
-const descSize = { minRows: 3, maxRows: 3 };
-const videoForm = reactive({
-  vid: 0,
+const waitingReview = ref(false);
+const articleForm = reactive({
+  aid: 0,
   title: "",
   cover: "",
-  desc: "",
   tags: "",
+  content: "",
   copyright: true,
   partitionId: 0,
 })
@@ -80,12 +78,16 @@ const partitionText = ref("");//分区名称
 
 //封面上传完成
 const finishUpload = (cover: string) => {
-  videoForm.cover = cover;
+  articleForm.cover = cover;
+}
+
+const contentChange = (val: string) => {
+  articleForm.content = val;
 }
 
 //选中分区
 const selectedPartition = (value: number) => {
-  videoForm.partitionId = value;
+  articleForm.partitionId = value;
 }
 
 // 标签
@@ -112,36 +114,10 @@ const closeTag = (tag: string) => {
   dynamicTags.value.splice(dynamicTags.value.indexOf(tag), 1)
 }
 
-const submitVideoInfo = async () => {
-  if (!videoForm.cover) {
-    ElMessage.error("请上传视频封面");
-    return;
-  }
-  if (!videoForm.title) {
-    ElMessage.error("请填写视频标题");
-    return;
-  }
-  if (!videoForm.partitionId) {
-    ElMessage.error("请选择视频分区");
-    return;
-  }
-  if (dynamicTags.value.length < 3) {
-    ElMessage.error("标签不能低于3个");
-    return;
-  }
-
-  videoForm.tags = dynamicTags.value.join(',');
-  const reqFunc = isEdit.value ? editVideoAPI : uploadVideoInfoAPI;
-  const res = await reqFunc(videoForm);
-  if (res.data.code === statusCode.OK) {
-    ElMessage.success("提交成功");
-  }
-}
-
 // 获取分区列表
 const partitionList = ref<Array<PartitionType>>([]);//所有分区
 const getPartition = async () => {
-  const res = await getPartitionAPI();
+  const res = await getPartitionAPI("article");
   if (res.data.code === statusCode.OK) {
     partitionList.value = res.data.data.partitions;
   }
@@ -160,54 +136,100 @@ const getPartitionName = async (id: number) => {
   partitionText.value = `${partition?.name}/${subpartition?.name}`;
 }
 
-const loadVideoInfo = () => {
-  if (props.info.vid) {
-    if (props.info.tags) {
-      dynamicTags.value = props.info.tags.split(',');
-    }
-    Object.assign(videoForm, props.info);
-    getPartitionName(props.info.partitionId);
+const submitArticleInfo = async () => {
+  if (!articleForm.title) {
+    ElMessage.error("请填写标题");
+    return;
+  }
+  if (!articleForm.partitionId) {
+    ElMessage.error("请选择分区");
+    return;
+  }
+  if (dynamicTags.value.length < 3) {
+    ElMessage.error("标签不能低于3个");
+    return;
+  }
+  if (!articleForm.content) {
+    ElMessage.error("内容不能为空");
+    return;
+  }
 
-    isEdit.value = props.info.partitionId !== 0;
+  articleForm.tags = dynamicTags.value.join(',');
+  const submitFunc = articleForm.aid ? editArticleAPI : uploadArticleInfoAPI;
+  const res = await submitFunc(articleForm);
+  if (res.data.code === statusCode.OK) {
+    ElMessage.success("提交成功");
   }
 }
 
-watch(() => props.info.vid, () => {
-  loadingForm.value = true;
-  loadVideoInfo();
-  nextTick(() => {
-    loadingForm.value = false;
-  })
-})
+const getArticleStatus = async (aid: number) => {
+  const res = await getArticleStatusAPI(aid);
+  if (res.data.code === statusCode.OK) {
+    if (res.data.data.article) {
+      // 判断是否在审核中
+      if (res.data.data.article.status = reviewCode.WAITING_REVIEW) {
+        waitingReview.value = true;
+      }
 
-onMounted(async () => {
+      Object.assign(articleForm, res.data.data.article);
+      if (articleForm.tags) {
+        dynamicTags.value = articleForm.tags.split(',');
+      }
+      getPartitionName(articleForm.partitionId);
+      isEdit.value = true;
+    }
+  }
+}
+
+onBeforeMount(async () => {
   await getPartition();
-  loadVideoInfo();
+  const aid = Number(route.query.aid);
+  if (aid) {
+    await getArticleStatus(aid);
+  }
   loadingForm.value = false;
 })
 </script>
 
 <style lang="scss" scoped>
+.article-upload {
+  background-color: #fff;
+  width: 100%;
+  min-height: 100%;
+
+  .title-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    height: 50px;
+    padding: 10px 20px;
+
+    .title {
+      margin: 0;
+      font-size: 16px;
+      color: #212121;
+      font-weight: 600;
+      line-height: 50px;
+    }
+  }
+}
+
+.editor-box {
+  padding: 0 0 20px;
+  box-sizing: border-box;
+}
+
 .cover {
   display: flex;
   align-items: center;
   margin-bottom: 18px;
 
   .label {
-    position: relative;
     width: 80px;
     font-size: 14px;
     color: #606266;
-    margin-left: 130px;
-
-    &::before {
-      position: absolute;
-      font-size: 12px;
-      left: -8px;
-      top: 0px;
-      content: "*";
-      color: #ff3b30;
-    }
+    margin-left: 100px;
   }
 
   .cover-uploader-box {
@@ -219,8 +241,6 @@ onMounted(async () => {
       height: 127px;
     }
   }
-
-
 
   .uploader-skeleton {
     width: 169px;
@@ -249,8 +269,8 @@ onMounted(async () => {
 }
 
 .info-form {
-  width: calc(100% - 260px);
-  margin-left: 130px;
+  width: calc(100% - 200px);
+  margin-left: 100px;
 
   .upload-next-btn {
     display: flex;

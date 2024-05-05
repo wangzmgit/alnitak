@@ -102,7 +102,7 @@ import { ElMessage } from "element-plus";
 import { formatRelativeTime } from "@/utils/format";
 import { asyncGetUserBaseInfoAPI } from "@/api/user";
 import CommonAvatar from "@/components/common-avatar/index.vue";
-import { addCommentAPI, getCommentAPI, getReplyAPI, deleteCommentAPI } from "@/api/comment";
+import { addVideoCommentAPI, getVideoCommentAPI, getVideoReplyAPI, deleteVideoCommentAPI } from "@/api/comment";
 
 const props = defineProps<{
   vid: number
@@ -126,7 +126,7 @@ const commentCount = ref(0);
 const commentList = ref<CommentType[]>([]);
 const getCommentList = async () => {
   pagination.loading = true;
-  const res = await getCommentAPI(props.vid, pagination.page, pagination.pageSize);
+  const res = await getVideoCommentAPI(props.vid, pagination.page, pagination.pageSize);
   if (res.data.code === statusCode.OK) {
     commentCount.value = res.data.data.total;
     commentList.value = commentList.value.concat(res.data.data.comments);
@@ -139,7 +139,7 @@ const getCommentList = async () => {
 
 const replyPageSize = 10;
 const getReplyList = async (comment: CommentType) => {
-  const res = await getReplyAPI(comment.id, comment.page || 1, replyPageSize);
+  const res = await getVideoReplyAPI(comment.id, comment.page || 1, replyPageSize);
   if (res.data.code === statusCode.OK) {
     comment.reply = res.data.data.replies;
   }
@@ -153,7 +153,7 @@ const replyPageChange = (comment: CommentType, page: number) => {
 }
 
 const commentForm = reactive<AddCommentType>({
-  vid: props.vid,
+  cid: props.vid,
   content: "",
   parentId: 0,
   replyUserId: 0,
@@ -232,7 +232,7 @@ const addComment = async () => {
     commentForm.at = matches.map(match => match.trim().substring(1));
   }
 
-  const res = await addCommentAPI(commentForm);
+  const res = await addVideoCommentAPI(commentForm);
   if (res.data.code === statusCode.OK) {
     const comment = res.data.data.comment;
     comment.author = userInfo.value;
@@ -258,7 +258,7 @@ const scrollToViewCenter = (el: HTMLElement) => {
 
 const deleteComment = async (index: number, comment: CommentType, reply?: ReplyType) => {
   const deleteId = reply ? reply.id : comment.id;
-  const res = await deleteCommentAPI(deleteId);
+  const res = await deleteVideoCommentAPI(deleteId);
   if (res.data.code === statusCode.OK) {
     if (reply) {
       comment.replyCount--;

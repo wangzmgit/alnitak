@@ -3,8 +3,19 @@ interface ReviewListParam {
   pageSize: number;
 }
 
-interface ReviewParam {
+interface ReviewArticleListParam {
+  page: number;
+  pageSize: number;
+}
+
+interface ReviewVideoParam {
   vid: number;
+  status?: number;
+  remark?: string;
+}
+
+interface ReviewArticleParam {
+  aid: number;
   status?: number;
   remark?: string;
 }

@@ -29,7 +29,6 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
-import { formatTime } from '@/utils/format';
 import { getMainColor } from '@/utils/color';
 import { statusCode } from '@/utils/status-code';
 import { addCarouselAPI, editCarouselAPI } from "@/api/carousel";

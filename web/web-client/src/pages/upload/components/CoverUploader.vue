@@ -2,6 +2,12 @@
   <div class="upload-cover">
     <el-upload multiple :show-file-list="false" :before-upload="beforeUploadCover" @change="fileChange">
       <img v-if="currentCover" :src="getResourceUrl(currentCover)" class="cover" alt="封面" />
+      <div v-else class="cover placeholder">
+        <div class="tips-icon">
+          <add-picture-icon size="22"></add-picture-icon>
+        </div>
+        <p class="upload-title">添加封面</p>
+      </div>
     </el-upload>
 
     <image-cropper ref="cropperRef">
@@ -17,6 +23,7 @@ import { ref } from "vue";
 import { ElMessage } from "element-plus";
 import { isUrl } from "@/utils/format";
 import { globalConfig } from "@/utils/global-config";
+import { AddPicture as AddPictureIcon } from "@icon-park/vue-next";
 import ImageCropper from "@/components/image-cropper/index.vue";
 import CoverCropper from "@/components/image-cropper/components/CoverCropper.vue";
 
@@ -78,6 +85,25 @@ const changeUpload = (status: string, data: any) => {
     width: 169px;
     height: 127px;
     border-radius: 3px;
+  }
+
+  .placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    background-color: #f4f5f7;
+
+    .tips-icon {
+      color: #99a2aa;
+      margin-bottom: 12px;
+    }
+
+    .upload-title {
+      color: #99a2aa;
+      font-size: 12px;
+      margin: 0;
+    }
   }
 }
 

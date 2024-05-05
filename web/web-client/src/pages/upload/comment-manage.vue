@@ -1,18 +1,22 @@
 <template>
   <div class="comment-manage">
     <div class="header-box">
-      <p class="title">评论管理</p>
+      <base-tabs class="tabs" :tabs="tabsOptions" @tab-change="tabChange" />
       <client-only>
-        <el-select v-model="videoId" style="width: 200px" @change="videoIdChange">
+        <el-select v-if="commentType === '0'" v-model="videoId" style="width: 200px" @change="videoIdChange">
           <el-option label="全部视频" :value="0"></el-option>
           <el-option v-for="item in videoList" :key="item.vid" :label="item.title" :value="item.vid" />
+        </el-select>
+        <el-select v-else v-model="articleId" style="width: 200px" @change="articleIdChange">
+          <el-option label="全部专栏" :value="0"></el-option>
+          <el-option v-for="item in articleList" :key="item.aid" :label="item.title" :value="item.aid" />
         </el-select>
       </client-only>
     </div>
     <div class="comment-box">
       <el-scrollbar>
         <ul class="comment-list" v-infinite-scroll="scrollLoad">
-          <li class="comment-msg-item" v-for="(item, index) in replyMessageList" :key="index">
+          <li class="comment-msg-item" v-for="(item, index) in commentList" :key="index">
             <div class="item-left">
               <common-avatar class="avatar" :url="item.author.avatar" :size="45"></common-avatar>
             </div>
@@ -46,9 +50,29 @@
 <script setup lang="ts">
 import { ref, onBeforeMount } from "vue";
 import { formatTime } from "@/utils/format";
-import { getCommentListAPI } from '@/api/comment';
+import { getVideoCommentListAPI, getArticleCommentListAPI } from '@/api/comment';
+
 import CommonAvatar from '@/components/common-avatar/index.vue';
 import { getAllVideoAPI } from "@/api/video";
+import { getAllArticleAPI } from "~/api/article";
+
+const tabsOptions = [
+  { key: '0', label: '视频评论' },
+  { key: '1', label: '专栏评论' }
+];
+
+const commentType = ref('0');
+const tabChange = (val: string) => {
+  if (commentType.value !== val) { // 类型改变初始化数据
+    page.value = 1;
+    total.value = 0;
+    noMore.value = false;
+    loading.value = false;
+    commentList.value = [];
+  commentType.value = val;
+  getReplyMsgList();
+  }
+}
 
 const videoId = ref<number>(0);
 const videoIdChange = () => {
@@ -56,6 +80,17 @@ const videoIdChange = () => {
   total.value = 0;
   noMore.value = false;
   loading.value = false;
+  commentList.value = [];
+  getReplyMsgList();
+}
+
+const articleId = ref<number>(0);
+const articleIdChange = () => {
+  page.value = 1;
+  total.value = 0;
+  noMore.value = false;
+  loading.value = false;
+  commentList.value = [];
   getReplyMsgList();
 }
 
@@ -67,28 +102,51 @@ const getAllVideo = async () => {
   }
 }
 
+const articleList = ref<AllArticleType[]>([]);
+const getAllArticle = async () => {
+  const res = await getAllArticleAPI();
+  if (res.data.code === statusCode.OK) {
+    articleList.value = res.data.data.articles;
+  }
+}
+
 const page = ref(1);
 const total = ref(0);
 const pageSize = ref(8);
 const noMore = ref(false);
 const loading = ref(false);
-const replyMessageList = ref<CommentManageType[]>([]);
+const commentList = ref<CommentManageType[]>([]);
 const getReplyMsgList = async () => {
   if (loading.value || noMore.value) return;
   loading.value = true;
-  const res = await getCommentListAPI(videoId.value, page.value, pageSize.value);
+  const { reqFunc, param } = getFuncAndParam();
+  const res = await reqFunc(param, page.value, pageSize.value);
   if (res.data.code === statusCode.OK) {
     total.value = res.data.data.total;
     if (res.data.data.comments) {
-      replyMessageList.value = replyMessageList.value.concat(res.data.data.comments);
+      commentList.value = commentList.value.concat(res.data.data.comments);
     } else {
       if (page.value === 1) { // 第一页且没有数据
-        replyMessageList.value = [];
+        commentList.value = [];
       }
       noMore.value = true;
     }
   }
   loading.value = false;
+}
+
+const getFuncAndParam = () => {
+  if (commentType.value === '0') {
+    return {
+      reqFunc: getVideoCommentListAPI,
+      param: videoId.value,
+    }
+  }
+
+  return {
+    reqFunc: getArticleCommentListAPI,
+    param: articleId.value,
+  }
 }
 
 const scrollLoad = () => {
@@ -102,6 +160,7 @@ const scrollLoad = () => {
 
 onBeforeMount(() => {
   getAllVideo();
+  getAllArticle();
   getReplyMsgList();
 })
 </script>
@@ -119,9 +178,14 @@ onBeforeMount(() => {
     justify-content: space-between;
     padding: 16px 0 10px;
 
-    .title {
-      font-size: 18px;
-      margin: 0;
+    // .title {
+    //   font-size: 18px;
+    //   margin: 0;
+    // }
+
+    .tabs {
+      width: 150px;
+      justify-content: space-between;
     }
   }
 

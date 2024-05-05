@@ -1,8 +1,8 @@
 import request from '@/utils/request';
 
 // 获取分区
-export const getPartitionAPI = () => {
-  return request.get(`v1/partition/getPartitionList`);
+export const getPartitionAPI = (type: string | number) => {
+  return request.get(`v1/partition/getPartitionList?type=${type}`);
 }
 
 // 新增分区

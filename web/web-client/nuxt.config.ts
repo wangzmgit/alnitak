@@ -4,6 +4,12 @@ export default defineNuxtConfig({
     '@element-plus/nuxt',
     '@pinia/nuxt',
   ],
+  plugins: [
+    {
+      src: '@/plugins/wang-editor',
+      mode: 'client',
+    },
+  ],
   css: [
     'element-plus/dist/index.css',
     '~/assets/styles/element.scss'

@@ -21,6 +21,8 @@
   "dependencies": {
     "@icon-park/vue-next": "^1.4.2",
     "@pinia/nuxt": "^0.5.1",
+    "@wangeditor/editor": "^5.1.23",
+    "@wangeditor/editor-for-vue": "^5.1.12",
     "axios": "^1.6.2",
     "element-plus": "^2.4.4",
     "hls.js": "^1.5.7",

@@ -6,7 +6,7 @@
         <nuxt-link v-for="item in menuList" :to="item.to" class="menu-item"
           :class="route.name === item.key ? 'menu-item-active' : ''">
           <span class="menu-icon">
-            <component :is="item.icon" size="18"></component>
+            <component :is="item.icon" size="18" :strokeWidth="3"></component>
           </span>
           <span class="menu-title">{{ item.name }}</span>
         </nuxt-link>
@@ -23,7 +23,7 @@ import { h, ref, onBeforeMount } from "vue";
 import HeaderBar from '@/components/header-bar/index.vue';
 import VideoIcon from "@/components/icons/VideoIcon.vue";
 import CommentIcon from "@/components/icons/CommentIcon.vue";
-import { Upload as UploadIcon } from '@icon-park/vue-next';
+import { Upload as UploadIcon, Editor as EditorIcon, Inbox } from '@icon-park/vue-next';
 
 useHead({
   title: `创作中心 - ${globalConfig.title}`
@@ -38,10 +38,22 @@ const menuList = [
     icon: UploadIcon,
   },
   {
+    key: 'upload-article',
+    name: '专栏投稿',
+    to: '/upload/article',
+    icon: EditorIcon,
+  },
+  {
     key: 'upload-video-manage',
     name: '视频管理',
     to: '/upload/video-manage',
     icon: VideoIcon,
+  },
+  {
+    key: 'upload-article-manage',
+    name: '专栏管理',
+    to: '/upload/article-manage',
+    icon: Inbox,
   },
   {
     key: 'upload-comment-manage',

@@ -7,7 +7,7 @@
           <li class="video-item" v-for="(item, index) in videoList" :key="index">
             <div class="item-left">
               <div class="cover">
-                <img v-if="item.cover" :src="getResourceUrl(item.cover)" alt="收藏夹封面">
+                <img v-if="item.cover" :src="getResourceUrl(item.cover)" alt="封面">
               </div>
             </div>
             <div class="item-center">
@@ -47,7 +47,7 @@
 import { onBeforeMount, ref } from 'vue';
 import { getUploadVideoAPI, deleteVideoAPI } from '@/api/video';
 import { MoreOne as MoreIcon } from '@icon-park/vue-next';
-import { getReviewRecordAPI } from '~/api/revies';
+import { getVideoReviewRecordAPI } from '@/api/revies';
 
 const page = ref(1);
 const total = ref(0);
@@ -114,7 +114,7 @@ const getStatusTextColor = (status: number) => {
 }
 
 const showReason = async (vid: number) => {
-  const res = await getReviewRecordAPI(vid);
+  const res = await getVideoReviewRecordAPI(vid);
   if (res.data.code === statusCode.OK) {
     ElMessageBox.alert(res.data.data.review.remark, '', {
       confirmButtonText: '确认',

@@ -23,7 +23,6 @@ interface EditVideoType {
   cover: string;
   desc: string;
   tags: string;
-  copyright: boolean;
 }
 
 // 视频状态

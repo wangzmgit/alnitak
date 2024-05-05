@@ -13,7 +13,6 @@
         </n-space>
         <n-data-table class="table" remote :columns="columns" :data="tableData" :loading="loading"
           :pagination="pagination" flex-height />
-        <!-- <table-action-modal v-model:visible="visible" :edit-data="editData" @refresh="getTableData" /> -->
       </div>
     </n-card>
   </div>
@@ -25,8 +24,7 @@ import { formatTime } from '@/utils/format';
 import { Refresh } from "@vicons/ionicons5";
 import useLoading from '@/hooks/loading-hooks';
 import { statusCode } from '@/utils/status-code';
-import { getVideoListAPI, deleteVideoAPI } from '@/api/video';
-// import TableActionModal from './components/table-action-modal.vue';
+import { getArticleListAPI, deleteArticleAPI } from '@/api/article';
 import type { DataTableColumns } from 'naive-ui';
 import { NCard, NImage, NIcon, NButton, NDataTable, NPopconfirm, NSpace, useMessage } from 'naive-ui';
 import { getResourceUrl } from '@/utils/resource';
@@ -40,16 +38,9 @@ const openModal = () => {
   visible.value = true;
 }
 
-// 编辑视频
-const editData = ref<VideoType>();
-const editVideo = (row: VideoType) => {
-  editData.value = row;
-  openModal();
-}
-
-// 删除视频
-const deleteVideo = async (row: VideoType) => {
-  const res = await deleteVideoAPI(row.vid);
+// 删除专栏
+const deleteArticle = async (row: ArticleType) => {
+  const res = await deleteArticleAPI(row.aid);
   if (res.data.code === statusCode.OK) {
     message.success('删除成功');
     await getTableData();
@@ -58,9 +49,9 @@ const deleteVideo = async (row: VideoType) => {
   }
 }
 
-const columns: DataTableColumns<VideoType> = [
+const columns: DataTableColumns<ArticleType> = [
   {
-    key: 'vid',
+    key: 'aid',
     title: 'ID',
     width: 90,
     align: 'center'
@@ -71,11 +62,15 @@ const columns: DataTableColumns<VideoType> = [
     align: 'center',
     width: 80,
     render: row => {
-      return h(NImage, {
-        src: getResourceUrl(row.cover),
-        width: 60,
-        height: 32,
-      })
+      if (row.cover) {
+        return h(NImage, {
+          src: getResourceUrl(row.cover),
+          width: 60,
+          height: 32,
+        })
+      }
+
+      return "无"
     }
   },
   {
@@ -90,11 +85,6 @@ const columns: DataTableColumns<VideoType> = [
     render: row => {
       return row.author.name
     }
-  },
-  {
-    key: 'desc',
-    title: '简介',
-    align: 'center',
   },
   {
     key: 'tags',
@@ -119,12 +109,12 @@ const columns: DataTableColumns<VideoType> = [
         default: () => [
           // h(NButton, {
           //   size: 'small',
-          //   onClick: () => editVideo(row)
+          //   onClick: () => editArticle(row)
           // }, { default: () => '编辑' }),
           h(NPopconfirm, {
-            onPositiveClick: () => deleteVideo(row),
+            onPositiveClick: () => deleteArticle(row),
           }, {
-            default: () => '是否删除视频?',
+            default: () => '是否删除专栏?',
             trigger: () => h(NButton, {
               size: 'small',
             }, { default: () => '删除' })
@@ -136,14 +126,14 @@ const columns: DataTableColumns<VideoType> = [
   }
 ]
 
-const tableData = ref<VideoType[]>([]);
+const tableData = ref<ArticleType[]>([]);
 const getTableData = async () => {
   startLoading();
   const page = pagination.page || 1;
   const pageSize = pagination.pageSize || 1;
-  const res = await getVideoListAPI({ page, pageSize });
+  const res = await getArticleListAPI({ page, pageSize });
   if (res.data.code === statusCode.OK) {
-    if (res.data.data.list) {
+    if( res.data.data.list) {
       tableData.value = res.data.data.list;
     } else {
       tableData.value = [];

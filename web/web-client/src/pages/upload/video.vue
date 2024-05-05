@@ -55,7 +55,6 @@ onBeforeMount(async () => {
   if (vid) {
     getVideoStatus(vid);
   }
-
 })
 </script>
 

@@ -3,8 +3,9 @@ import { baseURL } from '@/utils/request';
 import { useAsyncData } from 'nuxt/app';
 
 //获取分区
-export const getPartitionAPI = () => {
-  return request.get(`v1/partition/getPartitionList`);
+export const getPartitionAPI = (type?: "video" | "article") => {
+  const typeParam = `?type=${type === 'article' ? 1 : 0}`;
+  return request.get(`v1/partition/getPartitionList` + typeParam);
 }
 
 //新增分区
