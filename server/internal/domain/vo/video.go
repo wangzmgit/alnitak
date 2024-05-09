@@ -53,28 +53,30 @@ type AllVideoResp struct {
 }
 
 type VideoInfoManageResp struct {
-	ID        uint         `json:"vid"`
-	Uid       uint         `json:"uid"`
-	Title     string       `json:"title"`
-	Cover     string       `json:"cover"`
-	Desc      string       `json:"desc"`
-	CreatedAt time.Time    `json:"createdAt"`
-	Copyright bool         `json:"copyright"`
-	Tags      string       `json:"tags"`
-	Clicks    int64        `json:"clicks"`
-	Duration  float64      `json:"duration"`
-	Author    UserInfoResp `json:"author" gorm:"-"`
+	ID          uint         `json:"vid"`
+	Uid         uint         `json:"uid"`
+	Title       string       `json:"title"`
+	Cover       string       `json:"cover"`
+	Desc        string       `json:"desc"`
+	CreatedAt   time.Time    `json:"createdAt"`
+	Copyright   bool         `json:"copyright"`
+	Tags        string       `json:"tags"`
+	Clicks      int64        `json:"clicks"`
+	Duration    float64      `json:"duration"`
+	PartitionId uint         `json:"partitionId"`
+	Author      UserInfoResp `json:"author" gorm:"-"`
 }
 
 type ReviewListResp struct {
-	ID        uint         `json:"vid"`
-	Uid       uint         `json:"uid"`
-	Title     string       `json:"title"`
-	Cover     string       `json:"cover"`
-	Desc      string       `json:"desc"`
-	CreatedAt time.Time    `json:"createdAt"`
-	Copyright bool         `json:"copyright"`
-	Tags      string       `json:"tags"`
-	Duration  float64      `json:"duration"`
-	Author    UserInfoResp `json:"author" gorm:"-"`
+	ID          uint         `json:"vid"`
+	Uid         uint         `json:"uid"`
+	Title       string       `json:"title"`
+	Cover       string       `json:"cover"`
+	Desc        string       `json:"desc"`
+	CreatedAt   time.Time    `json:"createdAt"`
+	Copyright   bool         `json:"copyright"`
+	Tags        string       `json:"tags"`
+	Duration    float64      `json:"duration"`
+	PartitionId uint         `json:"partitionId"`
+	Author      UserInfoResp `json:"author" gorm:"-"`
 }

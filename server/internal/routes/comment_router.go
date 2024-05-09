@@ -13,25 +13,25 @@ func CollectCommentRoutes(r *gin.RouterGroup) {
 	commentAuth.Use(middleware.Auth())
 	{
 		// 发表评论或回复
-		commentAuth.POST("addVideoComment", api.AddVideoComment)
+		commentAuth.POST("video/addComment", api.AddVideoComment)
 		// 删除评论或回复
-		commentAuth.DELETE("deleteVideoComment/:id", api.DeleteVideoComment)
+		commentAuth.DELETE("video/deleteComment/:id", api.DeleteVideoComment)
 		// 获取评论列表
-		commentAuth.GET("getVideoCommentList", api.GetVideoCommentList)
+		commentAuth.GET("video/getCommentList", api.GetVideoCommentList)
 		// 发表文章评论或回复
-		commentAuth.POST("addArticleComment", api.AddArticleComment)
+		commentAuth.POST("article/addComment", api.AddArticleComment)
 		// 删除评论或回复
-		commentAuth.DELETE("deleteArticleComment/:id", api.DeleteArticleComment)
+		commentAuth.DELETE("article/deleteComment/:id", api.DeleteArticleComment)
 		// 获取评论列表
-		commentAuth.GET("getArticleCommentList", api.GetArticleCommentList)
+		commentAuth.GET("article/getCommentList", api.GetArticleCommentList)
 	}
 
 	// 获取视频评论
-	commentGroup.GET("getVideoComment", api.GetVideoComment)
+	commentGroup.GET("video/getComment", api.GetVideoComment)
 	// 获取视频回复
-	commentGroup.GET("getVideoReply", api.GetVideoReply)
+	commentGroup.GET("video/getReply", api.GetVideoReply)
 	// 获取文章评论
-	commentGroup.GET("getArticleComment", api.GetArticleComment)
+	commentGroup.GET("article/getComment", api.GetArticleComment)
 	// 获取文章回复
-	commentGroup.GET("getArticleReply", api.GetArticleReply)
+	commentGroup.GET("article/getReply", api.GetArticleReply)
 }

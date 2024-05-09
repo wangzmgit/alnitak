@@ -44,7 +44,10 @@ func UploadArticleInfo(ctx *gin.Context, uploadArticleReq dto.UploadArticleReq) 
 func EditArticleInfo(ctx *gin.Context, editArticleReq dto.EditArticleReq) error {
 	userId := ctx.GetUint("userId")
 	if editArticleReq.Cover != "" && cache.GetUploadImage(editArticleReq.Cover) != userId {
-		return errors.New("文件链接无效")
+		// 查询是否与旧封面图一致
+		if v, _ := FindArticleById(editArticleReq.Aid); v.Cover != editArticleReq.Cover {
+			return errors.New("文件链接无效")
+		}
 	}
 
 	if err := global.Mysql.Model(&model.Article{}).Where("id = ?", editArticleReq.Aid).Updates(

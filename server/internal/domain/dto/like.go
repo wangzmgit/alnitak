@@ -1,5 +1,9 @@
 package dto
 
-type LikeReq struct {
+type LikeVideoReq struct {
 	Vid uint
+}
+
+type LikeArticleReq struct {
+	Aid uint
 }

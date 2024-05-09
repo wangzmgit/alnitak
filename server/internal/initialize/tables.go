@@ -18,8 +18,10 @@ func InitTables() {
 	global.Mysql.AutoMigrate(&model.VideoIndexFile{}) // 视频播放索引文件表
 	global.Mysql.AutoMigrate(&model.Review{})         // 视频审核表
 	global.Mysql.AutoMigrate(&model.Comment{})        // 评论回复表
-	global.Mysql.AutoMigrate(&model.Like{})           // 点赞表
-	global.Mysql.AutoMigrate(&model.Collect{})        // 收藏表
+	global.Mysql.AutoMigrate(&model.LikeVideo{})      // 视频点赞表
+	global.Mysql.AutoMigrate(&model.LikeArticle{})    // 文章点赞表
+	global.Mysql.AutoMigrate(&model.CollectVideo{})   // 视频收藏表
+	global.Mysql.AutoMigrate(&model.CollectArticle{}) // 文章收藏表
 	global.Mysql.AutoMigrate(&model.Collection{})     // 收藏夹表
 	global.Mysql.AutoMigrate(&model.Relation{})       // 关系表
 	global.Mysql.AutoMigrate(&model.Danmaku{})        // 弹幕表

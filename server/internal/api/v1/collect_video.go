@@ -9,7 +9,7 @@ import (
 )
 
 // 添加收藏
-func Collect(ctx *gin.Context) {
+func CollectVideo(ctx *gin.Context) {
 	// 获取参数
 	var addCollectReq dto.AddCollectReq
 	if err := ctx.Bind(&addCollectReq); err != nil {
@@ -27,7 +27,7 @@ func Collect(ctx *gin.Context) {
 }
 
 // 是否收藏
-func HasCollect(ctx *gin.Context) {
+func HasCollectVideo(ctx *gin.Context) {
 	videoId := utils.StringToUint(ctx.Query("vid"))
 	collect, err := service.HasCollect(ctx, videoId)
 	if err != nil {
@@ -40,7 +40,7 @@ func HasCollect(ctx *gin.Context) {
 }
 
 // 获取已收藏的收藏夹
-func GetCollectedInfo(ctx *gin.Context) {
+func GetVideoCollectedInfo(ctx *gin.Context) {
 	videoId := utils.StringToUint(ctx.Query("vid"))
 
 	collectionIds := service.GetCollectedInfo(ctx, videoId)

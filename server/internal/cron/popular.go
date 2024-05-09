@@ -55,7 +55,7 @@ func RefreshPopular() {
 
 		for _, video := range videos {
 			// 计算视频分值
-			archive := service.FindArchiveData(video.ID)
+			archive := service.FindVideoArchiveData(video.ID)
 			likeValue := 12.5 * float64(archive.Like)
 			collectValue := 25 * float64(archive.Like)
 

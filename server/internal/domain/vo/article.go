@@ -34,29 +34,31 @@ type UploadArticleResp struct {
 }
 
 type ArticleResp struct {
-	ID        uint         `json:"aid"`
-	Uid       uint         `json:"uid"`
-	Title     string       `json:"title"`
-	Cover     string       `json:"cover"`
-	Content   string       `json:"content"`
-	Status    int          `json:"status"`
-	Copyright bool         `json:"copyright"`
-	CreatedAt time.Time    `json:"createdAt"`
-	Tags      string       `json:"tags"`
-	Clicks    int64        `json:"clicks"`
-	Author    UserInfoResp `json:"author" gorm:"-"`
+	ID          uint         `json:"aid"`
+	Uid         uint         `json:"uid"`
+	Title       string       `json:"title"`
+	Cover       string       `json:"cover"`
+	Content     string       `json:"content"`
+	Status      int          `json:"status"`
+	Copyright   bool         `json:"copyright"`
+	CreatedAt   time.Time    `json:"createdAt"`
+	Tags        string       `json:"tags"`
+	Clicks      int64        `json:"clicks"`
+	PartitionId uint         `json:"partitionId"`
+	Author      UserInfoResp `json:"author" gorm:"-"`
 }
 
 type ReviewArticleListResp struct {
-	ID        uint         `json:"aid"`
-	Uid       uint         `json:"uid"`
-	Title     string       `json:"title"`
-	Cover     string       `json:"cover"`
-	Content   string       `json:"content"`
-	CreatedAt time.Time    `json:"createdAt"`
-	Copyright bool         `json:"copyright"`
-	Tags      string       `json:"tags"`
-	Author    UserInfoResp `json:"author" gorm:"-"`
+	ID          uint         `json:"aid"`
+	Uid         uint         `json:"uid"`
+	Title       string       `json:"title"`
+	Cover       string       `json:"cover"`
+	Content     string       `json:"content"`
+	CreatedAt   time.Time    `json:"createdAt"`
+	Copyright   bool         `json:"copyright"`
+	Tags        string       `json:"tags"`
+	PartitionId uint         `json:"partitionId"`
+	Author      UserInfoResp `json:"author" gorm:"-"`
 }
 
 type AllArticleResp struct {

@@ -26,9 +26,9 @@ func Collect(ctx *gin.Context, addCollectReq dto.AddCollectReq) error {
 
 	if length := len(ids); length > 0 {
 		//处理要写入的数据
-		newCollects := make([]model.Collect, length)
+		newCollects := make([]model.CollectVideo, length)
 		for i := 0; i < length; i++ {
-			newCollects[i] = model.Collect{
+			newCollects[i] = model.CollectVideo{
 				Uid:          userId,
 				Vid:          videoId,
 				CollectionID: ids[i],
@@ -44,7 +44,7 @@ func Collect(ctx *gin.Context, addCollectReq dto.AddCollectReq) error {
 	//处理取消收藏部分
 	if len(addCollectReq.CancelList) > 0 {
 		if err := global.Mysql.Where("uid = ? and vid = ? and collection_id in ?", userId, videoId, addCollectReq.CancelList).
-			Delete(&model.Collect{}).Error; err != nil {
+			Delete(&model.CollectVideo{}).Error; err != nil {
 			utils.ErrorLog("收藏失败", "collect", err.Error())
 			return errors.New("收藏失败")
 		}
@@ -85,8 +85,8 @@ func GetCollectVideo(ctx *gin.Context, collectionId uint, page, pageSize int) (t
 	}
 
 	var videoIds []uint
-	global.Mysql.Model(&model.Collect{}).Where("collection_id = ? and uid = ?", collectionId, userId).Count(&total)
-	global.Mysql.Model(&model.Collect{}).Where("collection_id = ? and uid = ?", collectionId, userId).
+	global.Mysql.Model(&model.CollectVideo{}).Where("collection_id = ? and uid = ?", collectionId, userId).Count(&total)
+	global.Mysql.Model(&model.CollectVideo{}).Where("collection_id = ? and uid = ?", collectionId, userId).
 		Limit(pageSize).Offset((page-1)*pageSize).Pluck("vid", &videoIds)
 	if err := global.Mysql.Model(&model.Video{}).Select(vo.VIDEO_FIELD).
 		Where("id in (?)", videoIds).Scan(&videos).Error; err != nil {
@@ -102,7 +102,7 @@ func GetCollectVideo(ctx *gin.Context, collectionId uint, page, pageSize int) (t
 	return
 }
 
-func FindCollectByUid(videoId, userId uint) (collect model.Collect, err error) {
+func FindCollectByUid(videoId, userId uint) (collect model.CollectVideo, err error) {
 	err = global.Mysql.Where("`uid` = ? and vid = ?", userId, videoId).First(&collect).Error
 
 	return
@@ -110,7 +110,7 @@ func FindCollectByUid(videoId, userId uint) (collect model.Collect, err error) {
 
 // 获取视频所在的收藏夹
 func GetVideoCollection(userId, videoId uint) (id []uint) {
-	global.Mysql.Model(&model.Collect{}).Where("uid = ? and vid = ?", userId, videoId).Pluck("collection_id", &id)
+	global.Mysql.Model(&model.CollectVideo{}).Where("uid = ? and vid = ?", userId, videoId).Pluck("collection_id", &id)
 
 	return
 }

@@ -8,15 +8,15 @@ import (
 	"interastral-peace.com/alnitak/utils"
 )
 
-func Like(ctx *gin.Context) {
+func LikeArticle(ctx *gin.Context) {
 	// 获取参数
-	var likeReq dto.LikeReq
+	var likeReq dto.LikeArticleReq
 	if err := ctx.Bind(&likeReq); err != nil {
 		resp.FailWithMessage(ctx, "请求参数有误")
 		return
 	}
 
-	if err := service.Like(ctx, likeReq); err != nil {
+	if err := service.LikeArticle(ctx, likeReq); err != nil {
 		resp.FailWithMessage(ctx, err.Error())
 		return
 	}
@@ -25,14 +25,14 @@ func Like(ctx *gin.Context) {
 	resp.Ok(ctx)
 }
 
-func CancelLike(ctx *gin.Context) {
-	var likeReq dto.LikeReq
+func CancelLikeArticle(ctx *gin.Context) {
+	var likeReq dto.LikeArticleReq
 	if err := ctx.Bind(&likeReq); err != nil {
 		resp.FailWithMessage(ctx, "请求参数有误")
 		return
 	}
 
-	if err := service.CancelLike(ctx, likeReq); err != nil {
+	if err := service.CancelLikeArticle(ctx, likeReq); err != nil {
 		resp.FailWithMessage(ctx, err.Error())
 		return
 	}
@@ -41,9 +41,9 @@ func CancelLike(ctx *gin.Context) {
 	resp.Ok(ctx)
 }
 
-func HasLike(ctx *gin.Context) {
+func HasLikeArticle(ctx *gin.Context) {
 	videoId := utils.StringToUint(ctx.Query("vid"))
-	like, err := service.HasLike(ctx, videoId)
+	like, err := service.HasLikeArticle(ctx, videoId)
 	if err != nil {
 		resp.FailWithMessage(ctx, err.Error())
 		return

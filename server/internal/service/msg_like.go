@@ -20,14 +20,16 @@ func GetLikeMessage(ctx *gin.Context, page, pageSize int) (total int64, msg []vo
 	return
 }
 
-func InsertLikeMessage(senderId, videoId, targetId uint) error {
+func InsertLikeMessage(senderId, cid, targetId uint, contentType int) error {
 	return global.Mysql.Create(&model.LikeMessage{
-		Sid: senderId,
-		Vid: videoId,
-		Uid: targetId,
+		Sid:  senderId,
+		Cid:  cid,
+		Uid:  targetId,
+		Type: contentType,
 	}).Error
 }
 
-func RemoveLikeMessage(videoId, senderId uint) error {
-	return global.Mysql.Where("vid = ? and sid = ?", videoId, senderId).Delete(&model.LikeMessage{}).Error
+func RemoveLikeMessage(videoId, senderId uint, contentType int) error {
+	return global.Mysql.Where("vid = ? and sid = ? and `type` = ?", videoId, senderId, contentType).
+		Delete(&model.LikeMessage{}).Error
 }

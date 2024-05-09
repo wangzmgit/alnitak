@@ -11,12 +11,12 @@ import (
 	"interastral-peace.com/alnitak/utils"
 )
 
-func Like(ctx *gin.Context, likeReq dto.LikeReq) error {
+func LikeVideo(ctx *gin.Context, likeReq dto.LikeVideoReq) error {
 	var err error
 	videoId := likeReq.Vid
 	userId := ctx.GetUint("userId")
 
-	like, err := FindLikeByUid(videoId, userId)
+	like, err := FindLikeVideoByUid(videoId, userId)
 	if err != nil && err != gorm.ErrRecordNotFound {
 		utils.ErrorLog("获取点赞信息失败", "like", err.Error())
 		return errors.New("点赞失败")
@@ -28,9 +28,9 @@ func Like(ctx *gin.Context, likeReq dto.LikeReq) error {
 
 	// 更新数据库
 	if like.ID == 0 {
-		err = global.Mysql.Create(&model.Like{Uid: userId, Vid: videoId, IsLike: true}).Error
+		err = global.Mysql.Create(&model.LikeVideo{Uid: userId, Vid: videoId, IsLike: true}).Error
 	} else {
-		err = global.Mysql.Model(&model.Like{}).Where("uid = ? and vid = ?", userId, videoId).Updates(
+		err = global.Mysql.Model(&model.LikeVideo{}).Where("uid = ? and vid = ?", userId, videoId).Updates(
 			map[string]interface{}{"is_like": true},
 		).Error
 	}
@@ -41,16 +41,16 @@ func Like(ctx *gin.Context, likeReq dto.LikeReq) error {
 
 	// 查询视频作者并添加点赞通知
 	video := GetVideoInfo(videoId)
-	InsertLikeMessage(userId, video.ID, video.Uid)
+	InsertLikeMessage(userId, video.ID, video.Uid, global.CONTENT_TYPE_VIDEO)
 
 	return nil
 }
 
-func CancelLike(ctx *gin.Context, likeReq dto.LikeReq) error {
+func CancelLikeVideo(ctx *gin.Context, likeReq dto.LikeVideoReq) error {
 	videoId := likeReq.Vid
 	userId := ctx.GetUint("userId")
 
-	like, err := FindLikeByUid(videoId, userId)
+	like, err := FindLikeVideoByUid(videoId, userId)
 	if err != nil && err != gorm.ErrRecordNotFound {
 		utils.ErrorLog("获取点赞信息失败", "like", err.Error())
 		return errors.New("点赞失败")
@@ -60,7 +60,7 @@ func CancelLike(ctx *gin.Context, likeReq dto.LikeReq) error {
 		return errors.New("未点赞")
 	}
 
-	if err := global.Mysql.Model(&model.Like{}).Where("uid = ? and vid = ?", userId, videoId).Updates(
+	if err := global.Mysql.Model(&model.LikeVideo{}).Where("uid = ? and vid = ?", userId, videoId).Updates(
 		map[string]interface{}{"is_like": false},
 	).Error; err != nil {
 		utils.ErrorLog("点赞失败", "like", err.Error())
@@ -68,14 +68,14 @@ func CancelLike(ctx *gin.Context, likeReq dto.LikeReq) error {
 	}
 
 	// 查询视频作者并删除点赞通知
-	RemoveLikeMessage(videoId, userId)
+	RemoveLikeMessage(videoId, userId, global.CONTENT_TYPE_VIDEO)
 
 	return nil
 }
 
-func HasLike(ctx *gin.Context, videoId uint) (bool, error) {
+func HasLikeVideo(ctx *gin.Context, videoId uint) (bool, error) {
 	userId := ctx.GetUint("userId")
-	like, err := FindLikeByUid(videoId, userId)
+	like, err := FindLikeVideoByUid(videoId, userId)
 	if err != nil {
 		utils.ErrorLog("获取点赞信息失败", "like", err.Error())
 		return false, errors.New("获取点赞信息失败")
@@ -84,7 +84,7 @@ func HasLike(ctx *gin.Context, videoId uint) (bool, error) {
 	return like.IsLike, nil
 }
 
-func FindLikeByUid(videoId, userId uint) (like model.Like, err error) {
+func FindLikeVideoByUid(videoId, userId uint) (like model.LikeVideo, err error) {
 	err = global.Mysql.Where("`uid` = ? and vid = ?", userId, videoId).First(&like).Error
 
 	return
