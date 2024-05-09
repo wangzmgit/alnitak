@@ -13,6 +13,7 @@
         </n-space>
         <n-data-table class="table" remote :columns="columns" :data="tableData" :loading="loading"
           :pagination="pagination" flex-height />
+        <table-action-drawer v-model:visible="visibleDrawer" :data="detailsData!"></table-action-drawer>
       </div>
     </n-card>
   </div>
@@ -26,16 +27,26 @@ import useLoading from '@/hooks/loading-hooks';
 import { statusCode } from '@/utils/status-code';
 import { getArticleListAPI, deleteArticleAPI } from '@/api/article';
 import type { DataTableColumns } from 'naive-ui';
-import { NCard, NImage, NIcon, NButton, NDataTable, NPopconfirm, NSpace, useMessage } from 'naive-ui';
 import { getResourceUrl } from '@/utils/resource';
+import TableActionDrawer from './components/table-action-drawer.vue';
+import { NCard, NImage, NIcon, NButton, NDataTable, NPopconfirm, NSpace, useMessage } from 'naive-ui';
+import usePartition from '@/hooks/partition-hooks';
 
 const { loading, startLoading, endLoading } = useLoading(false);
-// TODO: 展示分区
+const { getPartition, getPartitionName } = usePartition("article");
+
 const message = useMessage();
 
-const visible = ref(false);
-const openModal = () => {
-  visible.value = true;
+const visibleDrawer = ref(false);
+const openDrawer = () => {
+  visibleDrawer.value = true;
+}
+
+// 编辑文章
+const detailsData = ref<ArticleType>();
+const editArticle = (row: ArticleType) => {
+  detailsData.value = row;
+  openDrawer();
 }
 
 // 删除专栏
@@ -48,6 +59,7 @@ const deleteArticle = async (row: ArticleType) => {
     message.error(res.data.msg);
   }
 }
+
 
 const columns: DataTableColumns<ArticleType> = [
   {
@@ -92,6 +104,14 @@ const columns: DataTableColumns<ArticleType> = [
     align: 'center',
   },
   {
+    key: 'partition',
+    title: '分区',
+    align: 'center',
+    render: row => {
+      return getPartitionName(row.partitionId)
+    }
+  },
+  {
     key: 'createdAt',
     title: '上传时间',
     align: 'center',
@@ -107,10 +127,10 @@ const columns: DataTableColumns<ArticleType> = [
     render: row => {
       return h(NSpace, { justify: 'center' }, {
         default: () => [
-          // h(NButton, {
-          //   size: 'small',
-          //   onClick: () => editArticle(row)
-          // }, { default: () => '编辑' }),
+          h(NButton, {
+            size: 'small',
+            onClick: () => editArticle(row)
+          }, { default: () => '编辑' }),
           h(NPopconfirm, {
             onPositiveClick: () => deleteArticle(row),
           }, {
@@ -133,7 +153,7 @@ const getTableData = async () => {
   const pageSize = pagination.pageSize || 1;
   const res = await getArticleListAPI({ page, pageSize });
   if (res.data.code === statusCode.OK) {
-    if( res.data.data.list) {
+    if (res.data.data.list) {
       tableData.value = res.data.data.list;
     } else {
       tableData.value = [];
@@ -161,6 +181,7 @@ const pagination = reactive({
 });
 
 onBeforeMount(async () => {
+  await getPartition();
   await getTableData();
 })
 </script>

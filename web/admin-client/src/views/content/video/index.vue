@@ -28,11 +28,14 @@ import { statusCode } from '@/utils/status-code';
 import { getVideoListAPI, deleteVideoAPI } from '@/api/video';
 // import TableActionModal from './components/table-action-modal.vue';
 import type { DataTableColumns } from 'naive-ui';
-import { NCard, NImage, NIcon, NButton, NDataTable, NPopconfirm, NSpace, useMessage } from 'naive-ui';
 import { getResourceUrl } from '@/utils/resource';
+import usePartition from '@/hooks/partition-hooks';
+import { NCard, NImage, NIcon, NButton, NDataTable, NPopconfirm, NSpace, useMessage } from 'naive-ui';
 
 const { loading, startLoading, endLoading } = useLoading(false);
-// TODO: 展示分区
+const { getPartition, getPartitionName } = usePartition("video");
+
+// TODO: 编辑视频
 const message = useMessage();
 
 const visible = ref(false);
@@ -100,6 +103,14 @@ const columns: DataTableColumns<VideoType> = [
     key: 'tags',
     title: '标签',
     align: 'center',
+  },
+  {
+    key: 'partition',
+    title: '分区',
+    align: 'center',
+    render: row => {
+      return getPartitionName(row.partitionId)
+    }
   },
   {
     key: 'createdAt',
@@ -171,6 +182,7 @@ const pagination = reactive({
 });
 
 onBeforeMount(async () => {
+  await getPartition();
   await getTableData();
 })
 </script>

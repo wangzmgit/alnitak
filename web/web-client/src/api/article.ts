@@ -26,3 +26,8 @@ export const getArticleStatusAPI = (aid: number) => {
 export const getAllArticleAPI = () => {
   return request.get("v1/article/getAllArticleList");
 }
+
+// 获取文章信息
+export const asyncGetArticleInfoAPI = async (articleId: number | string) => {
+  return await useAsyncData(() => $fetch(`${baseURL}/api/v1/article/getArticleById?aid=${articleId}`));
+}

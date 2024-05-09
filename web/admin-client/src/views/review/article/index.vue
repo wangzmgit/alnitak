@@ -22,18 +22,20 @@
 
 <script setup lang="ts">
 import { h, onBeforeMount, reactive, ref } from 'vue';
+import { formatTime } from '@/utils/format';
 import { Refresh } from "@vicons/ionicons5";
 import useLoading from '@/hooks/loading-hooks';
 import { statusCode } from '@/utils/status-code';
 import { getReviewArticleListAPI } from '@/api/article';
 import type { DataTableColumns } from 'naive-ui';
 import { getResourceUrl } from '@/utils/resource';
+import usePartition from '@/hooks/partition-hooks';
 import TableActionDrawer from './components/table-action-drawer.vue';
 import { NCard, NImage, NIcon, NButton, NDataTable, NSpace, useMessage } from 'naive-ui';
-import { formatTime } from '@/utils/format';
 
 const { loading, startLoading, endLoading } = useLoading(false);
-// TODO: 展示分区
+const { getPartition, getPartitionName } = usePartition("article");
+
 const message = useMessage();
 
 const visibleDrawer = ref(false);
@@ -80,7 +82,10 @@ const columns: DataTableColumns<ArticleType> = [
   {
     key: 'partition',
     title: '分区',
-    align: 'center'
+    align: 'center',
+    render: row => {
+      return getPartitionName(row.partitionId)
+    }
   },
   {
     key: 'createdAt',
@@ -148,6 +153,7 @@ const pagination = reactive({
 });
 
 onBeforeMount(async () => {
+  await getPartition();
   await getTableData();
 })
 </script>

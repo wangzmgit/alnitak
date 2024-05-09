@@ -27,6 +27,8 @@ interface ArticleType {
   status: number;
   copyright: boolean;
   partitionId: number;
+  author: UserInfoType;
+  createdAt: string;
 }
 
 // 全部文章列表

@@ -23,7 +23,7 @@ import { ElIcon } from 'element-plus';
 import LikeIcon from "@/components/icons/LikeIcon.vue";
 import CollectIcon from "@/components/icons/CollectIcon.vue";
 import { getArchiveStatAPI } from "@/api/archive";
-import { getLikeStatusAPI, likeAPI, cancelLikeAPI } from "@/api/like";
+import { getLikeVideoStatusAPI, likeVideoAPI, cancelLikeVideoAPI } from "@/api/like";
 import { getCollectStatusAPI } from '@/api/collect';
 import CollectionList from './CollectionList.vue';
 
@@ -53,7 +53,7 @@ const getArchiveStat = async () => {
 
 // 获取是否点赞
 const getLikeStatus = async () => {
-  const res = await getLikeStatusAPI(props.vid);
+  const res = await getLikeVideoStatusAPI(props.vid);
   if (res.data.code === statusCode.OK) {
     archive.hasLike = res.data.data.like;
   }
@@ -72,11 +72,11 @@ const likeClick = async () => { // 点赞点赞按钮
   if (loading.value) return;
   if (!archive.hasLike) {
     //调用点赞接口
-    await likeAPI(props.vid);
+    await likeVideoAPI(props.vid);
     likeAnimation.value = 'like-active';
     stat.value.like++;
   } else {
-    await cancelLikeAPI(props.vid);
+    await cancelLikeVideoAPI(props.vid);
     stat.value.like--;
   }
 

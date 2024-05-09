@@ -4,7 +4,7 @@ interface VideoListParam {
 }
 
 // 视频信息
-interface VideoType  {
+interface VideoType {
   vid: number;
   title: string;
   cover: string;
@@ -13,6 +13,7 @@ interface VideoType  {
   tags: string;
   clicks: number;
   copyright: boolean;
+  partitionId: number;
   author: UserInfoType;
   resources: ResourceType[];
 }

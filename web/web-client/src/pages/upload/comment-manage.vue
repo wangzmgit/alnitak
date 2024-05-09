@@ -69,8 +69,8 @@ const tabChange = (val: string) => {
     noMore.value = false;
     loading.value = false;
     commentList.value = [];
-  commentType.value = val;
-  getReplyMsgList();
+    commentType.value = val;
+    getReplyMsgList();
   }
 }
 

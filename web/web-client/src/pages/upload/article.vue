@@ -159,6 +159,8 @@ const submitArticleInfo = async () => {
   const res = await submitFunc(articleForm);
   if (res.data.code === statusCode.OK) {
     ElMessage.success("提交成功");
+  } else {
+    ElMessage.error(res.data.msg || "提交失败");
   }
 }
 

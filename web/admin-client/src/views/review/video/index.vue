@@ -13,7 +13,8 @@
         </n-space>
         <n-data-table class="table" remote :columns="columns" :data="tableData" :loading="loading"
           :pagination="pagination" flex-height />
-        <table-action-drawer  v-model:visible="visibleDrawer" :data="detailsData!" @finish="reviewFinish"></table-action-drawer>
+        <table-action-drawer v-model:visible="visibleDrawer" :data="detailsData!"
+          @finish="reviewFinish"></table-action-drawer>
       </div>
     </n-card>
   </div>
@@ -27,11 +28,14 @@ import { statusCode } from '@/utils/status-code';
 import { getReviewListAPI } from '@/api/video';
 import type { DataTableColumns } from 'naive-ui';
 import { getResourceUrl } from '@/utils/resource';
+import usePartition from '@/hooks/partition-hooks';
 import TableActionDrawer from './components/table-action-drawer.vue';
 import { NCard, NImage, NIcon, NButton, NDataTable, NSpace, useMessage } from 'naive-ui';
 
 const { loading, startLoading, endLoading } = useLoading(false);
-// TODO: 展示分区
+const { getPartition, getPartitionName } = usePartition("video");
+
+
 const message = useMessage();
 
 const visibleDrawer = ref(false);
@@ -74,7 +78,10 @@ const columns: DataTableColumns<VideoType> = [
   {
     key: 'partition',
     title: '分区',
-    align: 'center'
+    align: 'center',
+    render: row => {
+      return getPartitionName(row.partitionId)
+    }
   },
   {
     key: 'desc',
@@ -95,7 +102,6 @@ const columns: DataTableColumns<VideoType> = [
           }, { default: () => '详情' }),
         ]
       })
-
     }
   }
 ]
@@ -139,6 +145,7 @@ const pagination = reactive({
 });
 
 onBeforeMount(async () => {
+  await getPartition();
   await getTableData();
 })
 </script>
