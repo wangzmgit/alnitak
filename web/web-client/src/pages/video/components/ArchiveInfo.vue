@@ -22,9 +22,9 @@ import { ref, onBeforeMount } from 'vue';
 import { ElIcon } from 'element-plus';
 import LikeIcon from "@/components/icons/LikeIcon.vue";
 import CollectIcon from "@/components/icons/CollectIcon.vue";
-import { getArchiveStatAPI } from "@/api/archive";
+import { getVideoArchiveStatAPI } from "@/api/archive";
 import { getLikeVideoStatusAPI, likeVideoAPI, cancelLikeVideoAPI } from "@/api/like";
-import { getCollectStatusAPI } from '@/api/collect';
+import { getCollectVideoStatusAPI } from '@/api/collect';
 import CollectionList from './CollectionList.vue';
 
 const props = defineProps<{
@@ -45,7 +45,7 @@ const archive = reactive({ // 是否点赞收藏
 
 //获取点赞收藏关注信息
 const getArchiveStat = async () => {
-  const res = await getArchiveStatAPI(props.vid);
+  const res = await getVideoArchiveStatAPI(props.vid);
   if (res.data.code === statusCode.OK) {
     stat.value = res.data.data.stat;
   }
@@ -61,7 +61,7 @@ const getLikeStatus = async () => {
 
 // 获取是否收藏
 const getCollectStatus = async () => {
-  const res = await getCollectStatusAPI(props.vid);
+  const res = await getCollectVideoStatusAPI(props.vid);
   if (res.data.code === statusCode.OK) {
     archive.hasCollect = res.data.data.collect;
   }

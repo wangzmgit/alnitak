@@ -12,16 +12,21 @@
               <p class="title">
                 <nuxt-link class="user-name" :to="`/user/${item.user.uid}`">{{ item.user.name }}</nuxt-link>
                 <span v-if="item.rootContent"> 回复了你的评论</span>
-                <span v-else> 对你的视频发表评论</span>
+                <span v-else> 对你的{{ item.type === 0 ? "视频" : "文章" }}发表评论</span>
               </p>
               <p class="content">{{ item.content }}</p>
               <p class="target-content" v-if="item.targetReplyContent">{{ item.targetReplyContent }}</p>
               <span class="msg-time"> {{ formatTime(item.createdAt) }}</span>
             </div>
             <div class="item-right">
-              <nuxt-link :to="`/video/${item.video.vid}`">
+              <nuxt-link v-if="item.type === 0" :to="`/video/${item.video.vid}`">
                 <div class="root-content" v-if="item.rootContent">{{ item.rootContent }}</div>
                 <el-image v-else class="img" :src="getResourceUrl(item.video.cover)" lazy alt="封面"></el-image>
+              </nuxt-link>
+              <nuxt-link v-else :to="`/article/${item.article.aid}`">
+                <el-image v-if="item.article.cover" class="img" :src="getResourceUrl(item.article.cover)" lazy
+                  alt="封面"></el-image>
+                <div class="root-content" v-else>{{ item.article.title }}</div>
               </nuxt-link>
             </div>
           </li>

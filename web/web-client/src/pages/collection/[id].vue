@@ -67,7 +67,7 @@ import HeaderBar from '@/components/header-bar/index.vue';
 import { getCollectionInfoAPI, getCollectVideoAPI } from '@/api/collection';
 import { MoreOne as MoreIcon } from '@icon-park/vue-next';
 import { getUserInfoAPI } from '@/api/user';
-import { collectAPI } from '@/api/collect';
+import { collectVideoAPI } from '@/api/collect';
 
 const route = useRoute();
 const collectionId = Number(route.params.id);
@@ -109,7 +109,7 @@ const pageChange = (target: number) => {
 
 //移除视频
 const removeVideo = async (vid: number) => {
-  const res = await collectAPI({ vid, addList: [], cancelList: [collectionId] });
+  const res = await collectVideoAPI({ vid, addList: [], cancelList: [collectionId] });
   if (res.data.code === statusCode.OK) {
     getCollectVideo();
   } else {

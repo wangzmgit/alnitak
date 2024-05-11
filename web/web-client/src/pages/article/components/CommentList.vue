@@ -1,5 +1,5 @@
 <template>
-  <div class="comment-navigation">
+  <div class="comment-navigation" id="comment-title">
     <ul class="nav-bar">
       <li class="nav-title">
         <span class="nav-title-text">评论</span>
@@ -103,6 +103,7 @@ import { formatRelativeTime } from "@/utils/format";
 import { asyncGetUserBaseInfoAPI } from "@/api/user";
 import CommonAvatar from "@/components/common-avatar/index.vue";
 import { addArticleCommentAPI, getArticleCommentAPI, getArticleReplyAPI, deleteArticleCommentAPI } from "@/api/comment";
+import { scrollToViewCenter } from "@/utils/scroll";
 
 const emit = defineEmits(["updateCount"])
 const props = defineProps<{
@@ -243,19 +244,6 @@ const addComment = async () => {
     ElMessage.error('发送失败');
     return 0;
   }
-}
-
-const scrollToViewCenter = (el: HTMLElement) => {
-  const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
-  const { top, height } = el.getBoundingClientRect();
-  // 元素的中心高度
-  const elCenter = top + height / 2;
-  // 窗口的中心高度
-  const center = window.innerHeight / 2;
-  window.scrollTo({
-    top: scrollTop - (center - elCenter),
-    behavior: 'smooth'
-  });
 }
 
 const deleteComment = async (index: number, comment: CommentType, reply?: ReplyType) => {

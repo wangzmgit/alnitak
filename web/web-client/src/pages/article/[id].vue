@@ -9,23 +9,13 @@
             <div class="article-read-info">
               <span class="publish-text">{{ articleInfo ? formatRelativeTime(articleInfo.createdAt) : '' }}</span>
               <span>{{ articleInfo?.clicks }}浏览</span> ·
-              <!-- <span>{{ likeCount }}喜欢</span> · -->
+              <span>{{ likeCount }}喜欢</span> ·
               <span>{{ commentCount }}评论</span>
             </div>
           </div>
         </div>
-        <div class="article-up-info">
-          <div class="up-left">
-            <div class="avatar-container">
-              <common-avatar :size="44"></common-avatar>
-            </div>
-            <div class="info-container">
-              <span class="up-name">{{ articleInfo?.author.name }}</span>
-              <span class="up-sign">{{ articleInfo?.author.sign }}</span>
-            </div>
-          </div>
-          <el-button class="follow-btn" type="primary" @click="followBtnClick">{{ btnText }}</el-button>
-        </div>
+        <!-- 作者信息 -->
+        <author-card v-if="articleInfo" :author="articleInfo.author"></author-card>
         <div class="title-line"></div>
         <el-skeleton v-if="loading" :rows="10" />
         <client-only>
@@ -37,6 +27,11 @@
       <div class="comment-list">
         <comment-list v-if="articleInfo" :aid="articleInfo.aid" @update-count="updateCommentCount"></comment-list>
       </div>
+      <!-- 点赞收藏信息 -->
+      <client-only>
+        <archive-info v-if="articleInfo" :aid="articleInfo.aid" @stat-change="statChange"
+          @scroll-to-comment="scrollToComment"></archive-info>
+      </client-only>
     </div>
   </div>
 </template>
@@ -47,11 +42,12 @@ import HeaderBar from "@/components/header-bar/index.vue";
 import { asyncGetArticleInfoAPI } from "@/api/article";
 import TextEditor from './components/TextEditor.vue';
 import "@/assets/styles/article-html.scss";
+import { scrollToViewCenter } from "@/utils/scroll";
 import DOMPurify from 'isomorphic-dompurify';
-import CommonAvatar from "@/components/common-avatar/index.vue";
 import CommentList from "./components/CommentList.vue";
-import { followAPI, getUserRelationAPI, unfollowAPI } from "@/api/relation";
-
+import AuthorCard from './components/AuthorCard.vue';
+import ArchiveInfo from './components/ArchiveInfo.vue';
+import { getArticleArchiveStatAPI } from "@/api/archive";
 
 const route = useRoute();
 const router = useRouter();
@@ -78,42 +74,32 @@ const updateCommentCount = (val: number) => {
   commentCount.value = val;
 }
 
-const relation = ref(relationCode.NOT_FOLLOWING);
-const getUserRelation = async () => {
-  if (articleInfo.value?.author.uid) {
-    const res = await getUserRelationAPI(articleInfo.value.author.uid);
-    if (res.data.code === statusCode.OK) {
-      relation.value = res.data.data.relation;
+//获取点赞收藏关注信息
+const getArchiveStat = async () => {
+  const res = await getArticleArchiveStatAPI(articleId);
+  if (res.data.code === statusCode.OK) {
+    if (res.data.data.stat) {
+      likeCount.value = res.data.data.stat.like;
     }
   }
 }
 
-const btnText = computed(() => {
-  switch (relation.value) {
-    case relationCode.FOLLOWED:
-      return "已关注";
-    case relationCode.NOT_FOLLOWING:
-      return "关注";
-    case relationCode.MUTUAL_FANS:
-      return "已互粉";
+const statChange = (type: string, val: number) => {
+  if (type === "like") {
+    likeCount.value += val;
   }
-})
+}
 
-const followBtnClick = async () => {
-  if (articleInfo.value?.author.uid) {
-    const reqFunc = relation.value === relationCode.NOT_FOLLOWING ? followAPI : unfollowAPI;
-    const res = await reqFunc(articleInfo.value.author.uid);
-    if (res.data.code === statusCode.OK) {
-      getUserRelation();
-    } else {
-      ElMessage.error(res.data.msg);
-    }
-  }
+const scrollToComment = () => {
+  const el = document.getElementById("comment-title");
+    if (el) scrollToViewCenter(el);
 }
 
 onBeforeMount(() => {
-  getUserRelation();
-  loading.value = false;
+  getArchiveStat();
+  nextTick(() => {
+    loading.value = false;
+  })
 })
 </script>
 
@@ -132,6 +118,8 @@ onBeforeMount(() => {
 }
 
 .article-container {
+  position: relative;
+
   width: 900px;
   margin: 0 auto;
 }
@@ -173,56 +161,6 @@ onBeforeMount(() => {
       }
     }
   }
-
-  .article-up-info {
-    display: flex;
-    align-items: center;
-    padding: 0 20px;
-    height: 44px;
-    justify-content: space-between;
-    margin: 0 auto 20px;
-
-    .up-left {
-      display: flex;
-      align-items: center;
-
-      .avatar-container {
-        flex-shrink: 0;
-        display: block;
-        position: relative;
-        width: 44px;
-        height: 44px;
-        margin-right: 12px;
-      }
-
-      .info-container {
-        .up-name {
-          font-size: 14px;
-          max-width: 150px;
-          color: #212121;
-          line-height: 23px;
-          height: 23px;
-          text-overflow: ellipsis;
-          overflow: hidden;
-          white-space: nowrap;
-          display: inline-block;
-          vertical-align: middle;
-        }
-
-        .up-sign {
-          display: block;
-          font-size: 13px;
-          color: #999;
-          line-height: 20px;
-        }
-      }
-    }
-
-    .follow-btn {
-      width: 128px;
-      height: 32px;
-    }
-  }
 }
 
 .title-line {
@@ -236,5 +174,11 @@ onBeforeMount(() => {
   margin-top: 20px;
   padding: 20px;
   background-color: #fff;
+}
+
+@media (max-width: 1400px) {
+  .article-container {
+    width: 700px;
+  }
 }
 </style>

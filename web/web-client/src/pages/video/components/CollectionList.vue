@@ -45,7 +45,7 @@
 import { onBeforeMount, nextTick, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Close as CloseIcon, Plus as PlusIcon } from '@icon-park/vue-next';
-import { getCollectInfoAPI, collectAPI } from "@/api/collect";
+import { getCollectVideoInfoAPI, collectVideoAPI } from "@/api/collect";
 import { addCollectionAPI, getCollectionListAPI } from '@/api/collection';
 
 
@@ -68,7 +68,7 @@ const getCollectionList = async () => {    //获取收藏夹列表
 
 const defaultChecked = ref<number[]>([]);// 默认选中
 const getCollectInfo = async () => {// 获取收藏信息
-  const res = await getCollectInfoAPI(props.vid);
+  const res = await getCollectVideoInfoAPI(props.vid);
   if (res.data.code === statusCode.OK) {
     if (res.data.data.collectionIds) {
       defaultChecked.value = res.data.data.collectionIds;
@@ -142,7 +142,7 @@ const submitCollect = async () => {
     return checkedValue.indexOf(v) == -1
   })
 
-  const res = await collectAPI({ vid: props.vid, addList, cancelList });
+  const res = await collectVideoAPI({ vid: props.vid, addList, cancelList });
   if (res.data.code === statusCode.OK) {
     var count = 0;
     //否则收藏量不变

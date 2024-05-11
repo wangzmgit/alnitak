@@ -16,8 +16,10 @@
               <span class="msg-time"> {{ formatTime(item.createdAt) }}</span>
             </div>
             <div class="item-right">
-              <nuxt-link class="user-name" :to="`/video/${item.video.vid}`">
-                <el-image class="img" :src="getResourceUrl(item.video.cover)" lazy alt="封面"></el-image>
+              <nuxt-link class="user-name" :to="getContentUrl(item)">
+                <el-image v-if="getCoverUrl(item)" class="img" :src="getResourceUrl(getCoverUrl(item))" lazy
+                  alt="封面"></el-image>
+                <div class="content-title" v-else>{{ getContentTitle(item) }}</div>
               </nuxt-link>
             </div>
           </li>
@@ -48,6 +50,30 @@ const getAtMsgList = async () => {
     total.value = res.data.data.total;
     atMessageList.value = res.data.data.messages;
   }
+}
+
+const getContentUrl = (msg: AtMessageType) => {
+  if (msg.type === 0) {
+    return `/video/${msg.video.vid}`;
+  }
+
+  return `/article/${msg.article.aid}`;
+}
+
+const getCoverUrl = (msg: AtMessageType) => {
+  if (msg.type === 0) {
+    return msg.video.cover;
+  }
+
+  return msg.article.cover;
+}
+
+const getContentTitle = (msg: AtMessageType) => {
+  if (msg.type === 0) {
+    return msg.video.title;
+  }
+
+  return msg.article.title;
 }
 
 onBeforeMount(() => {
@@ -141,6 +167,18 @@ onBeforeMount(() => {
         width: 100%;
         height: 100%;
         border-radius: 2px;
+      }
+
+      .content-title {
+        width: 90px;
+        font-size: 14px;
+        color: #999;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        word-break: break-word;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
       }
     }
   }
