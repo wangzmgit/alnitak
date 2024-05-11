@@ -15,7 +15,11 @@ func GetReplyMessage(ctx *gin.Context, page, pageSize int) (total int64, msg []v
 	global.Mysql.Model(&model.ReplyMessage{}).Where("uid = ? and sid != ?", userId, userId).Limit(pageSize).Offset((page - 1) * pageSize).Scan(&msg)
 	for i := 0; i < len(msg); i++ {
 		msg[i].User = GetUserInfo(msg[i].Sid)
-		msg[i].Video = GetVideoInfo(msg[i].Vid)
+		if msg[i].Type == global.CONTENT_TYPE_VIDEO {
+			msg[i].Video = GetVideoInfo(msg[i].Cid)
+		} else {
+			msg[i].Article = GetArticleInfo(msg[i].Cid)
+		}
 	}
 
 	return

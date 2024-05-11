@@ -42,8 +42,8 @@ func CancelLikeArticle(ctx *gin.Context) {
 }
 
 func HasLikeArticle(ctx *gin.Context) {
-	videoId := utils.StringToUint(ctx.Query("vid"))
-	like, err := service.HasLikeArticle(ctx, videoId)
+	articleId := utils.StringToUint(ctx.Query("aid"))
+	like, err := service.HasLikeArticle(ctx, articleId)
 	if err != nil {
 		resp.FailWithMessage(ctx, err.Error())
 		return

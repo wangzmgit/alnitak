@@ -41,7 +41,9 @@ func LikeVideo(ctx *gin.Context, likeReq dto.LikeVideoReq) error {
 
 	// 查询视频作者并添加点赞通知
 	video := GetVideoInfo(videoId)
-	InsertLikeMessage(userId, video.ID, video.Uid, global.CONTENT_TYPE_VIDEO)
+	if userId != video.Uid {
+		InsertLikeMessage(userId, video.ID, video.Uid, global.CONTENT_TYPE_VIDEO)
+	}
 
 	return nil
 }

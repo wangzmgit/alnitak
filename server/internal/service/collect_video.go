@@ -58,7 +58,7 @@ func HasCollect(ctx *gin.Context, videoId uint) (bool, error) {
 	collect, err := FindCollectByUid(videoId, userId)
 	if err != nil {
 		utils.ErrorLog("获取收藏信息失败", "collect", err.Error())
-		return false, errors.New("获取收藏信息失败")
+		return false, errors.New("获取失败")
 	}
 
 	return (collect.ID != 0), nil

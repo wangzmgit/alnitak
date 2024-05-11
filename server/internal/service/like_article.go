@@ -41,7 +41,9 @@ func LikeArticle(ctx *gin.Context, likeReq dto.LikeArticleReq) error {
 
 	// 查询视频作者并添加点赞通知
 	article := GetArticleInfo(articleId)
-	InsertLikeMessage(userId, article.ID, article.Uid, global.CONTENT_TYPE_ARTICLE)
+	if userId != article.Uid {
+		InsertLikeMessage(userId, article.ID, article.Uid, global.CONTENT_TYPE_ARTICLE)
+	}
 
 	return nil
 }
@@ -78,7 +80,7 @@ func HasLikeArticle(ctx *gin.Context, articleId uint) (bool, error) {
 	like, err := FindLikeArticleByUid(articleId, userId)
 	if err != nil {
 		utils.ErrorLog("获取点赞信息失败", "like", err.Error())
-		return false, errors.New("获取点赞信息失败")
+		return false, errors.New("获取失败")
 	}
 
 	return like.IsLike, nil
