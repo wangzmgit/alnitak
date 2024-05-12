@@ -14,9 +14,7 @@ import (
 
 // 审核通过(视频)
 func ReviewVideoApproved(ctx *gin.Context, reviewVideoReq dto.ReviewVideoReq) error {
-
 	tx := global.Mysql.Begin()
-
 	// 把所有待审核的资源改为审核通过
 	if err := tx.Model(&model.Resource{}).Where("vid = ?", reviewVideoReq.Vid).Updates(
 		map[string]interface{}{"status": global.AUDIT_APPROVED},
@@ -34,6 +32,19 @@ func ReviewVideoApproved(ctx *gin.Context, reviewVideoReq dto.ReviewVideoReq) er
 	if err := tx.Model(&model.Video{}).Where("id = ?", reviewVideoReq.Vid).Updates(map[string]interface{}{
 		"status":   global.AUDIT_APPROVED,
 		"duration": duration,
+	}).Error; err != nil {
+		tx.Rollback()
+		utils.ErrorLog("更新视频状态失败", "review", err.Error())
+		return errors.New("更新状态失败")
+	}
+
+	// 添加审核记录
+	if err := tx.Create(&model.Review{
+		Cid:    reviewVideoReq.Vid,
+		Status: global.AUDIT_APPROVED,
+		Remark: "",
+		Uid:    ctx.GetUint("userId"),
+		Type:   global.CONTENT_TYPE_VIDEO,
 	}).Error; err != nil {
 		tx.Rollback()
 		utils.ErrorLog("更新视频状态失败", "review", err.Error())
@@ -66,6 +77,7 @@ func ReviewVideoFailed(ctx *gin.Context, reviewVideoReq dto.ReviewVideoReq) erro
 		Cid:    reviewVideoReq.Vid,
 		Status: reviewVideoReq.Status,
 		Remark: reviewVideoReq.Remark,
+		Uid:    ctx.GetUint("userId"),
 		Type:   global.CONTENT_TYPE_VIDEO,
 	}).Error; err != nil {
 		tx.Rollback()
@@ -94,14 +106,31 @@ func GetVideoReviewRecord(ctx *gin.Context, videoId uint) (vo.ReviewResp, error)
 
 // 审核通过(文章)
 func ReviewArticleApproved(ctx *gin.Context, reviewArticleReq dto.ReviewArticleReq) error {
+	tx := global.Mysql.Begin()
+
 	// 更新文章状态为审核通过
-	if err := global.Mysql.Model(&model.Article{}).Where("id = ?", reviewArticleReq.Aid).Updates(
+	if err := tx.Model(&model.Article{}).Where("id = ?", reviewArticleReq.Aid).Updates(
 		map[string]interface{}{"status": global.AUDIT_APPROVED},
 	).Error; err != nil {
+		tx.Rollback()
 		utils.ErrorLog("更新文章状态失败", "review", err.Error())
 		return errors.New("更新状态失败")
 	}
 
+	// 添加审核记录
+	if err := tx.Create(&model.Review{
+		Cid:    reviewArticleReq.Aid,
+		Status: global.AUDIT_APPROVED,
+		Remark: "",
+		Uid:    ctx.GetUint("userId"),
+		Type:   global.CONTENT_TYPE_ARTICLE,
+	}).Error; err != nil {
+		tx.Rollback()
+		utils.ErrorLog("更新视频状态失败", "review", err.Error())
+		return errors.New("更新状态失败")
+	}
+
+	tx.Commit()
 	return nil
 }
 
@@ -122,6 +151,7 @@ func ReviewArticleFailed(ctx *gin.Context, reviewArticleReq dto.ReviewArticleReq
 		Cid:    reviewArticleReq.Aid,
 		Status: reviewArticleReq.Status,
 		Remark: reviewArticleReq.Remark,
+		Uid:    ctx.GetUint("userId"),
 		Type:   global.CONTENT_TYPE_ARTICLE,
 	}).Error; err != nil {
 		tx.Rollback()
