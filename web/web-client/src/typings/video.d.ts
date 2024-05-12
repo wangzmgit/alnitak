@@ -46,6 +46,7 @@ interface VideoType extends BaseVideoType {
   clicks: number;
   status: number;
   copyright: boolean;
+  duration: number;
   author: UserInfoType;
   resources: ResourceType[];
 }

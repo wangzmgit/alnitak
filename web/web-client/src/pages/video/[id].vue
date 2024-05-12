@@ -54,6 +54,8 @@
           <div v-if="videoInfo && videoInfo.resources.length > 1">
             <part-list :resources="videoInfo.resources" :active="currentPart" @change="changePart"></part-list>
           </div>
+          <!-- 相关推荐 -->
+          <recommend-list v-if="videoInfo" :vid="videoInfo.vid"></recommend-list>
         </div>
       </div>
     </div>
@@ -71,6 +73,7 @@ import ArchiveInfo from './components/ArchiveInfo.vue';
 import CommentList from "./components/CommentList.vue";
 import HeaderBar from "@/components/header-bar/index.vue";
 import VideoPlayer from "@/components/video-player/index.vue";
+import RecommendList  from "./components/RecommendList.vue";
 import { asyncGetVideoInfoAPI } from "@/api/video";
 
 const route = useRoute();

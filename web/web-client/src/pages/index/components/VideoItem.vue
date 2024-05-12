@@ -1,17 +1,18 @@
 <template>
   <div class="video-item">
-    <div class="img">
+    <nuxt-link class="img" :to="`/video/${info.vid}`">
       <img :src="getResourceUrl(info.cover)" alt="封面" />
-    </div>
+      <span class="duration">{{ toDuration(info.duration) }}</span>
+    </nuxt-link>
     <div class="video-info">
-      <span v-if="!props.keywords" class="title">{{ info.title }}</span>
-      <span v-else class="title">{{ info.title }}</span>
+      <nuxt-link v-if="!props.keywords" class="title" :to="`/video/${info.vid}`">{{ info.title }}</nuxt-link>
+      <nuxt-link v-else class="title" :to="`/video/${info.vid}`">{{ info.title }}</nuxt-link>
       <div class="author">
         <div class="avatar">
           <common-avatar :url="info.author.avatar" :size="26" :iconsize="16"></common-avatar>
         </div>
         <div class="name-date">
-          <span class="name">{{ info.author.name }}</span>
+          <nuxt-link class="name" :to="`/user/${info.author.uid}`">{{ info.author.name }}</nuxt-link>
         </div>
       </div>
     </div>
@@ -19,23 +20,12 @@
 </template>
 
 <script setup lang="ts">
+import { toDuration } from "@/utils/format";
+
 const props = defineProps<{
   info: VideoType,
   keywords?: string,
 }>()
-
-const router = useRouter();
-
-const goUser = (uid: number) => {
-  // let videoUrl = router.resolve({ name: "User", params: { uid: uid } });
-  // window.open(videoUrl.href, '_blank');
-}
-
-//前往视频详情
-const goVideo = (vid: number) => {
-  // let videoUrl = router.resolve({ name: "Video", params: { vid: vid } });
-  // window.open(videoUrl.href, '_blank');
-}
 </script>
 
 <style lang="scss" scoped>
@@ -44,15 +34,32 @@ const goVideo = (vid: number) => {
   height: 260px;
 
   .img {
+    position: relative;
+    display: block;
     width: 100%;
     height: 160px;
     border-radius: 10px;
     overflow: hidden;
+    cursor: pointer;
     background-color: rgba(0, 0, 0, .2);
 
     img {
       width: 100%;
       height: 100%;
+    }
+    .duration {
+      position: absolute;
+      bottom: 10px;
+      right: 12px;
+      color: #fff;
+      height: 20px;
+      line-height: 20px;
+      transition: opacity 0.3s;
+      z-index: 5;
+      font-size: 13px;
+      background-color: rgba(0, 0, 0, 0.4);
+      border-radius: 2px;
+      padding: 0 4px;
     }
   }
 
@@ -96,7 +103,7 @@ const goVideo = (vid: number) => {
         margin-left: 10px;
 
         .name {
-          cursor: pointer;
+          color: #9499a0;
 
           &:hover {
             color: var(--primary-color);

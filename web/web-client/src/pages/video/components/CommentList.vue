@@ -10,7 +10,7 @@
   <!-- 评论输入框 -->
   <div class="comment-box">
     <common-avatar class="avatar" :url="userInfo?.avatar" :size="40"></common-avatar>
-    <el-input class="comment-input" v-model="commentForm.content" resize="none" :rows="3" type="textarea"
+    <el-input class="comment-input" v-model="commentContent" resize="none" :rows="3" type="textarea"
       placeholder="善语结善缘，恶言伤人心" />
     <button class="comment-submit" @click="submitComment">发表评论</button>
   </div>
@@ -103,6 +103,7 @@ import { formatRelativeTime } from "@/utils/format";
 import { asyncGetUserBaseInfoAPI } from "@/api/user";
 import CommonAvatar from "@/components/common-avatar/index.vue";
 import { addVideoCommentAPI, getVideoCommentAPI, getVideoReplyAPI, deleteVideoCommentAPI } from "@/api/comment";
+import { scrollToViewCenter } from "@/utils/scroll";
 
 const props = defineProps<{
   vid: number
@@ -152,6 +153,7 @@ const replyPageChange = (comment: CommentType, page: number) => {
   getReplyList(comment)
 }
 
+const commentContent = ref("");
 const commentForm = reactive<AddCommentType>({
   cid: props.vid,
   content: "",
@@ -164,6 +166,7 @@ const commentForm = reactive<AddCommentType>({
 
 const submitComment = async () => {
   commentForm.parentId = 0;
+  commentForm.content = commentContent.value;
   const comment = await addComment();
   if (comment) {
     // 关闭所有回复框
@@ -236,24 +239,13 @@ const addComment = async () => {
   if (res.data.code === statusCode.OK) {
     const comment = res.data.data.comment;
     comment.author = userInfo.value;
+    commentForm.content = "";
+    commentContent.value = "";
     return comment;
   } else {
     ElMessage.error('发送失败');
     return 0;
   }
-}
-
-const scrollToViewCenter = (el: HTMLElement) => {
-  const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
-  const { top, height } = el.getBoundingClientRect();
-  // 元素的中心高度
-  const elCenter = top + height / 2;
-  // 窗口的中心高度
-  const center = window.innerHeight / 2;
-  window.scrollTo({
-    top: scrollTop - (center - elCenter),
-    behavior: 'smooth'
-  });
 }
 
 const deleteComment = async (index: number, comment: CommentType, reply?: ReplyType) => {

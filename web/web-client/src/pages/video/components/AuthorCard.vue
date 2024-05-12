@@ -3,7 +3,9 @@
     <div class="up-info-container">
       <div class="up-info-left">
         <div class="up-avatar-wrap">
-          <div class="up-avatar"></div>
+          <div class="up-avatar">
+            <common-avatar :size="48" :url="props.info.avatar"></common-avatar>
+          </div>
         </div>
       </div>
       <div class="up-info-right">

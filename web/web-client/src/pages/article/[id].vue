@@ -28,10 +28,8 @@
         <comment-list v-if="articleInfo" :aid="articleInfo.aid" @update-count="updateCommentCount"></comment-list>
       </div>
       <!-- 点赞收藏信息 -->
-      <client-only>
-        <archive-info v-if="articleInfo" :aid="articleInfo.aid" @stat-change="statChange"
-          @scroll-to-comment="scrollToComment"></archive-info>
-      </client-only>
+      <archive-info v-if="articleInfo" :aid="articleInfo.aid" @stat-change="statChange"
+        @scroll-to-comment="scrollToComment"></archive-info>
     </div>
   </div>
 </template>
@@ -92,7 +90,7 @@ const statChange = (type: string, val: number) => {
 
 const scrollToComment = () => {
   const el = document.getElementById("comment-title");
-    if (el) scrollToViewCenter(el);
+  if (el) scrollToViewCenter(el);
 }
 
 onBeforeMount(() => {

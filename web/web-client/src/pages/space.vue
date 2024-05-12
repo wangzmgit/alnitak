@@ -58,12 +58,10 @@ import HeaderBar from '@/components/header-bar/index.vue';
 import CommonAvatar from '@/components/common-avatar/index.vue';
 import { useVideoCountStore } from "@/composables/video-count-store";
 import { getUserInfoAPI, asyncGetUserBaseInfoAPI } from '@/api/user';
-import {
-  Male, Female, VideoTwo, FolderFocus, Upload as UploadIcon,
-  History as HistoryIcon, Message as MessageIcon, Config
-} from '@icon-park/vue-next';
 import type { RouteRecordName } from 'vue-router';
-import { getFollowDataAPI } from '~/api/relation';
+import { getFollowDataAPI } from '@/api/relation';
+import UploadIcon from "@/components/icons/UploadIcon.vue";
+import { Male, Female, VideoTwo, FolderFocus, History as HistoryIcon, Message as MessageIcon, Config } from '@icon-park/vue-next';
 
 definePageMeta({
   middleware: ['auth', (to) => {

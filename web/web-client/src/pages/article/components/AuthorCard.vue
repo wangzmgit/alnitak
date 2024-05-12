@@ -2,7 +2,7 @@
   <div class="article-up-info">
     <div class="up-left">
       <div class="avatar-container">
-        <common-avatar :size="44"></common-avatar>
+        <common-avatar :size="44" :url="author.avatar"></common-avatar>
       </div>
       <div class="info-container">
         <span class="up-name">{{ author.name }}</span>

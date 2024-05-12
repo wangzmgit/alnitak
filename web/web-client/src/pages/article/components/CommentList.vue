@@ -10,7 +10,7 @@
   <!-- 评论输入框 -->
   <div class="comment-box">
     <common-avatar class="avatar" :url="userInfo?.avatar" :size="40"></common-avatar>
-    <el-input class="comment-input" v-model="commentForm.content" resize="none" :rows="3" type="textarea"
+    <el-input class="comment-input" v-model="commentContent" resize="none" :rows="3" type="textarea"
       placeholder="善语结善缘，恶言伤人心" />
     <button class="comment-submit" @click="submitComment">发表评论</button>
   </div>
@@ -155,6 +155,7 @@ const replyPageChange = (comment: CommentType, page: number) => {
   getReplyList(comment)
 }
 
+const commentContent = ref("");
 const commentForm = reactive<AddCommentType>({
   cid: props.aid,
   content: "",
@@ -167,6 +168,7 @@ const commentForm = reactive<AddCommentType>({
 
 const submitComment = async () => {
   commentForm.parentId = 0;
+  commentForm.content = commentContent.value;
   const comment = await addComment();
   if (comment) {
     // 关闭所有回复框
@@ -239,6 +241,8 @@ const addComment = async () => {
   if (res.data.code === statusCode.OK) {
     const comment = res.data.data.comment;
     comment.author = userInfo.value;
+    commentForm.content = "";
+    commentContent.value = "";
     return comment;
   } else {
     ElMessage.error('发送失败');
