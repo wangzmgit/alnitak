@@ -3,24 +3,25 @@ package vo
 import "time"
 
 const (
-	VIDEO_FIELD        = "`id`,`uid`,`title`,`cover`,`desc`,`created_at`,`copyright`,`tags`,`clicks`,`duration`"
+	VIDEO_FIELD        = "`id`,`uid`,`title`,`cover`,`desc`,`created_at`,`copyright`,`tags`,`clicks`,`duration`,`partition_id`"
 	VIDEO_STATUS_FIELD = "`id`,`title`,`cover`,`desc`,`copyright`,`status`,`partition_id`,`tags`,`clicks`,`duration`"
 	UPLOAD_VIDEO_FIELD = "`id`,`title`,`cover`,`desc`,`copyright`,`status`,`created_at`,`clicks`,`duration`"
 )
 
 type VideoResp struct {
-	ID        uint           `json:"vid"`
-	Uid       uint           `json:"uid"`
-	Title     string         `json:"title"`
-	Cover     string         `json:"cover"`
-	Desc      string         `json:"desc"`
-	CreatedAt time.Time      `json:"createdAt"`
-	Copyright bool           `json:"copyright"`
-	Tags      string         `json:"tags"`
-	Duration  float64        `json:"duration"`
-	Clicks    int64          `json:"clicks"`
-	Author    UserInfoResp   `json:"author" gorm:"-"`
-	Resources []ResourceResp `json:"resources" gorm:"-"`
+	ID          uint           `json:"vid"`
+	Uid         uint           `json:"uid"`
+	Title       string         `json:"title"`
+	Cover       string         `json:"cover"`
+	Desc        string         `json:"desc"`
+	CreatedAt   time.Time      `json:"createdAt"`
+	Copyright   bool           `json:"copyright"`
+	Tags        string         `json:"tags"`
+	Duration    float64        `json:"duration"`
+	Clicks      int64          `json:"clicks"`
+	PartitionId uint           `json:"partitionId"`
+	Author      UserInfoResp   `json:"author" gorm:"-"`
+	Resources   []ResourceResp `json:"resources" gorm:"-"`
 }
 
 type VideoStatusResp struct {

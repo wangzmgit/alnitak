@@ -25,6 +25,18 @@ type CommentResp struct {
 	ReplyCount  int64        `json:"replyCount"`
 }
 
+type AddCommentResp struct {
+	ID            uint      `json:"id"`
+	CreatedAt     time.Time `json:"createdAt"`
+	Uid           uint      `json:"uid"`
+	Content       string    `json:"content"`
+	AtUsernames   string    `json:"atUsernames"`
+	AtUserIds     string    `json:"atUserIds"`
+	ParentId      uint      `json:"parentId"`
+	ReplyUserID   uint      `json:"replyUserId"`
+	ReplyUserName string    `json:"replyUserName"`
+}
+
 type ReplyResp struct {
 	ID            uint         `json:"id"`
 	CreatedAt     time.Time    `json:"createdAt"`
@@ -54,14 +66,16 @@ type CommentListResp struct {
 	Article            ArticleResp  `json:"article" gorm:"-"`
 }
 
-func CommentToCommentResp(comment model.Comment) CommentResp {
-	return CommentResp{
-		ID:          comment.ID,
-		CreatedAt:   comment.CreatedAt,
-		Uid:         comment.Uid,
-		Content:     comment.Content,
-		AtUsernames: comment.AtUsernames,
-		AtUserIds:   comment.AtUserIds,
-		ParentId:    comment.ParentId,
+func CommentToCommentResp(comment model.Comment) AddCommentResp {
+	return AddCommentResp{
+		ID:            comment.ID,
+		CreatedAt:     comment.CreatedAt,
+		Uid:           comment.Uid,
+		Content:       comment.Content,
+		AtUsernames:   comment.AtUsernames,
+		AtUserIds:     comment.AtUserIds,
+		ParentId:      comment.ParentId,
+		ReplyUserID:   comment.ReplyUserID,
+		ReplyUserName: comment.ReplyUserName,
 	}
 }

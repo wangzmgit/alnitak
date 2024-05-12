@@ -12,7 +12,7 @@ import (
 	"interastral-peace.com/alnitak/utils"
 )
 
-func AddVideoComment(ctx *gin.Context, addCommentReq dto.AddCommentReq) (vo.CommentResp, error) {
+func AddVideoComment(ctx *gin.Context, addCommentReq dto.AddCommentReq) (vo.AddCommentResp, error) {
 	userId := ctx.GetUint("userId")
 
 	// 处理@的用户
@@ -32,7 +32,7 @@ func AddVideoComment(ctx *gin.Context, addCommentReq dto.AddCommentReq) (vo.Comm
 	}
 	if err := global.Mysql.Create(&comment).Error; err != nil {
 		utils.ErrorLog("创建评论失败", "comment", err.Error())
-		return vo.CommentResp{}, errors.New("评论失败")
+		return vo.AddCommentResp{}, errors.New("评论失败")
 	}
 
 	// 发送回复通知

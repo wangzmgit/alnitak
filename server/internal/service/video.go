@@ -269,6 +269,61 @@ func GetVideoListByPartition(ctx *gin.Context, size int, partitionId uint) []vo.
 	return videos
 }
 
+// 获取相关推荐视频
+func GetRelatedVideoList(ctx *gin.Context, videoId uint) []vo.VideoResp {
+	video := GetVideoInfo(videoId)
+
+	var videoIds []uint
+	// 查询同作者的2个视频
+	var authorVideoIds []uint
+	global.Mysql.Model(&model.Video{}).
+		Where("uid = ? and id != ? and `status` = ?", video.Uid, videoId, global.AUDIT_APPROVED).
+		Limit(2).Pluck("id", &authorVideoIds)
+	videoIds = append(videoIds, authorVideoIds...)
+
+	// 查询同分区的7个视频（防止视频与同作者视频相同或者与当前视频相同）
+	for _, v := range cache.GetVideoIdByPartition(video.PartitionId, 7) {
+		id := utils.StringToUint(v)
+		if id != videoId && !utils.IsUintInSlice(authorVideoIds, id) {
+			videoIds = append(videoIds, id)
+		}
+	}
+
+	len := len(videoIds)
+	videos := make([]vo.VideoResp, len)
+	for i := 0; i < len; i++ {
+		videos[i] = GetVideoInfo(videoIds[i])
+		// 同步播放量
+		videos[i].Clicks += GetVideoClicks(videoIds[i])
+	}
+
+	return videos
+}
+
+// 获取相关推荐视频
+func SearchVideo(ctx *gin.Context, searchVideoReq dto.SearchVideoReq) []vo.VideoResp {
+	var videoIds []uint
+	if len(searchVideoReq.KeyWords) == 0 {
+		global.Mysql.Model(&model.Video{}).Where("`status` = ?", global.AUDIT_APPROVED).
+			Limit(searchVideoReq.PageSize).Offset((searchVideoReq.Page-1)*searchVideoReq.PageSize).Pluck("id", &videoIds)
+	} else {
+		// 直接用mysql模糊查询，之后可能会更换为es
+		keywords := "%" + searchVideoReq.KeyWords + "%"
+		global.Mysql.Where("`status` = ? and (title like ? or tags like ?)", global.AUDIT_APPROVED, keywords, keywords).
+			Limit(searchVideoReq.PageSize).Offset((searchVideoReq.Page-1)*searchVideoReq.PageSize).Pluck("id", &videoIds)
+	}
+
+	len := len(videoIds)
+	videos := make([]vo.VideoResp, len)
+	for i := 0; i < len; i++ {
+		videos[i] = GetVideoInfo(videoIds[i])
+		// 同步播放量
+		videos[i].Clicks += GetVideoClicks(videoIds[i])
+	}
+
+	return videos
+}
+
 func CreateVideo(video *model.Video) (uint, error) {
 	if err := global.Mysql.Create(video).Error; err != nil {
 		utils.ErrorLog("创建视频失败", "video", err.Error())

@@ -232,3 +232,28 @@ func GetVideoListByPartition(ctx *gin.Context) {
 	// 返回给前端
 	resp.OkWithData(ctx, gin.H{"videos": videos})
 }
+
+// 获取相关推荐视频
+func GetRelatedVideoList(ctx *gin.Context) {
+	videoId := utils.StringToUint(ctx.Query("vid"))
+
+	videos := service.GetRelatedVideoList(ctx, videoId)
+
+	// 返回给前端
+	resp.OkWithData(ctx, gin.H{"videos": videos})
+}
+
+// 搜索视频
+func SearchVideo(ctx *gin.Context) {
+	// 获取参数
+	var searchVideoReq dto.SearchVideoReq
+	if err := ctx.Bind(&searchVideoReq); err != nil {
+		resp.FailWithMessage(ctx, "请求参数有误")
+		return
+	}
+
+	videos := service.SearchVideo(ctx, searchVideoReq)
+
+	// 返回给前端
+	resp.OkWithData(ctx, gin.H{"videos": videos})
+}

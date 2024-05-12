@@ -27,3 +27,11 @@ type EditVideoReq struct {
 	Desc  string
 	Tags  string
 }
+
+type SearchVideoReq struct {
+	Page     int
+	PageSize int
+	KeyWords string
+	// PartitionId uint
+	// Tag         string
+}
