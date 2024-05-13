@@ -309,7 +309,7 @@ func SearchVideo(ctx *gin.Context, searchVideoReq dto.SearchVideoReq) []vo.Video
 	} else {
 		// 直接用mysql模糊查询，之后可能会更换为es
 		keywords := "%" + searchVideoReq.KeyWords + "%"
-		global.Mysql.Where("`status` = ? and (title like ? or tags like ?)", global.AUDIT_APPROVED, keywords, keywords).
+		global.Mysql.Model(&model.Video{}).Where("`status` = ? and (title like ? or tags like ?)", global.AUDIT_APPROVED, keywords, keywords).
 			Limit(searchVideoReq.PageSize).Offset((searchVideoReq.Page-1)*searchVideoReq.PageSize).Pluck("id", &videoIds)
 	}
 
