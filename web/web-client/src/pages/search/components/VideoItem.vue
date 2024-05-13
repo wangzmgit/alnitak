@@ -5,7 +5,9 @@
       <span class="duration">{{ toDuration(info.duration) }}</span>
     </nuxt-link>
     <div class="video-info">
-      <nuxt-link class="title" :to="`/video/${info.vid}`">{{ info.title }}</nuxt-link>
+      <nuxt-link v-if="!props.keywords" class="title" :to="`/video/${info.vid}`"
+        v-html="keyHighlight(info.title)"></nuxt-link>
+      <nuxt-link v-else class="title" :to="`/video/${info.vid}`">{{ info.title }}</nuxt-link>
       <div class="author">
         <div class="avatar">
           <common-avatar :url="info.author.avatar" :size="26" :iconsize="16"></common-avatar>
@@ -20,10 +22,40 @@
 
 <script setup lang="ts">
 import { toDuration } from "@/utils/format";
+import DOMPurify from 'isomorphic-dompurify';
 
 const props = defineProps<{
-  info: VideoType;
+  info: VideoType,
+  keywords?: string,
 }>()
+
+//关键词高亮
+const keyHighlight = (title: string) => {
+  let res = '';
+  let indexArr: Array<number> = []; // 需要标红的字的下标数组
+  const keywordsArray = props.keywords!.split(" ");
+  const getReplaceStr = (str: string) => `<font color="var(--primary-color)">${str}</font>`;
+  keywordsArray.forEach((keyword) => {
+    let filterStr = title;
+    let stopFlag = false;
+    while (!stopFlag && filterStr && keyword) {
+      const index = filterStr.indexOf(keyword); // 返回匹配的第一个字符的下标
+      if (index === -1) stopFlag = true;
+      else {
+        keyword.split("").forEach((s, i) => {
+          indexArr.push(index + Number(i));
+        });
+        filterStr = `${filterStr.substring(0, index)} ${filterStr.substring(index + 1)}`;
+      }
+    }
+  });
+  indexArr = Array.from(new Set(indexArr)); // 去重
+  title.split("").forEach((char, charIndex) => {
+    res += indexArr.includes(charIndex) ? getReplaceStr(char) : char;
+  });
+
+  return DOMPurify.sanitize(res);
+}
 </script>
 
 <style lang="scss" scoped>

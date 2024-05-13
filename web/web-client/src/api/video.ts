@@ -85,3 +85,8 @@ export const getVideoByPartitionAPI = (size: number, partitionId: number | strin
 export const asyncGetRelatedVideoList = async (videoId: number) => {
   return await useAsyncData(() => $fetch(`${baseURL}/api/v1/video/getRelatedVideoList?vid=${videoId}`));
 }
+
+// 搜索视频
+export const searchVideoAPI = (data: SearchVideoType) => {
+  return request.post("v1/video/searchVideo", data);
+}

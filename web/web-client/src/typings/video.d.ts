@@ -52,7 +52,14 @@ interface VideoType extends BaseVideoType {
 }
 
 // 全部视频列表
-interface AllVideoType  {
+interface AllVideoType {
   vid: number;
   title: string;
+}
+
+// 搜索视频
+interface SearchVideoType {
+  page: number;
+  pageSize: number;
+  keywords: string;
 }

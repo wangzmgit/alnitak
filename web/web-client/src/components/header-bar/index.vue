@@ -84,7 +84,7 @@ import CommonAvatar from '@/components/common-avatar/index.vue';
 
 
 const route = useRoute();
-const isSearchPage = ref(route.name !== 'search');
+const isSearchPage = ref(route.name !== 'search-keywords');
 
 const keywords = ref('');
 const handelSearch = () => {
