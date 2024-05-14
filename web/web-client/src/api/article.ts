@@ -31,3 +31,13 @@ export const getAllArticleAPI = () => {
 export const asyncGetArticleInfoAPI = async (articleId: number | string) => {
   return await useAsyncData(() => $fetch(`${baseURL}/api/v1/article/getArticleById?aid=${articleId}`));
 }
+
+// 获取随机文章
+export const asyncGetRandomArticleAPI = async (size: number) => {
+  return await useAsyncData(() => $fetch(`${baseURL}/api/v1/article/getRandomArticleList?size=${size}`));
+}
+
+// 获取随机文章
+export const getRandomArticleAPI = async (size: number) => {
+  return request.get(`v1/article/getRandomArticleList?size=${size}`);
+}

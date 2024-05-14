@@ -4,7 +4,7 @@
     <div class="article-box">
       <el-scrollbar>
         <ul class="article-list" v-infinite-scroll="scrollLoad">
-          <li class="article-item" v-for="(item, index) in videoList" :key="index">
+          <li class="article-item" v-for="(item, index) in articleList" :key="index">
             <div class="content-wrapper">
               <div class="content-main">
                 <div class="title-row">{{ item.title }}</div>
@@ -62,7 +62,7 @@ const total = ref(0);
 const pageSize = 8;
 const noMore = ref(false);
 const loading = ref(false);
-const videoList = ref<Array<ArticleType>>([]);
+const articleList = ref<ArticleType[]>([]);
 const getUploadArticle = async () => {
   if (loading.value || noMore.value) return;
   loading.value = true;
@@ -70,7 +70,7 @@ const getUploadArticle = async () => {
   if (res.data.code === statusCode.OK) {
     total.value = res.data.data.total;
     if (res.data.data.articles) {
-      videoList.value = videoList.value.concat(res.data.data.articles);
+      articleList.value = articleList.value.concat(res.data.data.articles);
     } else {
       noMore.value = true;
     }

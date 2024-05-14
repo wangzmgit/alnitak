@@ -9,7 +9,7 @@
             </el-icon>
             <span class="menu-text">首页</span>
           </nuxt-link>
-          <nuxt-link class="menu-item menu-item-with-icon" to="/space/history">
+          <nuxt-link class="menu-item menu-item-with-icon" to="/article/list">
             <el-icon class="menu-item-icon" size="20">
               <article-icon></article-icon>
             </el-icon>
@@ -94,6 +94,7 @@ if ((data.value as any).code === statusCode.OK) {
   width: 220px;
   white-space: nowrap;
   overflow-x: hidden;
+  background-color: #fff;
 
   .scrollbar {
     width: 220px;

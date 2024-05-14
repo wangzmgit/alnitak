@@ -21,10 +21,10 @@
 
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount, ref } from 'vue';
-import VideoItem from './index/components/VideoItem.vue';
-import HomeSidebar from './index/components/HomeSidebar.vue';
-import HomeHeader from "./index/components/HomeHeader.vue";
-import HomeCarousel from './index/components/HomeCarousel.vue';
+import VideoItem from '@/components/home-video-item/index.vue';
+import HomeSidebar from '@/components/home-sidebar/index.vue';
+import HomeHeader from "@/components/home-header/index.vue";
+import HomeCarousel from '@/components/alnitak-carousel/index.vue';
 import { asyncGetHotVideoAPI, getHotVideoAPI } from "@/api/video";
 
 const menuFold = ref(false);
