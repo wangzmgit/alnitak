@@ -64,6 +64,9 @@ func EditArticleInfo(ctx *gin.Context, editArticleReq dto.EditArticleReq) error 
 		return errors.New("修改失败")
 	}
 
+	// 删除缓存中的视频ID信息
+	cache.DelArticleId(editArticleReq.Aid)
+
 	return nil
 }
 
@@ -121,6 +124,9 @@ func DeleteArticle(ctx *gin.Context, id uint) error {
 		return errors.New("删除失败")
 	}
 
+	// 删除缓存中的视频ID信息
+	cache.DelArticleId(article.ID)
+
 	return nil
 }
 
@@ -148,6 +154,25 @@ func GetArticleByUser(ctx *gin.Context, userId uint, page, pageSize int) (total 
 	return
 }
 
+// 获取随机文章
+func GetRandomArticleList(ctx *gin.Context, size int) []vo.ArticleResp {
+	articleIds := cache.GetRandomArticleIds(int64(size))
+
+	len := len(articleIds)
+	articles := make([]vo.ArticleResp, len)
+	for i := 0; i < len; i++ {
+		id := utils.StringToUint(articleIds[i])
+		if id == 0 {
+			continue
+		}
+		articles[i] = GetArticleItemInfo(id)
+		// 同步播放量
+		articles[i].Clicks += GetVideoClicks(id)
+	}
+
+	return articles
+}
+
 // 获取待审核文章列表
 func GetReviewArticleList(reviewListReq dto.ReviewArticleListReq) (total int64, articles []vo.ReviewArticleListResp) {
 	global.Mysql.Model(&model.Article{}).Where("status = ?", global.WAITING_REVIEW).Count(&total)
@@ -164,8 +189,22 @@ func GetReviewArticleList(reviewListReq dto.ReviewArticleListReq) (total int64, 
 
 // 获取文章信息
 func GetArticleInfo(articleId uint) (article vo.ArticleResp) {
-
 	global.Mysql.Model(&model.Article{}).Select(vo.ARTICLE_FIELD).
+		Where("id = ? and status = ?", articleId, global.AUDIT_APPROVED).Scan(&article)
+	if article.ID == 0 {
+		utils.ErrorLog("信息不存在", "article", "")
+		return
+	}
+
+	// 获取作者信息
+	article.Author = GetUserBaseInfo(article.Uid)
+
+	return
+}
+
+// 获取文章信息
+func GetArticleItemInfo(articleId uint) (article vo.ArticleResp) {
+	global.Mysql.Model(&model.Article{}).Select(vo.ARTICLE_LIST_FIELD).
 		Where("id = ? and status = ?", articleId, global.AUDIT_APPROVED).Scan(&article)
 	if article.ID == 0 {
 		utils.ErrorLog("信息不存在", "article", "")

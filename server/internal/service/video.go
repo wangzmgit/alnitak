@@ -144,6 +144,9 @@ func DeleteVideo(ctx *gin.Context, id uint) error {
 		return errors.New("删除视频失败")
 	}
 
+	// 删除缓存中的视频ID信息
+	cache.DelVideoId(video.PartitionId, video.ID)
+
 	// 删除视频信息缓存
 	cache.DelVideoInfo(id)
 

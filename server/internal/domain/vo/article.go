@@ -8,6 +8,7 @@ const (
 	ARTICLE_FIELD        = "`id`,`uid`,`title`,`cover`,`tags`,`content`,`copyright`,`status`,`created_at`,`clicks`"
 	ARTICLE_STATUS_FIELD = "`id`,`title`,`cover`,`tags`,`content`,`copyright`,`partition_id`,`status`,`created_at`,`clicks`"
 	UPLOAD_ARTICLE_FIELD = "`id`,`title`,`cover`,`tags`,`content_desc` as `content`,`copyright`,`status`,`created_at`,`clicks`"
+	ARTICLE_LIST_FIELD   = "`id`,`uid`,`title`,`cover`,`tags`,`content_desc` as `content`,`copyright`,`status`,`created_at`,`clicks`"
 )
 
 type ArticleStatusResp struct {

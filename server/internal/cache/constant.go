@@ -98,6 +98,9 @@ const ALL_VIDEO_KEY = "all_video_key:"
 // 热门视频ID
 const HOT_VIDEO_KEY = "hot_video_key"
 
+// 全部文章的ID
+const ALL_ARTICLE_KEY = "all_article_key:"
+
 // 文章点击量限制标识符
 const ARTICLE_CLICKS_LIMIT_KEY = "article_clicks_limit_key:"
 

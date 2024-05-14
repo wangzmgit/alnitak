@@ -130,6 +130,9 @@ func ReviewArticleApproved(ctx *gin.Context, reviewArticleReq dto.ReviewArticleR
 		return errors.New("更新状态失败")
 	}
 
+	// 文章ID添加到redis中
+	cache.SetArticleId(reviewArticleReq.Aid)
+
 	tx.Commit()
 	return nil
 }
