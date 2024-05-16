@@ -1,8 +1,8 @@
 <template>
   <div class="header-bar">
-    <div class="header-left">
+    <nuxt-link class="header-left" to="/">
       <h1 class="title">{{ globalConfig.title }}</h1>
-    </div>
+    </nuxt-link>
     <div v-show="isSearchPage" class="header-center">
       <div class="search-form">
         <input class="input" v-model="keywords" @keydown.enter="handelSearch">
@@ -46,10 +46,10 @@
         </div>
       </div>
       <div v-else class="avatar-box">
-        <div class="login-btn">登录</div>
+        <nuxt-link class="login-btn" to="/login">登录</nuxt-link>
       </div>
       <!-- 图形按钮 -->
-      <nuxt-link class="icon-btn" to="/message">
+      <nuxt-link class="icon-btn" to="/message/announce">
         <message-icon class="icon"></message-icon>
         <div class="icon-text">消息</div>
       </nuxt-link>
@@ -79,6 +79,7 @@ import {
   User as UserIcon, Logout as LogoutIcon,
   Right as RightIcon, FolderFocusOne as CollectIcon
 } from '@icon-park/vue-next';
+import { logoutAPI } from '@/api/auth';
 import { getUserInfoAPI } from '@/api/user';
 import CommonAvatar from '@/components/common-avatar/index.vue';
 
@@ -88,7 +89,14 @@ const isSearchPage = ref(route.name !== 'search-keywords');
 
 const keywords = ref('');
 const handelSearch = () => {
+  if (!keywords.value) {
+    ElMessage.warning("请先输入搜索内容");
+    return;
+  }
 
+  navigateTo(`/search/${keywords.value}`, {
+    open: { target: '_blank' }
+  })
 }
 
 const loading = ref(true);
@@ -99,11 +107,17 @@ const getUserInfo = async () => {
   if (res.data.code === statusCode.OK) {
     userInfo.value = res.data.data.userInfo;
     isLoggedIn.value = true;
-    loading.value = false;
   }
+  
+  loading.value = false;
 }
 
-const logout = () => {
+const logout = async () => {
+  await logoutAPI(storageData.get('refreshToken'));
+
+  storageData.remove("token");
+  storageData.remove('refreshToken');
+  isLoggedIn.value = false;
 }
 
 onBeforeMount(() => {
@@ -197,6 +211,7 @@ onBeforeMount(() => {
     }
 
     .login-btn {
+      display: block;
       width: 40px;
       height: 40px;
       border-radius: 50%;

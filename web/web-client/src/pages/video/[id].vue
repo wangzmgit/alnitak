@@ -26,7 +26,7 @@
               <archive-info v-if="videoInfo" :vid="videoInfo.vid"></archive-info>
             </div>
             <div class="toolbar-right">
-              <span>1 人在看</span>
+              <span>{{ onlineCount }} 人在看</span>
               <span>{{ videoInfo?.clicks }} 播放</span>
               <span>{{ videoInfo ? formatTime(videoInfo.createdAt) : '' }}</span>
             </div>
@@ -73,8 +73,9 @@ import ArchiveInfo from './components/ArchiveInfo.vue';
 import CommentList from "./components/CommentList.vue";
 import HeaderBar from "@/components/header-bar/index.vue";
 import VideoPlayer from "@/components/video-player/index.vue";
-import RecommendList  from "./components/RecommendList.vue";
+import RecommendList from "./components/RecommendList.vue";
 import { asyncGetVideoInfoAPI } from "@/api/video";
+import { createUUID } from "@/utils/uuid";
 
 const route = useRoute();
 const router = useRouter();
@@ -104,7 +105,6 @@ const changePart = (target: number) => {
   router.replace({ query: { p: currentPart.value } });
 }
 
-
 // 简介部分
 const foldDesc = ref(true); // 是否折叠简介
 const descRef = ref<HTMLElement>();
@@ -128,10 +128,38 @@ onMounted(() => {
   })
 })
 
+//websocket
+const onlineCount = ref(1);//在线人数
+let SocketURL = "";
+let websocket: WebSocket | null = null;
+//初始化weosocket
+const initWebSocket = () => {
+  let clientId = localStorage.getItem("ws-client-id");
+  if (!clientId) {
+    clientId = createUUID();
+    localStorage.setItem("ws-client-id", clientId);
+  }
+  const wsProtocol = window.location.protocol === 'http:' ? 'ws://' : 'wss://';
+  const domain = globalConfig.domain || window.location.host;
+  SocketURL = wsProtocol + domain + `/api/v1/online/video?vid=${videoId}&clientId=${clientId}`;
+
+  websocket = new WebSocket(SocketURL);
+  websocket.onmessage = websocketOnmessage;
+}
+
+//数据接收
+const websocketOnmessage = (e: any) => {
+  const res = JSON.parse(e.data);
+  onlineCount.value = res.number;
+}
+
+onBeforeMount(()=>{
+  initWebSocket();
+})
+
 onBeforeUnmount(() => {
   window.removeEventListener("resize", handelResize);
 })
-
 </script>
 
 <style lang="scss" scoped>

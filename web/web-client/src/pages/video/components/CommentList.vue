@@ -9,10 +9,13 @@
   </div>
   <!-- 评论输入框 -->
   <div class="comment-box">
-    <common-avatar class="avatar" :url="userInfo?.avatar" :size="40"></common-avatar>
+    <common-avatar v-if="isLoggedIn" class="avatar" :url="userInfo?.avatar" :size="40"></common-avatar>
+    <div v-else class="avatar">
+      <div class="login-btn">登录</div>
+    </div>
     <el-input class="comment-input" v-model="commentContent" resize="none" :rows="3" type="textarea"
       placeholder="善语结善缘，恶言伤人心" />
-    <button class="comment-submit" @click="submitComment">发表评论</button>
+    <button class="comment-submit" :class="isLoggedIn ? '' : 'submit-disabled'" @click="submitComment">发表评论</button>
   </div>
   <!-- 评论列表 -->
   <div class="comment-container" v-for="(item, i) in commentList">
@@ -31,8 +34,8 @@
       </div>
       <div class="comment-info">
         <span class="comment-time">{{ formatRelativeTime(item.createdAt) }}</span>
-        <span class="reply-btn" @click="showReplyBox(item)">回复</span>
-        <client-only>
+        <span class="reply-btn" :class="isLoggedIn ? '' : 'btn-disabled'" @click="showReplyBox(item)">回复</span>
+        <client-only v-if="isLoggedIn">
           <el-popconfirm title="是否删除该条评论？" confirm-button-text="确认" cancel-button-text="取消"
             @confirm="deleteComment(i, item)">
             <template #reference>
@@ -62,8 +65,8 @@
         </span>
         <div class="reply-info">
           <span class="reply-time">{{ formatRelativeTime(reply.createdAt) }}</span>
-          <span class="reply-btn" @click="showReplyBox(item, reply)">回复</span>
-          <client-only>
+          <span class="reply-btn" :class="isLoggedIn ? '' : 'btn-disabled'" @click="showReplyBox(item, reply)">回复</span>
+          <client-only v-if="isLoggedIn">
             <el-popconfirm title="是否删除该条回复？" confirm-button-text="确认" cancel-button-text="取消"
               @confirm="deleteComment(j, item, reply)">
               <template #reference>
@@ -109,11 +112,13 @@ const props = defineProps<{
   vid: number
 }>();
 
+const isLoggedIn = ref(false);
 const userId = useCookie('user_id');
 const userInfo = ref<UserInfoType>();
 const { data } = await asyncGetUserBaseInfoAPI(userId.value!);
 if ((data.value as any).code === statusCode.OK) {
   userInfo.value = (data.value as any).data.userInfo;
+  isLoggedIn.value = true;
 }
 
 const pagination = reactive({
@@ -165,6 +170,8 @@ const commentForm = reactive<AddCommentType>({
 })
 
 const submitComment = async () => {
+  if (!isLoggedIn.value) return;
+
   commentForm.parentId = 0;
   commentForm.content = commentContent.value;
   const comment = await addComment();
@@ -205,6 +212,9 @@ const showReplyBox = async (comment: CommentType, reply?: ReplyType) => {
   commentList.value.forEach((item) => {
     item.showReplyBox = false;
   })
+  // 判断是否登录
+  if (!isLoggedIn.value) return;
+  // 初始化数据
   comment.showReplyBox = true;
   commentForm.content = '';
   commentForm.replyContent = "";
@@ -323,6 +333,18 @@ onBeforeUnmount(() => {
 
   .avatar {
     margin: 0 20px;
+  }
+
+  .login-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    color: var(--primary-text-color);
+    text-align: center;
+    line-height: 40px;
+    font-size: 14px;
+    font-weight: 500;
+    background-color: var(--primary-hover-color);
   }
 
   .comment-input {
@@ -542,6 +564,24 @@ onBeforeUnmount(() => {
 
   &:hover {
     color: var(--primary-hover-color);
+  }
+}
+
+.btn-disabled {
+  color: #9499a0 !important;
+  cursor: not-allowed !important;
+
+  &:hover {
+    color: #9499a0 !important;
+  }
+}
+
+.submit-disabled {
+  background-color: var(--primary-hover-color) !important;
+  cursor: not-allowed !important;
+
+  &:hover {
+    background-color: var(--primary-hover-color) !important;
   }
 }
 </style>

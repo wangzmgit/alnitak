@@ -29,6 +29,14 @@ useHead({
   title: `创作中心 - ${globalConfig.title}`
 })
 
+definePageMeta({
+  middleware: ['auth', (to) => {
+    if (to.name === 'upload') {
+      return navigateTo(`/upload/video`);
+    }
+  }],
+})
+
 const route = useRoute();
 const menuList = [
   {

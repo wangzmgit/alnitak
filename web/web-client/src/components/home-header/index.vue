@@ -4,7 +4,7 @@
       <el-icon class="menu-icon-btn" size="22" @click="foldClick">
         <hamburger-button></hamburger-button>
       </el-icon>
-      <span>{{ globalConfig.title }}</span>
+      <nuxt-link class="title" to="/">{{ globalConfig.title }}</nuxt-link>
     </div>
     <div class="header-search">
       <div class="search-input">
@@ -49,10 +49,10 @@
         </div>
       </div>
       <div v-else class="avatar-box">
-        <div class="login-btn">登录</div>
+        <div class="login-btn" @click="showLogin = true">登录</div>
       </div>
       <!-- 图形按钮 -->
-      <nuxt-link class="icon-btn" to="/message">
+      <nuxt-link class="icon-btn" to="/message/announce">
         <message-icon class="icon"></message-icon>
         <div class="icon-text">消息</div>
       </nuxt-link>
@@ -68,35 +68,36 @@
     </div>
     <div v-else class="header-right"></div>
     <client-only>
-      <!-- <login-dialog v-if="showLogin" @close="loginClose"></login-dialog> -->
+      <login-dialog v-if="showLogin" @close="loginClose"></login-dialog>
     </client-only>
   </div>
 </template>
 
 <script setup lang="ts">
 import { onBeforeMount, ref } from 'vue';
+import { logoutAPI } from '@/api/auth';
 import { getUserInfoAPI } from '@/api/user';
 import LoginDialog from "@/components/login-dialog/index.vue";
 import {
   HamburgerButton, Upload as UploadIcon, Search as SearchIcon,
   Message as MessageIcon, History as HistoryIcon,
-  User as UserIcon, Logout as LogoutIcon,
-  Right as RightIcon, 
+  User as UserIcon, Logout as LogoutIcon, Right as RightIcon
 } from '@icon-park/vue-next';
-
 
 const emits = defineEmits(["changeFold"]);
 
 const loading = ref(true);
 const isLoggedIn = ref(false);
+const showLogin = ref(false);
 const userInfo = ref<UserInfoType>()
 const getUserInfo = async () => {
   const res = await getUserInfoAPI();
   if (res.data.code === statusCode.OK) {
     userInfo.value = res.data.data.userInfo;
     isLoggedIn.value = true;
-    loading.value = false;
   }
+
+  loading.value = false;
 }
 
 // 左侧菜单
@@ -107,26 +108,30 @@ const foldClick = () => {
 }
 
 // 退出登录
-const logout = () => {
-  // storageData.remove("token");
-  // storageData.remove('user_info');
-  // isLogin.value = false;
-}
+const logout = async () => {
+  await logoutAPI(storageData.get('refreshToken'));
 
-// 页面跳转
-const goPage = (name: string) => {
-  // router.push({ name: name });
+  storageData.remove("token");
+  storageData.remove('refreshToken');
+  isLoggedIn.value = false;
 }
 
 //搜索功能
 const keywords = ref("");
 const handelSearch = () => {
+  if (!keywords.value) {
+    ElMessage.warning("请先输入搜索内容");
+    return;
+  }
 
+  navigateTo(`/search/${keywords.value}`, {
+    open: { target: '_blank' }
+  })
 }
 
 const loginClose = () => {
   // loadUserInfo();
-  // loginStore.setLoginState(false);
+  showLogin.value = false;
 }
 
 onBeforeMount(() => {
@@ -163,6 +168,10 @@ onBeforeMount(() => {
       &:hover {
         background-color: rgba(0, 0, 0, .1);
       }
+    }
+
+    .title {
+      color: var(--font-primary-1);
     }
   }
 

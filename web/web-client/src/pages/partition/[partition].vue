@@ -5,7 +5,7 @@
       <div class="home-left" :class="menuFold ? 'home-left-fold' : ''">
         <home-sidebar class="home-sidebar" :fold="menuFold"></home-sidebar>
       </div>
-      <div class="home-right">
+      <div class="home-right" :style="`margin-left: ${menuFold ? '50px' : '220px'};`">
         <div class="home-recommended" :class="menuFold ? 'recommended-fold' : ''">
           <div class="recommended-carousel">
             <client-only>
@@ -82,7 +82,6 @@ onBeforeUnmount(() => {
 .home {
   width: 100%;
   min-width: 1200px;
-  // height: 100vh;
   overflow: hidden;
 
   .home-header {
@@ -99,12 +98,12 @@ onBeforeUnmount(() => {
   margin-top: 60px;
 
   .home-left {
+    position: fixed;
+    height: 100%;
     width: 220px;
+    z-index: 1;
+    background-color: #fff;
     transition: width .25s;
-
-    .home-sidebar {
-      position: fixed;
-    }
   }
 
   .home-left-fold {

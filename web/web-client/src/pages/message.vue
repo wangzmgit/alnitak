@@ -21,6 +21,7 @@ import HeaderBar from "@/components/header-bar/index.vue";
 
 definePageMeta({
   middleware: ['auth', (to) => {
+    console.log('to',to)
     if (to.name === 'message') {
       return navigateTo("/message/announce");
     }

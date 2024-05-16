@@ -20,3 +20,13 @@ export const emailLoginAPI = (login: UserLoginType) => {
 export function updateTokenAPI(refreshToken: string) {
   return request.post('v1/auth/updateToken', { refreshToken });
 }
+
+// 退出登录
+export function logoutAPI(refreshToken: string) {
+  return request.post('v1/auth/logout', { refreshToken });
+}
+
+// 清除Cookie
+export function clearCookieAPI() {
+  return request.post('v1/auth/clearCookie', );
+}

@@ -19,7 +19,9 @@
         </div>
         <!-- 关注按钮部分 -->
         <div class="up-info-btn-panel">
-          <div class="up-info-btn" @click="followBtnClick">{{ btnText }}</div>
+          <div class="up-info-btn" :class="disabledBtn ? 'btn-disabled' : ''" @click="followBtnClick">
+            {{ btnText }}
+          </div>
         </div>
       </div>
     </div>
@@ -37,11 +39,14 @@ const props = defineProps<{
   info: UserInfoType
 }>()
 
+const disabledBtn = ref(false);
 const relation = ref(relationCode.NOT_FOLLOWING);
 const getUserRelation = async () => {
   const res = await getUserRelationAPI(props.info.uid);
   if (res.data.code === statusCode.OK) {
     relation.value = res.data.data.relation;
+  } else {
+    disabledBtn.value = true;
   }
 }
 
@@ -57,6 +62,7 @@ const btnText = computed(() => {
 })
 
 const followBtnClick = async () => {
+  if (disabledBtn.value) return;
   const reqFunc = relation.value === relationCode.NOT_FOLLOWING ? followAPI : unfollowAPI;
   const res = await reqFunc(props.info.uid);
   if (res.data.code === statusCode.OK) {
@@ -156,6 +162,15 @@ onBeforeMount(() => {
     &:hover {
       background: var(--primary-hover-color);
     }
+  }
+}
+
+.btn-disabled {
+  background-color: var(--primary-hover-color) !important;
+  cursor: not-allowed !important;
+
+  &:hover {
+    background-color: var(--primary-hover-color) !important;
   }
 }
 </style>

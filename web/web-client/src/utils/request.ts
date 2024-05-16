@@ -1,6 +1,6 @@
 import axios from "axios";
 import type { AxiosInstance } from "axios";
-import { updateTokenAPI } from "@/api/auth";
+import { clearCookieAPI, updateTokenAPI } from "@/api/auth";
 import { statusCode } from "./status-code";
 import { globalConfig as config, } from "./global-config";
 import { storageData as storage } from "./storage-data";
@@ -114,9 +114,11 @@ service.interceptors.response.use(async (res) => {
         }
         break;
       case statusCode.LOGIN_AGAIN:
-        // TODO: 调用退出登录，清理cookie
-        // TODO: 清理缓存信息
-
+        // 调用退出登录，清理cookie
+        await clearCookieAPI();
+        // 清理缓存信息
+        storageData.remove("token");
+        storageData.remove('refreshToken');
         navigateTo({ name: 'login' })
         break;
     }
