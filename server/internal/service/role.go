@@ -54,7 +54,17 @@ func EditRole(ctx *gin.Context, editRoleReq dto.EditRoleReq) error {
 
 // 删除角色
 func DeleteRole(ctx *gin.Context, id uint) error {
-	// TODO: 查询是否有使用该角色的用户
+	role, err := FindRoleById(id)
+	if err != nil {
+		utils.ErrorLog("查询角色失败", "role", err.Error())
+		return errors.New("删除失败")
+	}
+	// 查询是否有使用该角色的用户
+	var user model.User
+	global.Mysql.Model(&model.User{}).Where("role = ?", role.Code).First(&user)
+	if user.ID != 0 {
+		return errors.New("该角色已被用户(ID" + utils.UintToString(user.ID) + ")使用")
+	}
 
 	if err := global.Mysql.Where("id = ?", id).Delete(&model.Role{}).Error; err != nil {
 		utils.ErrorLog("删除角色失败", "role", err.Error())

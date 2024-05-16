@@ -116,13 +116,17 @@ func Logout(ctx *gin.Context) {
 		return
 	}
 
-	// TODO: 退出登录
-	// accessToken, refreshToken, err := service.UpdateToken(ctx, tokenReq)
-	// if err != nil {
-	// 	resp.FailWithMessage(ctx, err.Error())
-	// 	return
-	// }
+	service.Logout(ctx, tokenReq)
 
-	// // 返回给前端
-	// resp.OkWithData(ctx, gin.H{"token": accessToken, "refreshToken": refreshToken})
+	// 返回给前端
+	resp.Ok(ctx)
+}
+
+// 清除Cookie
+func ClearCookie(ctx *gin.Context) {
+	ctx.SetCookie("user_id", "", -1, "/", "", false, true)
+	ctx.SetCookie("user_id_md5", "", -1, "/", "", false, true)
+
+	// 返回给前端
+	resp.Ok(ctx)
 }

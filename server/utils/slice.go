@@ -12,3 +12,12 @@ func SlicePagingStr(s []string, page, pageSize int) []string {
 
 	return s[startIdx:endIdx]
 }
+
+func IsUintInSlice(nums []uint, target uint) bool {
+	for _, num := range nums {
+		if num == target {
+			return true
+		}
+	}
+	return false
+}

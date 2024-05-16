@@ -346,21 +346,28 @@ func FindVideoById(id uint) (video model.Video, err error) {
 func GetVideoInfo(videoId uint) (video vo.VideoResp) {
 	video = cache.GetVideoInfo(videoId)
 	if video.ID == 0 {
-		global.Mysql.Model(&model.Video{}).Select(vo.VIDEO_FIELD).
-			Where("id = ? and status = ?", videoId, global.AUDIT_APPROVED).Scan(&video)
-		if video.ID == 0 {
-			utils.ErrorLog("视频信息不存在", "video", "")
-			return
-		}
-
-		// 获取作者信息
-		video.Author = GetUserBaseInfo(video.Uid)
-		// 获取视频资源
-		video.Resources = GetVideoResourceByStatus(videoId, global.AUDIT_APPROVED)
-
-		// 存到redis
-		cache.SetVideoInfo(video)
+		return VideoWriteCache(videoId)
 	}
+
+	return
+}
+
+// 视频信息写入缓存
+func VideoWriteCache(videoId uint) (video vo.VideoResp) {
+	global.Mysql.Model(&model.Video{}).Select(vo.VIDEO_FIELD).
+		Where("id = ? and status = ?", videoId, global.AUDIT_APPROVED).Scan(&video)
+	if video.ID == 0 {
+		utils.ErrorLog("视频信息不存在", "video", "")
+		return
+	}
+
+	// 获取作者信息
+	video.Author = GetUserBaseInfo(video.Uid)
+	// 获取视频资源
+	video.Resources = GetVideoResourceByStatus(videoId, global.AUDIT_APPROVED)
+
+	// 存到redis
+	cache.SetVideoInfo(video)
 
 	return
 }

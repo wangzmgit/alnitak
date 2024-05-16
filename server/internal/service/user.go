@@ -119,10 +119,13 @@ func UpdateToken(ctx *gin.Context, tokenReq dto.TokenReq) (accessToken, refreshT
 	return accessToken, refreshToken, nil
 }
 
-func Logout() {
-	//TODO: 删除token
-	//TODO: 移除用户cookie
-
+func Logout(ctx *gin.Context, tokenReq dto.TokenReq) {
+	userId := ctx.GetUint("userId")
+	// 删除token
+	cache.DelRefreshToken(userId, tokenReq.RefreshToken)
+	// 移除用户cookie
+	ctx.SetCookie("user_id", "", -1, "/", "", false, true)
+	ctx.SetCookie("user_id_md5", "", -1, "/", "", false, true)
 }
 
 // 生成用户Id和md5并写入Cookie

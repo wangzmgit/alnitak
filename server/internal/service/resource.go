@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/gin-gonic/gin"
+	"interastral-peace.com/alnitak/internal/cache"
 	"interastral-peace.com/alnitak/internal/domain/dto"
 	"interastral-peace.com/alnitak/internal/domain/model"
 	"interastral-peace.com/alnitak/internal/domain/vo"
@@ -50,7 +51,9 @@ func DeleteResource(ctx *gin.Context, id uint) error {
 		return errors.New("删除资源失败")
 	}
 
-	// TODO: 更新视频信息缓存
+	// 更新视频信息缓存
+	cache.DelVideoInfo(resource.Vid)
+	VideoWriteCache(resource.Vid)
 
 	return nil
 }

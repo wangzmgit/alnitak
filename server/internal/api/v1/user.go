@@ -44,6 +44,10 @@ func GetUserBaseInfo(ctx *gin.Context) {
 	userId := utils.StringToUint(ctx.Query("userId"))
 
 	user := service.GetUserBaseInfo(userId)
+	if user.ID == 0 {
+		resp.FailWithMessage(ctx, "用户不存在")
+		return
+	}
 
 	resp.OkWithData(ctx, gin.H{"userInfo": user})
 }

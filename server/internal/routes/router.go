@@ -69,6 +69,8 @@ func CollectRoutes(r *gin.Engine) *gin.Engine {
 		CollectCarouselRoutes(v1)
 		// 文章相关接口
 		CollectArticleRoutes(v1)
+		// 实时在线
+		CollectOnlineRoutes(v1)
 	}
 
 	//获取静态文件
