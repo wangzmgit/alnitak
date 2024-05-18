@@ -43,7 +43,9 @@ router.beforeEach(async (to, _from, next) => {
     }
     // 历史记录存储
     const historyStore = useHistoryStore();
-    await historyStore.setRouterHistory(to);
+    if (to.path !== '/') {
+      await historyStore.setRouterHistory(to);
+    }
 
     if (to.matched.length) {
       next();

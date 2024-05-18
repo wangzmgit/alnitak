@@ -23,7 +23,6 @@ import { statusCode } from "@/utils/status-code";
 import { Refresh } from "@vicons/ionicons5";
 import { getSliderAPI, validateSliderAPI } from "@/api/captcha";
 
-
 const emits = defineEmits(["update:show", "success"]);
 const props = defineProps<{
   captchaId: string,

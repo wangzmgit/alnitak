@@ -31,7 +31,6 @@ const historyStore = useHistoryStore();
 
 /** 标签列表  剔除空name字段页面路由 */
 const tagList = computed(() => historyStore.routerHistory.filter(item => item.name));
-
 const handleTagClose = (index: number) => {
   historyStore.removeRouterHistory(index);
 };

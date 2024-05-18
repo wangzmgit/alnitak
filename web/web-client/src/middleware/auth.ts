@@ -6,11 +6,11 @@ export default defineNuxtRouteMiddleware((to, from) => {
   if (isServer) {
     const userId = useCookie('user_id')
     if (!userId.value) {
-      return navigateTo('/login');
+      return navigateTo(`/login?redirect=${to.path}`);
     }
   } else {
     if (!storageData.get("refreshToken")) {
-      return navigateTo('/login');
+      return navigateTo(`/login?redirect=${to.path}`);
     }
   }
 })

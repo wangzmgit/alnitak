@@ -1,15 +1,19 @@
 <template>
   <div class="login-bg">
-      <login-card :close="true" @close="closeCard" @success="closeCard"></login-card>
+    <login-card :close="true" @close="closeCard" @success="loginSuccess"></login-card>
   </div>
 </template>
 
 <script setup lang="ts">
 import LoginCard from "@/components/login-card/index.vue";
-const emits = defineEmits(["close"]);
+const emit = defineEmits(["close", "success"]);
 
 const closeCard = () => {
-  emits("close");
+  emit("close");
+}
+
+const loginSuccess = () => {
+  emit("success");
 }
 </script>
 

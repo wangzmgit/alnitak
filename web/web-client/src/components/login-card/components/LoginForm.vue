@@ -21,12 +21,14 @@
         <div class="error-text">{{ errorTips.emailError }}</div>
         <div class="input-box">
           <input v-model="loginForm.code" placeholder="请输入验证码" class="input code-input" maxlength="6">
-          <span class="send-code-btn">获取验证码</span>
+          <span class="send-code-btn" :class="disabledSend ? 'btn-disabled' : ''" @click="sendEmailCode">
+            {{ sendBtnText }}
+          </span>
         </div>
         <div class="error-text">{{ errorTips.codeError }}</div>
       </div>
       <div class="button-group">
-        <button class="btn-other">注册</button>
+        <button class="btn-other" @click="emit('changeForm')">注册</button>
         <button class="btn-primary" @click="handelLogin">登录</button>
       </div>
     </div>
@@ -41,10 +43,10 @@
 import { isEmail } from "@/utils/format";
 import { loginAPI, emailLoginAPI } from "@/api/auth";
 import type { AxiosResponse } from "axios";
-import { getUserInfoAPI } from "@/api/user";
 import BaseTabs from "@/components/base-tabs/index.vue";
+import { sendEmailCodeAPI } from "@/api/code";
 
-const emit = defineEmits(["success"]);
+const emit = defineEmits(["success", "changeForm"]);
 
 const currentTab = ref('account');
 const tabs = [{ key: 'account', label: '密码登录' }, { key: 'code', label: '邮箱登录' }];
@@ -57,9 +59,9 @@ let captchaTrigger = "";
 const showCaptcha = ref(false);
 const captchaSuccess = () => {
   if (captchaTrigger === "login") {
-    // sendLoginRequest();
+    handelLogin();
   } else {
-    // beforeSendCode();
+    sendEmailCode();
   }
 }
 
@@ -116,6 +118,47 @@ const accountLogin = async () => {
 }
 
 // 验证码登录
+const disabledSend = ref(false);//禁用发送按钮
+const sendBtnText = ref('发送验证码');//发送按钮文字
+const startCountdown = () => {
+  let count = 0;
+  let tag = setInterval(() => {
+    if (++count >= 60) {
+      clearInterval(tag);
+      disabledSend.value = false;
+      sendBtnText.value = '发送验证码';
+      return;
+    }
+    sendBtnText.value = `${60 - count}秒`;
+  }, 1000);
+}
+const sendEmailCode = async () => {
+  if (disabledSend.value) return;
+  //禁用发送按钮
+  disabledSend.value = true;
+  const res = await sendEmailCodeAPI(loginForm);
+  switch (res.data.code) {
+    case statusCode.OK:
+      //开启倒计时
+      startCountdown();
+      ElMessage.success('发送成功');
+      break;
+    case statusCode.CAPTCHA_REQUIRED:
+      captchaTrigger = "code";
+      loginForm.captchaId = res.data.data.captchaId;
+      showCaptcha.value = true;
+      disabledSend.value = false;
+      break;
+    case statusCode.FAIL:
+      disabledSend.value = false;
+      sendBtnText.value = '发送验证码';
+      ElMessage.error(res.data.msg);
+      break;
+    default:
+      break;
+  }
+}
+
 const codeLogin = async () => {
   if (!loginForm.code) {
     errorTips.codeError = '验证码不能为空';
@@ -256,6 +299,15 @@ const handelLoginRes = async (res: AxiosResponse<any, any>) => {
     background: var(--primary-color);
     border-radius: 8px;
     border: 1px solid #e3e5e7;
+  }
+}
+
+.btn-disabled {
+  color: #9499a0 !important;
+  cursor: not-allowed !important;
+
+  &:hover {
+    color: #9499a0 !important;
   }
 }
 </style>

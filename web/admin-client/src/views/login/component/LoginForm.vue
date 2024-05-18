@@ -26,11 +26,10 @@
       </n-tab-pane>
     </n-tabs>
     <div class="login-btn">
-      <n-button type="primary" @click="sendLoginRequest">登录</n-button>
+      <n-button type="primary" @click="handelLogin">登录</n-button>
     </div>
   </div>
-  <slider-captcha v-model:show="showCaptcha" :captcha-id="loginForm.captchaId"
-    @success="captchaSuccess"></slider-captcha>
+  <slider-captcha v-model:show="showCaptcha" :captcha-id="loginForm.captchaId" @success="captchaSuccess"></slider-captcha>
 </template>
 
 <script setup lang="ts">
@@ -42,8 +41,11 @@ import { loginAPI, emailLoginAPI } from "@/api/auth";
 import type { FormRules, FormInst } from 'naive-ui';
 import { NTabs, NTabPane, NForm, NFormItem, NInput, NButton, useMessage } from 'naive-ui';
 import SliderCaptcha from "@/components/slider-captcha/index.vue";
+import useUserStore from '@/stores/modules/user-store';
 
 const emits = defineEmits(["changeForm", "success"]);
+
+const loginStore = useUserStore();
 
 //通知组件
 const message = useMessage();
@@ -59,7 +61,6 @@ const loginForm = reactive<UserLoginType>({
   captchaId: "",
 });
 
-
 //校验规则
 const rules: FormRules = {
   email: [
@@ -74,7 +75,7 @@ const rules: FormRules = {
 let captchaUsers = "";// 人机验证使用者
 const captchaSuccess = () => {
   if (captchaUsers === "login") {
-    sendLoginRequest();
+    handelLogin();
   } else {
     beforeSendCode();
   }
@@ -82,16 +83,26 @@ const captchaSuccess = () => {
 
 //发送验证码相关
 const { disabledSend, sendBtnText, sendEmailCodeAsync } = useSendCode();
-const beforeSendCode = () => {
+const beforeSendCode = async () => {
   if (!loginForm.email) {
     return;
   }
-  sendEmailCodeAsync(loginForm.email).then((res) => {
-    if (res === statusCode.CAPTCHA_REQUIRED) {
-      captchaUsers = "emailcode";
+  const res = await sendEmailCodeAsync(loginForm.email, loginForm.captchaId);
+  console.log('res', res)
+  switch (res.code) {
+    case statusCode.OK:
+      break;
+    case statusCode.CAPTCHA_REQUIRED:
+      captchaUsers = "code";
+      loginForm.captchaId = res.data.captchaId;
       showCaptcha.value = true;
-    }
-  })
+      break;
+    case statusCode.FAIL:
+      message.error(res.msg);
+      break;
+    default:
+      break;
+  }
 }
 
 // 登录方式切换
@@ -104,7 +115,7 @@ const loginTypeChange = (tabName: string) => {
 const emailFormRef = ref<FormInst | null>(null);
 const accountFormRef = ref<FormInst | null>(null);
 //登录
-const sendLoginRequest = () => {
+const handelLogin = async () => {
   let currentRef: FormInst | null = null;
   switch (currentTabName.value) {
     case "account":
@@ -115,30 +126,26 @@ const sendLoginRequest = () => {
       currentRef = emailFormRef.value;
       break;
   }
-  currentRef?.validate(async (err) => {
-    if (err) {
-      message.error('请检查输入的数据');
-      return;
-    }
 
-    const loginRequest = currentTabName.value === "account" ? loginAPI : emailLoginAPI;
-    const res = await loginRequest(loginForm);
-    switch (res.data.code) {
-      case statusCode.CAPTCHA_REQUIRED:
-        captchaUsers = "login";
-        loginForm.captchaId = res.data.data.captchaId;
-        showCaptcha.value = true;
-        break;
-      case statusCode.OK:
-        storageData.set("token", res.data.data.token, 60);
-        storageData.set("refreshToken", res.data.data.refreshToken, 7 * 24 * 60);
-        emits("success");
-        break;
-      default:
-        message.error(res.data.msg);
-    }
+  await currentRef?.validate();
 
-  });
+  const loginRequest = currentTabName.value === "account" ? loginAPI : emailLoginAPI;
+  const res = await loginRequest(loginForm);
+  switch (res.data.code) {
+    case statusCode.CAPTCHA_REQUIRED:
+      captchaUsers = "login";
+      loginForm.captchaId = res.data.data.captchaId;
+      showCaptcha.value = true;
+      break;
+    case statusCode.OK:
+      storageData.set("token", res.data.data.token, 60);
+      storageData.set("refreshToken", res.data.data.refreshToken, 7 * 24 * 60);
+      loginStore.token = res.data.data.token;
+      emits("success");
+      break;
+    default:
+      message.error(res.data.msg);
+  }
 }
 </script>
 

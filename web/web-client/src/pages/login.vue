@@ -8,12 +8,19 @@
 import { globalConfig } from '@/utils/global-config';
 import LoginCard from '@/components/login-card/index.vue';
 
+const route = useRoute();
+
 useHead({
   title: `${globalConfig.title} - 登录`
 })
 
 const loginSuccess = () => {
-
+  const redirect = route.query.redirect?.toString();
+  if (redirect) {
+    navigateTo(redirect);
+  } else {
+    navigateTo('/');
+  }
 }
 </script>
 

@@ -10,6 +10,7 @@
     </div>
     <div class="card-right">
       <login-form v-if="isLogin" @change-form="isLogin = false" @success="success"></login-form>
+      <register-form v-else @change-form="isLogin = true" @success="success"></register-form>
     </div>
     <p class="protocol-container">
       <span>注册或登录即代表同意 </span>
@@ -22,11 +23,10 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-// import { NIcon } from 'naive-ui';
 import { Close } from '@icon-park/vue-next';
 import LoginIllustration from "./components/LoginIllustration.vue";
 import LoginForm from './components/LoginForm.vue'
-// import RegisterForm from './component/RegisterForm.vue'
+import RegisterForm from './components/RegisterForm.vue'
 
 const emits = defineEmits(["close", "success"]);
 const props = withDefaults(defineProps<{

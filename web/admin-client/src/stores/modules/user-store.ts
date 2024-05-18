@@ -4,6 +4,8 @@ import { defineStore } from "pinia";
 import { statusCode } from "@/utils/status-code";
 import { getUserInfoAPI  } from "@/api/user";
 import { getRoleInfoAPI } from "@/api/role";
+import { logoutAPI } from "@/api/auth";
+import { storageData } from "@/utils/storage-data";
 
 const useUserStore = defineStore("login", () => {
   const token = ref("");
@@ -27,10 +29,13 @@ const useUserStore = defineStore("login", () => {
     window.$dialog.error({
       title: "警告",
       content: "确认退出账号吗？",
-      negativeText: "后悔了",
-      positiveText: "别墨迹",
-      onPositiveClick: () => {
-        // TODO: 删除token
+      negativeText: "取消",
+      positiveText: "确认",
+      onPositiveClick: async () => {
+        await logoutAPI(storageData.get('refreshToken'));
+        storageData.remove("token");
+        storageData.remove('refreshToken');
+        
         router.push({ name: "login" });
         window.$message.success("退出账号成功");
       },
@@ -41,7 +46,6 @@ const useUserStore = defineStore("login", () => {
   const getUserInfo = async () => {
     const res = await getUserInfoAPI();
     if (res.data.code === statusCode.OK) {
-      // console.log('res.data.data.userInfo',res.data.data.userInfo)
       userInfo.value = res.data.data.userInfo;
     }
 

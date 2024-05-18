@@ -1,5 +1,6 @@
 export const statusCode = {
     OK: 200,
+    FAIL: 500,
 
     CAPTCHA_REQUIRED: -1, // 需要人机验证
 

@@ -11,12 +11,21 @@ export const loginAPI = (login: UserLoginType) => {
 }
 
 // 邮箱登录
-// TODO: 实现邮箱登录
 export const emailLoginAPI = (login: UserLoginType) => {
-  return request.post('v1/user/login/email', login);
+  return request.post('v1/auth/login/email', login);
 }
 
 // 刷新token
 export function updateTokenAPI(refreshToken: string) {
   return request.post('v1/auth/updateToken', { refreshToken });
+}
+
+// 退出登录
+export function logoutAPI(refreshToken: string) {
+  return request.post('v1/auth/logout', { refreshToken });
+}
+
+// 清除Cookie
+export function clearCookieAPI() {
+  return request.post('v1/auth/clearCookie',);
 }

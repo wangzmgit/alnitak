@@ -1,6 +1,7 @@
 <template>
   <n-dropdown trigger="hover" :options="options" @select="handleDropdownClick">
-    <n-avatar style="display: block" size="medium" :src="userInfo?.avatar"></n-avatar>
+    <n-avatar v-if="userInfo?.avatar" size="medium" :src="getResourceUrl(userInfo.avatar)"></n-avatar>
+    <n-avatar v-else size="medium"></n-avatar>
   </n-dropdown>
 </template>
 
@@ -11,6 +12,10 @@ import { NText } from "naive-ui";
 import { storeToRefs } from "pinia";
 import { NDropdown, NAvatar } from "naive-ui";
 import useUserStore from "@/stores/modules/user-store.js";
+import { getResourceUrl } from "@/utils/resource";
+import { renderIcon } from "@/utils/render";
+import { LogInOutline } from "@vicons/ionicons5";
+
 
 const router = useRouter();
 
@@ -37,7 +42,6 @@ const renderCustomDropdownHeader = () => {
   );
 };
 
-// TODO: 图标
 const options = [
   {
     key: "header",
@@ -49,18 +53,9 @@ const options = [
     type: "divider",
   },
   {
-    label: "个人信息",
-    key: "userInfo",
-    // icon: renderIcon(PersonCircleOutlineIcon),
-  },
-  {
-    type: "divider",
-    key: "d1",
-  },
-  {
     label: "退出账号",
     key: "loginOut",
-    // icon: renderIcon(LogInOutlineIcon),
+    icon: renderIcon(LogInOutline),
   },
 ];
 

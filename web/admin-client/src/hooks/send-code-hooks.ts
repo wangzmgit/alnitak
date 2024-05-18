@@ -9,11 +9,11 @@ export default function useSendCode() {
   const sendBtnText = ref('发送验证码');//发送按钮文字
   const message = useMessage();//通知
 
-  const sendEmailCodeAsync = async (email: string) => {
+  const sendEmailCodeAsync = async (email: string, captchaId: string) => {
     //禁用发送按钮
     disabledSend.value = true;
     try {
-      const res = await sendEmailCodeAPI(email)
+      const res = await sendEmailCodeAPI({ email, captchaId })
       if (res.data.code === statusCode.OK) {
         message.success('发送成功');
         //开启倒计时
@@ -29,7 +29,6 @@ export default function useSendCode() {
         }, 1000);
       } else {
         disabledSend.value = false;
-        message.error(res.data.msg);
       }
       return res.data;
     } catch {

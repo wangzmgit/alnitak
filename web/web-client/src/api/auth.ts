@@ -11,9 +11,8 @@ export const loginAPI = (login: UserLoginType) => {
 }
 
 // 邮箱登录
-// TODO: 实现邮箱登录
 export const emailLoginAPI = (login: UserLoginType) => {
-  return request.post('v1/user/login/email', login);
+  return request.post('v1/auth/login/email', login);
 }
 
 // 刷新token

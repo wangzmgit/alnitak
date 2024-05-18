@@ -68,7 +68,7 @@
     </div>
     <div v-else class="header-right"></div>
     <client-only>
-      <login-dialog v-if="showLogin" @close="loginClose"></login-dialog>
+      <login-dialog v-if="showLogin" @close="loginClose" @success="loginSuccess"></login-dialog>
     </client-only>
   </div>
 </template>
@@ -130,8 +130,13 @@ const handelSearch = () => {
 }
 
 const loginClose = () => {
-  // loadUserInfo();
   showLogin.value = false;
+}
+
+// 登录成功
+const loginSuccess = () => {
+  getUserInfo();
+  loginClose();
 }
 
 onBeforeMount(() => {

@@ -1,7 +1,8 @@
 <template>
   <div class="tabs-wrapper">
     <div class="tab-item" :ref="el => setRefMap(item.key, el)" v-for="item in props.tabs"
-      :class="currentTab === item.key ? 'tab-item--active' : ''" @click="tabChange(item.key)">
+      :class="[currentTab === item.key ? 'tab-item--active' : '', item.disabled ? 'tab-disabled' : '']"
+      @click="tabChange(item.key, item.disabled)">
       {{ item.label }}
     </div>
     <div class="tabs-bar" :style="{ left: `${barLeft}px`, width: `${barWidth}px` }"></div>
@@ -16,6 +17,7 @@ const props = defineProps<{
   tabs: Array<{
     key: string;
     label: string;
+    disabled?: boolean;
   }>
   current?: string;
 }>();
@@ -28,7 +30,8 @@ const setRefMap = (key: string, el: any) => {
 const barWidth = ref(0);
 const barLeft = ref(0);
 const currentTab = ref(props.current || "")
-const tabChange = (tab: string) => {
+const tabChange = (tab: string, disabled: boolean = false) => {
+  if (disabled) return;
   currentTab.value = tab;
   resize();
   emit("tabChange", currentTab.value);
@@ -40,7 +43,6 @@ const resize = () => {
   barLeft.value = tabDom.offsetLeft;
 }
 
-
 onMounted(() => {
   if (props.tabs[0]) {
     tabChange(props.tabs[0].key)
@@ -48,7 +50,7 @@ onMounted(() => {
   window.addEventListener("resize", resize);
 })
 
-onBeforeUnmount(()=>{
+onBeforeUnmount(() => {
   window.removeEventListener("resize", resize);
 })
 </script>
@@ -95,6 +97,15 @@ onBeforeUnmount(()=>{
     -moz-transition: left 0.3s;
     -webkit-transition: left 0.3s;
     -o-transition: left 0.3s;
+  }
+}
+
+.tab-disabled {
+  color: #9499a0 !important;
+  cursor: not-allowed !important;
+
+  &:hover {
+    color: #9499a0 !important;
   }
 }
 </style>
