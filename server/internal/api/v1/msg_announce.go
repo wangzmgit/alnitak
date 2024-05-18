@@ -56,13 +56,9 @@ func AddAnnounce(ctx *gin.Context) {
 // 删除公告
 func DeleteAnnounce(ctx *gin.Context) {
 	// 获取参数
-	var idReq dto.IdReq
-	if err := ctx.Bind(&idReq); err != nil {
-		resp.FailWithMessage(ctx, "请求参数有误")
-		return
-	}
+	id := utils.StringToUint(ctx.Param("id"))
 
-	if err := service.DeleteAnnounce(ctx, idReq.ID); err != nil {
+	if err := service.DeleteAnnounce(ctx, id); err != nil {
 		resp.FailWithMessage(ctx, err.Error())
 		return
 	}

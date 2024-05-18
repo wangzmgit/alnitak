@@ -14,7 +14,7 @@ func CollectMessageRoutes(r *gin.RouterGroup) {
 		// 添加公告
 		messageAuth.POST("addAnnounce", api.AddAnnounce)
 		// 删除公告
-		messageAuth.POST("deleteAnnounce", api.DeleteAnnounce)
+		messageAuth.DELETE("deleteAnnounce/:id", api.DeleteAnnounce)
 
 		// 获取点赞消息
 		messageAuth.GET("getLikeMsg", api.GetLikeMessage)

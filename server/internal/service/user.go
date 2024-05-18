@@ -79,6 +79,38 @@ func UserLogin(ctx *gin.Context, loginReq dto.LoginReq) (accessToken, refreshTok
 	return accessToken, refreshToken, nil
 }
 
+func EmailLogin(ctx *gin.Context, loginReq dto.EmailLoginReq) (accessToken, refreshToken string, err error) {
+	// 读取数据库
+	user, err := FindUserByEmail(loginReq.Email)
+	if err != nil {
+		return "", "", errors.New("获取用户信息失败")
+	}
+
+	// 验证邮箱验证码
+	if cache.GetEmailCode(loginReq.Email) != loginReq.Code {
+		// 记录登录尝试次数
+		cache.IncrLoginTryCount(loginReq.Email)
+		return "", "", errors.New("邮箱验证错误")
+	}
+
+	// 生成验证token
+	if accessToken, err = jwt.GenerateAccessToken(user.ID); err != nil {
+		return "", "", errors.New("验证token生成失败")
+	}
+	// 生成刷新token
+	if refreshToken, err = jwt.GenerateRefreshToken(user.ID); err != nil {
+		return "", "", errors.New("刷新token生成失败")
+	}
+
+	// 用户ID写入Cookie
+	SetUserIdCookie(ctx, user.ID)
+
+	// 存入缓存
+	cache.SetRefreshToken(user.ID, refreshToken)
+
+	return accessToken, refreshToken, nil
+}
+
 func UpdateToken(ctx *gin.Context, tokenReq dto.TokenReq) (accessToken, refreshToken string, err error) {
 	// 验证并解析token
 	_, claims, err := jwt.ParseToken(tokenReq.RefreshToken)

@@ -20,6 +20,8 @@ func CollectAuthRoutes(r *gin.RouterGroup) {
 	authGroup.POST("register", api.Register)
 	// 用户登录(密码)
 	authGroup.POST("login", api.Login)
+	// 用户登录(邮箱)
+	authGroup.POST("login/email", api.EmailLogin)
 	// 更新token
 	authGroup.POST("updateToken", api.UpdateToken)
 	// 清除Cookie
