@@ -27,6 +27,21 @@ func GetVideoFile(ctx *gin.Context) {
 	resp.OkWithString(ctx, file)
 }
 
+// 获取视频文件(后台管理)
+func GetVideoFileManage(ctx *gin.Context) {
+	quality := ctx.Query("quality")
+	resourceId := utils.StringToUint(ctx.Query("resourceId"))
+
+	file, err := service.GetVideoFileManage(ctx, resourceId, quality)
+	if err != nil {
+		resp.ForbiddenWithMessage(ctx, err.Error())
+		return
+	}
+
+	ctx.Writer.Header().Set("Content-type", "text/plain; charset=utf-8")
+	resp.OkWithString(ctx, file)
+}
+
 // 获取视频切片
 func GetVideoSlice(ctx *gin.Context) {
 	key := ctx.Query("key")

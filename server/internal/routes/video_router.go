@@ -34,6 +34,15 @@ func CollectVideoRoutes(r *gin.RouterGroup) {
 		videoAuth.DELETE("deleteVideoManage/:id", api.DeleteVideoManage)
 	}
 
+	videoUrlAuth := videoGroup.Group("")
+	videoUrlAuth.Use(middleware.UrlAuth())
+	{
+		// 获取视频资源支持的分辨率信息（后台管理）
+		videoUrlAuth.GET("getResourceQualityManage", api.GetResourceQualityManage)
+		// 获取视频文件（后台管理）
+		videoUrlAuth.GET("getVideoFileManage", api.GetVideoFileManage)
+	}
+
 	// 获取视频信息
 	videoGroup.GET("getVideoById", api.GetVideoById)
 	// 获取视频资源支持的分辨率信息

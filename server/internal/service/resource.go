@@ -74,6 +74,10 @@ func GetReviewResourceList(videoId uint) (resources []vo.ResourceResp) {
 
 // 获取视频资源支持的分辨率信息
 func GetResourceQuality(ctx *gin.Context, id uint) ([]string, error) {
+	if !IsResourceExist(id) {
+		return nil, errors.New("资源不存在")
+	}
+
 	var quality []string
 	if err := global.Mysql.Model(&model.VideoIndexFile{}).Where("resource_id = ?", id).
 		Pluck("quality", &quality).Error; err != nil {
@@ -82,4 +86,24 @@ func GetResourceQuality(ctx *gin.Context, id uint) ([]string, error) {
 	}
 
 	return quality, nil
+}
+
+// 获取视频资源支持的分辨率信息(后台管理)
+func GetResourceQualityManage(ctx *gin.Context, id uint) ([]string, error) {
+	var quality []string
+	if err := global.Mysql.Model(&model.VideoIndexFile{}).Where("resource_id = ?", id).
+		Pluck("quality", &quality).Error; err != nil {
+		utils.ErrorLog("分辨率信息获取失败", "resource", err.Error())
+		return nil, errors.New("获取失败")
+	}
+
+	return quality, nil
+}
+
+func IsResourceExist(resourceId uint) bool {
+	var resource model.Resource
+	global.Mysql.Model(&model.Resource{}).Select("id").
+		Where("id = ? and `status` = ?", resourceId, global.AUDIT_APPROVED).First(&resource)
+
+	return resource.ID != 0
 }

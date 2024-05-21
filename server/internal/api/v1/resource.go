@@ -60,3 +60,17 @@ func GetResourceQuality(ctx *gin.Context) {
 	// 返回给前端
 	resp.OkWithData(ctx, gin.H{"quality": quality})
 }
+
+// 获取视频资源支持的分辨率信息(后台管理)
+func GetResourceQualityManage(ctx *gin.Context) {
+	resourceId := utils.StringToUint(ctx.Query("resourceId"))
+
+	quality, err := service.GetResourceQualityManage(ctx, resourceId)
+	if err != nil {
+		resp.FailWithMessage(ctx, err.Error())
+		return
+	}
+
+	// 返回给前端
+	resp.OkWithData(ctx, gin.H{"quality": quality})
+}

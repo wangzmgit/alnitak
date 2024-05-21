@@ -72,6 +72,8 @@ func UserLogin(ctx *gin.Context, loginReq dto.LoginReq) (accessToken, refreshTok
 
 	// 用户ID写入Cookie
 	SetUserIdCookie(ctx, user.ID)
+	// token写入Cookie
+	SetTokenCookie(ctx, accessToken)
 
 	// 存入缓存
 	cache.SetRefreshToken(user.ID, refreshToken)
@@ -104,6 +106,8 @@ func EmailLogin(ctx *gin.Context, loginReq dto.EmailLoginReq) (accessToken, refr
 
 	// 用户ID写入Cookie
 	SetUserIdCookie(ctx, user.ID)
+	// token写入Cookie
+	SetTokenCookie(ctx, accessToken)
 
 	// 存入缓存
 	cache.SetRefreshToken(user.ID, refreshToken)
@@ -144,6 +148,8 @@ func UpdateToken(ctx *gin.Context, tokenReq dto.TokenReq) (accessToken, refreshT
 
 	// 用户ID写入Cookie
 	SetUserIdCookie(ctx, claims.UserId)
+	// token写入Cookie
+	SetTokenCookie(ctx, accessToken)
 
 	// 存入缓存
 	cache.SetRefreshToken(claims.UserId, refreshToken)
@@ -167,6 +173,11 @@ func SetUserIdCookie(ctx *gin.Context, userId uint) {
 
 	ctx.SetCookie("user_id", strconv.Itoa(int(userId)), math.MaxInt32, "/", "", false, true)
 	ctx.SetCookie("user_id_md5", ckMd5, math.MaxInt32, "/", "", false, true)
+}
+
+// 用户Token写入Cookie
+func SetTokenCookie(ctx *gin.Context, token string) {
+	ctx.SetCookie("token", token, math.MaxInt32, "/", "", false, true)
 }
 
 // 编辑用户信息

@@ -60,6 +60,30 @@ func GetVideoStatus(ctx *gin.Context, vid uint) (video vo.VideoStatusResp, err e
 
 // 获取视频文件
 func GetVideoFile(ctx *gin.Context, resourceId uint, quality string) (string, error) {
+	if !IsResourceExist(resourceId) {
+		return "", errors.New("资源不存在")
+	}
+
+	var file model.VideoIndexFile
+	global.Mysql.Where("resource_id = ? and quality = ?", resourceId, quality).First(&file)
+
+	res := ""
+	key := uuid.New().String()
+	cache.SetVideoSlice(key, file.DirName)
+	for _, line := range strings.Split(file.Content, "\n") {
+		//根据关键词覆盖当前行
+		if strings.Contains(line, ".ts") {
+			res += "/api/v1/video/slice/" + line + "?key=" + key + "\n"
+		} else {
+			res += line + "\n"
+		}
+	}
+
+	return res, nil
+}
+
+// 获取视频文件（后台管理）
+func GetVideoFileManage(ctx *gin.Context, resourceId uint, quality string) (string, error) {
 	var file model.VideoIndexFile
 	global.Mysql.Where("resource_id = ? and quality = ?", resourceId, quality).First(&file)
 

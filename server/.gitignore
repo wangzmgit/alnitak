@@ -1,3 +1,4 @@
 /conf/*.yaml
 /logs/*.log
 /upload/video/test_video
+/upload/image/test_cover.png
