@@ -19,7 +19,7 @@
               <span>P{{ index + 1 }} {{ item.title }}</span>
             </div>
             <div class="item-right">
-              <n-button text @click="playVideo(item)">查看</n-button>
+              <n-button text @click="playVideo(item, index + 1)">查看</n-button>
             </div>
           </div>
         </n-scrollbar>
@@ -31,16 +31,18 @@
     </n-drawer-content>
     <review-modal v-model:visible="visibleModal" :vid="props.data.vid" :video-count="resourceList.length"
       @finish="reviewFinish"></review-modal>
+    <video-modal v-model:visible="visibleVideoModal" :part="currentPart" :resource-id="currentResourceId"></video-modal>
   </n-drawer>
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { formatTime } from '@/utils/format';
 import { getReviewResourceListAPI } from "@/api/video";
 import { statusCode } from '@/utils/status-code';
 import { reviewVideoApprovedAPI } from "@/api/review";
 import ReviewModal from './review-modal.vue';
+import VideoModal from './video-modal.vue';
 import { NButton, NTag, NDrawer, NDrawerContent, NScrollbar, NForm, NGrid, NFormItemGridItem } from "naive-ui";
 
 const emit = defineEmits(['update:visible', 'finish']);
@@ -77,8 +79,13 @@ const getReviewResourceList = async (vid: number) => {
   }
 }
 
-const playVideo = (r: ResourceType) => {
-
+const currentPart = ref(0);
+const currentResourceId = ref(0);
+const visibleVideoModal = ref(false);
+const playVideo = (r: ResourceType, part: number) => {
+  currentPart.value = part;
+  currentResourceId.value = r.id;
+  visibleVideoModal.value = true;
 }
 
 const reviewVideoApproved = async () => {

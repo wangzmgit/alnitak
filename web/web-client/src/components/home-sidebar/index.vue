@@ -83,9 +83,11 @@ const partitionList = ref<Array<PartitionType>>([])
 const { data } = await asyncGetPartition();
 if ((data.value as any).code === statusCode.OK) {
   const partitions = (data.value as any).data.partitions as PartitionType[];
-  partitionList.value = partitions.filter((item) => {
-    return item.parentId === 0;
-  })
+  if (partitions) {
+    partitionList.value = partitions.filter((item) => {
+      return item.parentId === 0;
+    })
+  }
 }
 </script>
 

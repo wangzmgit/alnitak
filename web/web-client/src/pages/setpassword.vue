@@ -54,7 +54,7 @@ import { resetpwdCheckAPI, mpdifyPwdAPI } from "@/api/user";
 import SliderCaptcha from "@/components/slider-captcha/index.vue";
 import { sendEmailCodeAPI } from "@/api/code";
 
-const current = ref(3);
+const current = ref(1);
 const captchaId = ref("");
 const showCaptcha = ref(false);
 const modifyForm = reactive({

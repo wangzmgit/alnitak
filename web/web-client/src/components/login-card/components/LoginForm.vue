@@ -10,7 +10,7 @@
         <div class="input-box">
           <input v-model="loginForm.password" placeholder="请输入密码" type="password" class="input input-password "
             maxlength="64">
-          <span class="find-password">忘记密码</span>
+          <nuxt-link class="find-password" to="/setpassword" target="blank">忘记密码</nuxt-link>
         </div>
         <div class="error-text">{{ errorTips.passwordError }}</div>
       </div>
