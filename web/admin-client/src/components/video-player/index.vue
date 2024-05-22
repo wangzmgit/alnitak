@@ -9,8 +9,9 @@ import Hls from "hls.js";
 import Wplayer from 'wplayer-next';
 import { statusCode } from "@/utils/status-code";
 import { ref, shallowRef, onBeforeUnmount } from 'vue';
-import { getResourceQualityApi, getVideoFileUrl } from "@/api/video";
+import { getResourceQualityApi, getVideoFileUrl, getVideoFileAPI } from "@/api/video";
 import { useMessage } from "naive-ui";
+import { getResourceUrl } from "@/utils/resource";
 
 const message = useMessage();
 
@@ -25,22 +26,35 @@ const options: PlayerOptionsType = {
     type: 'customHls',
     customType: {
       customHls: (video: HTMLVideoElement) => {
-        if (!hls.value) hls.value = new Hls();
-        hls.value.loadSource(video.src);
-        hls.value.attachMedia(video);
-        hls.value.on(Hls.Events.ERROR, () => {
-          console.error("资源加载失败");
-        });
+        console.log('video.src', video.src)
+        getVideoFileAPI(video.src).then((res) => {
+          if (!res.data) return;
+          if (!hls.value) hls.value = new Hls();
+          const indexFile = res.data.split('\n').map((line: string) => {
+            if (line.includes(".ts")) {
+              return getResourceUrl(line)
+            } else {
+              return line
+            }
+          })
+          var blob = new Blob([indexFile.join('\n')], { type: 'text/plain' });
+          var blobUrl = URL.createObjectURL(blob);
+          hls.value.loadSource(blobUrl);
+          hls.value.attachMedia(video);
+          hls.value.on(Hls.Events.ERROR, () => {
+            console.error("资源加载失败");
+          });
+        })
       },
     },
   },
   danmaku: {}
 }
 
-const loadVideo = async (resourceId: number, part: number) => {
+const loadVideo = async (resourceId: number) => {
   const el = document.getElementById('wplayer');
   if (el) {
-    await loadResource(resourceId, part);
+    await loadResource(resourceId);
 
     if (player) player.destroy();
 
@@ -59,7 +73,7 @@ const resourceNameMap = {
   "1920x1080_3000k_30": "1080p",
 }
 
-const loadResource = async (resourceId: number, part: number) => {
+const loadResource = async (resourceId: number) => {
   const res = await getResourceQualityApi(resourceId);
   if (res.data.code === statusCode.OK) {
     options.video.quality = [];

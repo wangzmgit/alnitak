@@ -25,12 +25,9 @@
         </n-scrollbar>
       </div>
       <template #footer>
-        <n-button class="btn" @click="openModal">不通过</n-button>
-        <n-button class="btn" type="primary" @click="reviewVideoApproved">通过</n-button>
+        <n-button class="btn" @click="closeDrawer">完成</n-button>
       </template>
     </n-drawer-content>
-    <review-modal v-model:visible="visibleModal" :vid="props.data.vid" :video-count="resourceList.length"
-      @finish="reviewFinish"></review-modal>
     <video-modal v-model:visible="visibleVideoModal" :resource-id="currentResourceId"></video-modal>
   </n-drawer>
 </template>
@@ -40,12 +37,11 @@ import { computed, ref, watch } from 'vue';
 import { formatTime } from '@/utils/format';
 import { getReviewResourceListAPI } from "@/api/video";
 import { statusCode } from '@/utils/status-code';
-import { reviewVideoApprovedAPI } from "@/api/review";
 import ReviewModal from './review-modal.vue';
 import VideoModal from './video-modal.vue';
 import { NButton, NTag, NDrawer, NDrawerContent, NScrollbar, NForm, NGrid, NFormItemGridItem } from "naive-ui";
 
-const emit = defineEmits(['update:visible', 'finish']);
+const emit = defineEmits(['update:visible']);
 const props = withDefaults(defineProps<{
   visible: boolean; //弹窗可见性
   data: VideoType;
@@ -62,9 +58,8 @@ const drawerVisible = computed({
   }
 });
 
-const visibleModal = ref(false);
-const openModal = () => {
-  visibleModal.value = true;
+const closeDrawer = () => {
+  drawerVisible.value = false;
 }
 
 const resourceList = ref<ResourceType[]>([]);
@@ -84,18 +79,6 @@ const visibleVideoModal = ref(false);
 const playVideo = (r: ResourceType) => {
   currentResourceId.value = r.id;
   visibleVideoModal.value = true;
-}
-
-const reviewVideoApproved = async () => {
-  const res = await reviewVideoApprovedAPI({ vid: props.data.vid });
-  if (res.data.code === statusCode.OK) {
-    reviewFinish();
-  }
-}
-
-const reviewFinish = () => {
-  drawerVisible.value = false;
-  emit("finish");
 }
 
 watch(() => props.visible, (newVal) => {

@@ -38,7 +38,6 @@ watch(() => props.visible, (newVal) => {
   if (newVal) {
     nextTick(() => {
       videoPlayerRef.value?.loadVideo(props.resourceId);
-      console.log('videoPlayerRef.value', videoPlayerRef.value)
     })
   }
 })

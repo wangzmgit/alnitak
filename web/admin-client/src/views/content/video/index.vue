@@ -13,7 +13,7 @@
         </n-space>
         <n-data-table class="table" remote :columns="columns" :data="tableData" :loading="loading"
           :pagination="pagination" flex-height />
-        <!-- <table-action-modal v-model:visible="visible" :edit-data="editData" @refresh="getTableData" /> -->
+        <table-action-drawer v-model:visible="visibleDrawer" :data="editData!"></table-action-drawer>
       </div>
     </n-card>
   </div>
@@ -26,10 +26,10 @@ import { Refresh } from "@vicons/ionicons5";
 import useLoading from '@/hooks/loading-hooks';
 import { statusCode } from '@/utils/status-code';
 import { getVideoListAPI, deleteVideoAPI } from '@/api/video';
-// import TableActionModal from './components/table-action-modal.vue';
 import type { DataTableColumns } from 'naive-ui';
 import { getResourceUrl } from '@/utils/resource';
 import usePartition from '@/hooks/partition-hooks';
+import TableActionDrawer from './components/table-action-drawer.vue';
 import { NCard, NImage, NIcon, NButton, NDataTable, NPopconfirm, NSpace, useMessage } from 'naive-ui';
 
 const { loading, startLoading, endLoading } = useLoading(false);
@@ -38,16 +38,16 @@ const { getPartition, getPartitionName } = usePartition("video");
 // TODO: 编辑视频
 const message = useMessage();
 
-const visible = ref(false);
-const openModal = () => {
-  visible.value = true;
+const visibleDrawer = ref(false);
+const openDrawer = () => {
+  visibleDrawer.value = true;
 }
 
 // 编辑视频
 const editData = ref<VideoType>();
 const editVideo = (row: VideoType) => {
   editData.value = row;
-  openModal();
+  openDrawer();
 }
 
 // 删除视频
@@ -128,10 +128,10 @@ const columns: DataTableColumns<VideoType> = [
     render: row => {
       return h(NSpace, { justify: 'center' }, {
         default: () => [
-          // h(NButton, {
-          //   size: 'small',
-          //   onClick: () => editVideo(row)
-          // }, { default: () => '编辑' }),
+          h(NButton, {
+            size: 'small',
+            onClick: () => editVideo(row)
+          }, { default: () => '编辑' }),
           h(NPopconfirm, {
             onPositiveClick: () => deleteVideo(row),
           }, {

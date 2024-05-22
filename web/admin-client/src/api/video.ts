@@ -23,10 +23,15 @@ export const deleteVideoAPI = (id: number) => {
 
 // 获取视频支持的分辨率
 export const getResourceQualityApi = async (resourceId: number | string) => {
-  return request.get(`v1/video/getResourceQualityManage?resourceId=${resourceId}&token=${storageData.get("token")}`)
+  return request.get(`v1/video/getResourceQualityManage?resourceId=${resourceId}`)
 }
 
 // 获取视频文件URL
 export const getVideoFileUrl = (resourceId: number | string, quality: string) => {
-  return `${baseURL}/api/v1/video/getVideoFileManage?resourceId=${resourceId}&quality=${quality}&token=${storageData.get("token")}`
+  return `${baseURL}/api/v1/video/getVideoFileManage?resourceId=${resourceId}&quality=${quality}`
+}
+
+// 获取视频文件URL
+export const getVideoFileAPI = (src:string) => {
+  return request.get(src);
 }
