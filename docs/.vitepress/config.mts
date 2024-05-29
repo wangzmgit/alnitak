@@ -41,14 +41,19 @@ export default defineConfig({
           ]
         },
         {
+          text: '快速开始',
+          collapsed: false,
+          items: [
+            { text: '环境配置', link: '/guide/start/env' },
+            { text: '项目配置', link: '/guide/start/config' },
+            { text: '项目启动', link: '/guide/start/start' },
+          ]
+        },
+        {
           text: '部署指南',
           collapsed: false,
           items: [
-            { text: '环境配置', link: '/guide/' },
-            { text: '项目配置', link: '/guide/config' },
             { text: 'Docker部署', link: '/guide/docker' },
-            { text: '手动部署', link: '/guide/manual' },
-            { text: '域名配置', link: '/guide/domain' },
           ]
         },
         {
@@ -56,7 +61,6 @@ export default defineConfig({
           collapsed: true,
           items: [
             { text: '项目结构', link: '/guide/' },
-            { text: '项目配置', link: '/guide/config' },
           ]
         },
         {
