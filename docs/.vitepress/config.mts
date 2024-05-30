@@ -65,10 +65,10 @@ export default defineConfig({
         },
         {
           text: '其他',
-          collapsed: true,
+          collapsed: false,
           items: [
             { text: '贡献指南', link: '/guide/other/contribution' },
-            { text: '常见问题解答', link: '/guide/qa' },
+            { text: '常见问题解答', link: '/guide/other/qa' },
             { text: '相关截图', link: '/guide/screenshot' }
           ]
         }
