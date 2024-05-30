@@ -85,3 +85,33 @@ user:
 ```
 
 ## 前端项目配置
+
+### 用户端配置
+配置文件位于目录`web/web-client/src/utils/global-config.ts`，配置文件内容如下：
+```js
+const title = "弹幕网站标题"; // 网站标题
+const https = false; // 是否使用https
+const domain = "localhost:9000"; // 后端地址
+const icp = "icp备案信息"; // icp备案信息
+const security = "公网安备信息"; // 公网安备信息
+const keywords = "视频,弹幕"; // 网站关键词
+const description = "这里是介绍"; // 网站介绍
+
+//上传文件大小限制，需要先修改后端大小限制
+const maxImgSize = 5;//上传图片最大大小(单位M)
+const maxVideoSize = 500;//上传视频最大大小(单位M)
+```
+
+### 管理端配置
+配置文件位于目录`web/admin-client/src/utils/global-config.ts`，配置文件内容如下：
+```js
+const title = "弹幕网站标题"; // 网站标题
+const https = false; // 是否使用https
+const domain = "localhost:9000"; // 后端地址
+const icp = "icp备案信息"; // icp备案信息
+const security = "公网安备信息"; // 公网安备信息
+
+//上传文件大小限制，需要先修改后端大小限制
+const maxImgSize = 5;//上传图片最大大小(单位M)
+const maxVideoSize = 500;//上传视频最大大小(单位M)
+```
