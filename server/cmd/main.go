@@ -19,7 +19,7 @@ import (
 )
 
 func main() {
-	env := flag.String("env", "dev", "dev/prod")
+	env := flag.String("env", "prod", "dev/prod")
 	flag.Parse()
 
 	// 初始化配置文件

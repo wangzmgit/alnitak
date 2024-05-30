@@ -6,6 +6,8 @@ import (
 	"interastral-peace.com/alnitak/internal/middleware"
 )
 
+const port = "9000"
+
 func InitRouter() {
 	// gin 模式
 	gin.SetMode(gin.ReleaseMode)
@@ -22,7 +24,7 @@ func InitRouter() {
 	CollectRoutes(r)
 
 	// 运行
-	r.Run(":9000")
+	r.Run(":" + port)
 }
 
 func CollectRoutes(r *gin.Engine) *gin.Engine {
