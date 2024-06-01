@@ -1,4 +1,5 @@
-// https://nuxt.com/docs/api/configuration/nuxt-config
+import { globalConfig } from "./src/utils/global-config";
+
 export default defineNuxtConfig({
   modules: [
     '@element-plus/nuxt',

@@ -8,8 +8,8 @@
           </n-space>
           <n-space align="center" :size="18">
             <n-radio-group v-model:value="partitionType" class="radio-group" @update:value="partitionTypeChange">
-              <n-radio class="radio" :key="0" :value="0">视频</n-radio>
-              <n-radio class="radio" :key="1" :value="1">文章</n-radio>
+              <n-radio class="radio" :key="0" value="video">视频</n-radio>
+              <n-radio class="radio" :key="1" value="article">文章</n-radio>
             </n-radio-group>
             <n-button :disabled="loading" size="small" type="primary" @click="getPartition">
               <n-icon>
@@ -146,7 +146,7 @@ const deletePartition = async (row: PartitionType) => {
   }
 }
 
-const partitionType = ref(0);
+const partitionType = ref<"video" | "article">("video");
 const partitionTypeChange = () => {
   getPartition();
 }

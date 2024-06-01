@@ -37,7 +37,6 @@ import { computed, ref, watch } from 'vue';
 import { formatTime } from '@/utils/format';
 import { getReviewResourceListAPI } from "@/api/video";
 import { statusCode } from '@/utils/status-code';
-import ReviewModal from './review-modal.vue';
 import VideoModal from './video-modal.vue';
 import { NButton, NTag, NDrawer, NDrawerContent, NScrollbar, NForm, NGrid, NFormItemGridItem } from "naive-ui";
 

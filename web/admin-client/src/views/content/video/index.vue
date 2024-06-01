@@ -35,7 +35,6 @@ import { NCard, NImage, NIcon, NButton, NDataTable, NPopconfirm, NSpace, useMess
 const { loading, startLoading, endLoading } = useLoading(false);
 const { getPartition, getPartitionName } = usePartition("video");
 
-// TODO: 编辑视频
 const message = useMessage();
 
 const visibleDrawer = ref(false);
@@ -87,21 +86,8 @@ const columns: DataTableColumns<VideoType> = [
     align: 'center'
   },
   {
-    key: 'author',
-    title: '作者',
-    align: 'center',
-    render: row => {
-      return row.author.name
-    }
-  },
-  {
     key: 'desc',
     title: '简介',
-    align: 'center',
-  },
-  {
-    key: 'tags',
-    title: '标签',
     align: 'center',
   },
   {
@@ -113,12 +99,9 @@ const columns: DataTableColumns<VideoType> = [
     }
   },
   {
-    key: 'createdAt',
-    title: '上传时间',
-    align: 'center',
-    render: row => {
-      return formatTime(row.createdAt)
-    }
+    key: 'clicks',
+    title: '播放量',
+    align: 'center'
   },
   {
     key: 'actions',
@@ -131,7 +114,7 @@ const columns: DataTableColumns<VideoType> = [
           h(NButton, {
             size: 'small',
             onClick: () => editVideo(row)
-          }, { default: () => '编辑' }),
+          }, { default: () => '详情' }),
           h(NPopconfirm, {
             onPositiveClick: () => deleteVideo(row),
           }, {

@@ -180,7 +180,7 @@ const pagination = reactive({
 // 分区
 const partitions = ref<PartitionType[]>([]);
 const getPartition = async () => {
-  const res = await getPartitionAPI(constant.CONTNET_TYPE_VIDEO);
+  const res = await getPartitionAPI("video");
   if (res.data.code === statusCode.OK) {
     if (res.data.data.partitions) {
       partitions.value = res.data.data.partitions.filter((item: PartitionType) => {

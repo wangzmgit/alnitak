@@ -19,7 +19,7 @@ const props = withDefaults(defineProps<{
 
 const mode = 'default';
 const editorRef = shallowRef();
-const editorConfig = { placeholder: '' }
+const editorConfig = { placeholder: '',readOnly:true }
 
 const handleCreated = (editor: any) => {
   editorRef.value = editor // 记录 editor 实例，重要！

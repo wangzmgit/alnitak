@@ -130,7 +130,7 @@ const columns: DataTableColumns<ArticleType> = [
           h(NButton, {
             size: 'small',
             onClick: () => editArticle(row)
-          }, { default: () => '编辑' }),
+          }, { default: () => '详情' }),
           h(NPopconfirm, {
             onPositiveClick: () => deleteArticle(row),
           }, {
