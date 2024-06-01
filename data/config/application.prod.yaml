@@ -1,0 +1,65 @@
+cors:
+  # 跨域配置，存在多个使用 , 分隔，请根据实际状况填写，(格式：http://example.com)
+  allow_origin: http://localhost:5173,http://localhost:3000
+file:
+  max_img_size: 5
+  max_video_size: 500
+log: # 日志相关配置，不建议改动
+  filename: ./logs/app.log
+  max-age: 60
+  max-backups: 10
+  max-size: 20
+  mode: prod
+mail:
+  # 邮箱发送者
+  addresser: 网站管理员
+  # debug为true只会在日志中输出验证码，不会实际发送邮件
+  debug: false
+  # SMTP服务器地址
+  host: smtp.163.com
+  # 邮箱秘钥(申请smtp得到的秘钥，不是邮箱密码)
+  pass: 
+  # SMTP服务器端口
+  port: 465
+  # 发送者的邮箱(格式：noreply@example.com)
+  user: 
+mysql:
+  # 数据库名称
+  datasource: alnitak-prod
+  # 数据库地址
+  host: mysql
+  # 数据库参数，不建议改动
+  param: charset=utf8mb4&parseTime=True&loc=Local
+  # 数据库密码
+  password: AlnitakRoot@123
+  # 数据库端口
+  port: 3306
+  # 数据库用户名
+  username: root
+redis:
+  host: redis
+  # redis密码（修改要同时修改docker-compose.yml中对应的密码）
+  password: AlnitakRedis@123
+  port: 6379
+security:
+  access_jwt_secret: 
+  refresh_jwt_secret: 
+  user_id_salt: 
+storage:
+  # oss的bucket，非local类型必填
+  bucket: 
+  # 阿里云oss必填，例如：oss-cn-beijing.aliyuncs.com
+  endpoint: 
+  # oss非local类型必填，对应阿里云access_key_id
+  key_id: 
+  # oss非local类型必填，对应阿里云access_key_secret
+  key_secret: 
+  # oss类型(local服务器存储，aliyun阿里云)
+  oss_type: local
+  # 是否将视频的原始mp4上传到oss
+  upload_mp4_file: false
+  # 是否使用了CDN
+  use_cdn: false
+user:
+  # 用户注册时生成用户名的默认前缀
+  prefix: user_
