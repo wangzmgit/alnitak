@@ -57,11 +57,11 @@ redis:
   # Redis密码
   password: 
 security:
-  # AccessJwt秘钥，建议填写随机字符串
+  # AccessJwt秘钥，可不填写会自动生成
   access_jwt_secret: 
-  # RefreshJwt秘钥，建议填写随机字符串
+  # RefreshJwt秘钥，可不填写会自动生成
   refresh_jwt_secret: 
-  # Cookie中用户ID的MD5的加盐值，建议填写随机字符串
+  # Cookie中用户ID的MD5的加盐值，可不填写会自动生成
   user_id_salt: 
 storage:
   # oss的bucket，非local类型必填

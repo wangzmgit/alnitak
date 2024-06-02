@@ -53,7 +53,9 @@ export default defineConfig({
           text: '部署指南',
           collapsed: false,
           items: [
-            { text: 'Docker部署', link: '/guide/docker' },
+            { text: 'Docker部署', link: '/guide/deploy/docker' },
+            { text: '手动部署', link: '/guide/deploy/manual' },
+            { text: '域名配置', link: '/guide/deploy/domain' },
           ]
         },
         {
@@ -68,6 +70,7 @@ export default defineConfig({
           collapsed: false,
           items: [
             { text: '贡献指南', link: '/guide/other/contribution' },
+            { text: '更新说明', link: '/guide/other/update' },
             { text: '常见问题解答', link: '/guide/other/qa' },
             { text: '相关截图', link: '/guide/screenshot' }
           ]
