@@ -42,7 +42,7 @@ export default defineConfig({
         },
         {
           text: '快速开始',
-          collapsed: false,
+          collapsed: true,
           items: [
             { text: '环境配置', link: '/guide/start/env' },
             { text: '项目配置', link: '/guide/start/config' },
@@ -51,7 +51,7 @@ export default defineConfig({
         },
         {
           text: '部署指南',
-          collapsed: false,
+          collapsed: true,
           items: [
             { text: 'Docker部署', link: '/guide/deploy/docker' },
             { text: '手动部署', link: '/guide/deploy/manual' },
@@ -62,12 +62,19 @@ export default defineConfig({
           text: '项目指南',
           collapsed: true,
           items: [
-            { text: '项目结构', link: '/guide/' },
+            { text: '状态码', link: '/guide/guide/code' },
+            { text: '登录流程', link: '/guide/guide/login' },
+            { text: '视频处理流程', link: '/guide/' },
+            { text: '权限相关说明', link: '/guide/' },
+            { text: '视频推荐说明', link: '/guide/' },
+            { text: '人机验证说明', link: '/guide/' },
+            { text: '弹幕播放器说明', link: '/guide/' },
+            // { text: '对象存储和CDN说明', link: '/guide/' },
           ]
         },
         {
           text: '其他',
-          collapsed: false,
+          collapsed: true,
           items: [
             { text: '贡献指南', link: '/guide/other/contribution' },
             { text: '更新说明', link: '/guide/other/update' },
