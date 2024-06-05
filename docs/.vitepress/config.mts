@@ -27,7 +27,7 @@ export default defineConfig({
       copyright: 'Copyright © 2020-2024'
     },
     nav: [
-      { text: '项目指南', link: '/guide/', activeMatch: '/guide/' },
+      { text: '项目指南', link: '/guide/introduce', activeMatch: '/guide/' },
       { text: '接口文档', link: '/api/', activeMatch: '/api/' },
       { text: '赞助', link: '/other/donate' }
     ],
@@ -64,11 +64,9 @@ export default defineConfig({
           items: [
             { text: '状态码', link: '/guide/guide/code' },
             { text: '登录流程', link: '/guide/guide/login' },
-            { text: '视频处理流程', link: '/guide/' },
-            { text: '权限相关说明', link: '/guide/' },
-            { text: '视频推荐说明', link: '/guide/' },
-            { text: '人机验证说明', link: '/guide/' },
-            { text: '弹幕播放器说明', link: '/guide/' },
+            { text: '视频处理流程', link: '/guide/guide/transcoding' },
+            { text: '人机验证说明', link: '/guide/guide/captcha' },
+            { text: '弹幕播放器说明', link: '/guide/guide/player' },
             // { text: '对象存储和CDN说明', link: '/guide/' },
           ]
         },
