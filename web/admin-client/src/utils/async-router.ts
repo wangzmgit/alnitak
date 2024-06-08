@@ -1,4 +1,5 @@
 import type { RouteRecordRaw } from "vue-router";
+import { globalConfig } from "@/utils/global-config";
 
 const viewModules = import.meta.glob('../views/**/*.vue');
 
@@ -6,11 +7,11 @@ export const asyncRouterHandle = (menuList: MenuType[]) => {
   const routeList: RouteRecordRaw[] = [];
 
   menuList.forEach((item) => {
-    if(item.children) {
-      item.children.forEach((child)=>{
+    if (item.children) {
+      item.children.forEach((child) => {
         routeList.push({
           name: child.name,
-          path: `/layout/${child.path}`,
+          path: `/${globalConfig.baseUrl}/layout/${child.path}`,
           meta: {
             label: child.meta.title,
             keepAlive: child.meta.keepAlive,
@@ -18,7 +19,7 @@ export const asyncRouterHandle = (menuList: MenuType[]) => {
           component: dynamicImport(child.component)
         })
       })
-    } else if(item.component) { // 没有子路由
+    } else if (item.component) { // 没有子路由
       routeList.push({
         name: item.name,
         path: item.path,

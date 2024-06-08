@@ -23,6 +23,7 @@ import { ref, computed, watch, nextTick } from "vue";
 import { useRouter } from "vue-router";
 import type { ScrollbarInst } from "naive-ui";
 import { NScrollbar, NTag, NSpace } from "naive-ui";
+import { globalConfig } from "@/utils/global-config";
 import useHistoryStore from "@/stores/modules/history-store.js";
 
 const router = useRouter();
@@ -30,7 +31,9 @@ const router = useRouter();
 const historyStore = useHistoryStore();
 
 /** 标签列表  剔除空name字段页面路由 */
-const tagList = computed(() => historyStore.routerHistory.filter(item => item.name));
+const tagList = computed(() => historyStore.routerHistory.filter(item => {
+  return item.name && item.path !== `/${globalConfig.baseUrl}`
+}));
 const handleTagClose = (index: number) => {
   historyStore.removeRouterHistory(index);
 };
