@@ -125,6 +125,12 @@ INSERT INTO `api` VALUES (103, '2024-05-18 11:22:33.000', '2024-05-18 11:22:33.0
 INSERT INTO `api` VALUES (104, '2024-05-18 11:22:33.000', '2024-05-18 11:22:33.000', NULL, 'POST', '/api/v1/video/uploadVideoInfo', '视频', '上传视频信息');
 INSERT INTO `api` VALUES (105, '2024-05-20 23:07:37.810', '2024-05-20 23:07:37.810', NULL, 'GET', '/api/v1/video/getResourceQualityManage', '视频', '获取视频资源支持的分辨率信息（后台管理）');
 INSERT INTO `api` VALUES (106, '2024-05-20 23:19:27.882', '2024-05-20 23:19:27.882', NULL, 'GET', '/api/v1/video/getVideoFileManage', '视频', '获取视频文件URL（后台管理）');
+INSERT INTO `api` VALUES (107, '2024-06-08 16:26:36.000', '2024-06-08 16:26:36.000', NULL, 'GET', '/api/v1/config/getEmailConfig', '配置', '获取邮箱配置（后台管理）');
+INSERT INTO `api` VALUES (108, '2024-06-08 16:26:36.000', '2024-06-08 16:26:36.000', NULL, 'POST', '/api/v1/config/setEmailConfig', '配置', '编辑邮箱配置（后台管理）');
+INSERT INTO `api` VALUES (109, '2024-06-08 16:26:36.000', '2024-06-08 16:26:36.000', NULL, 'GET', '/api/v1/config/getStorageConfig', '配置', '获取存储配置（后台管理）');
+INSERT INTO `api` VALUES (110, '2024-06-08 16:26:36.000', '2024-06-08 16:26:36.000', NULL, 'POST', '/api/v1/config/setStorageConfig', '配置', '编辑存储配置（后台管理）');
+INSERT INTO `api` VALUES (111, '2024-06-08 16:26:36.000', '2024-06-08 16:26:36.000', NULL, 'GET', '/api/v1/config/getOtherConfig', '配置', '获取其他配置（后台管理）');
+INSERT INTO `api` VALUES (112, '2024-06-08 16:26:36.000', '2024-06-08 16:26:36.000', NULL, 'POST', '/api/v1/config/setOtherConfig', '配置', '编辑其他配置（后台管理）');
 
 
 -- 创建CasbinRule表
@@ -310,6 +316,12 @@ INSERT INTO `casbin_rule` VALUES (165, 'p', '002', '/api/v1/video/getVideoFileMa
 INSERT INTO `casbin_rule` VALUES (166, 'p', '002', '/api/v1/video/getVideoListManage', 'POST', NULL, NULL, NULL);
 INSERT INTO `casbin_rule` VALUES (167, 'p', '002', '/api/v1/video/getVideoStatus', 'GET', NULL, NULL, NULL);
 INSERT INTO `casbin_rule` VALUES (168, 'p', '002', '/api/v1/video/uploadVideoInfo', 'POST', NULL, NULL, NULL);
+INSERT INTO `casbin_rule` VALUES (169, 'p', '002', '/api/v1/config/getEmailConfig', 'GET', NULL, NULL, NULL);
+INSERT INTO `casbin_rule` VALUES (170, 'p', '002', '/api/v1/config/setEmailConfig', 'POST', NULL, NULL, NULL);
+INSERT INTO `casbin_rule` VALUES (171, 'p', '002', '/api/v1/config/getStorageConfig', 'GET', NULL, NULL, NULL);
+INSERT INTO `casbin_rule` VALUES (172, 'p', '002', '/api/v1/config/setStorageConfig', 'POST', NULL, NULL, NULL);
+INSERT INTO `casbin_rule` VALUES (173, 'p', '002', '/api/v1/config/getOtherConfig', 'GET', NULL, NULL, NULL);
+INSERT INTO `casbin_rule` VALUES (174, 'p', '002', '/api/v1/config/setOtherConfig', 'POST', NULL, NULL, NULL);
 
 -- 创建菜单表
 CREATE TABLE IF NOT EXISTS  `menu`  (
@@ -346,6 +358,7 @@ INSERT INTO `menu` VALUES (11, '2023-11-27 23:43:00.083', '2023-11-27 23:47:13.5
 INSERT INTO `menu` VALUES (12, '2023-11-27 23:44:10.955', '2023-11-27 23:47:22.606', NULL, 'SystemRole', 'system/role', 'views/system/role/index.vue', NULL, 1, 9, '角色管理', 'PeopleOutline', 0, 0);
 INSERT INTO `menu` VALUES (13, '2024-04-13 15:40:49.675', '2024-04-13 15:41:15.863', NULL, 'SysUser', 'system/user', 'views/system/user/index.vue', NULL, 1, 9, '用户管理', 'PersonOutline', 0, 0);
 INSERT INTO `menu` VALUES (14, '2024-05-18 15:06:40.539', '2024-05-18 15:06:40.539', NULL, 'ContentAnnounce', 'content/announce', 'views/content/announce/index.vue', NULL, 1, 4, '公告管理', 'TodayOutline', 0, 0);
+INSERT INTO `menu` VALUES (15, '2024-06-08 14:17:20.000', '2024-06-08 14:17:20.000', NULL, 'SysConfig', 'system/config', 'views/system/config/index.vue', NULL, 1, 9, '系统配置', 'BriefcaseOutline', 0, 0);
 
 -- 创建角色表
 CREATE TABLE IF NOT EXISTS `role`  (
@@ -392,6 +405,7 @@ INSERT INTO `role_menu` VALUES (11, 2);
 INSERT INTO `role_menu` VALUES (12, 2);
 INSERT INTO `role_menu` VALUES (13, 2);
 INSERT INTO `role_menu` VALUES (14, 2);
+INSERT INTO `role_menu` VALUES (15, 2);
 
 -- 创建用户表
 CREATE TABLE IF NOT EXISTS `user`  (
