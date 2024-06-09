@@ -6,7 +6,7 @@ import (
 
 type ReplyMessageResp struct {
 	ID                 uint         `json:"id"`
-	Cid                uint         `json:"Cid"`
+	Cid                uint         `json:"cid"`
 	Sid                uint         `json:"sid"`
 	CreatedAt          time.Time    `json:"createdAt"`
 	Content            string       `json:"content"`
