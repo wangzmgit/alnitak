@@ -18,7 +18,7 @@ NProgress.configure({
 });
 
 /** 白名单 直接跳过的路由路径 */
-const whiteList = ["/login", "/404", "/403"];
+const whiteList = [`/${globalConfig.baseUrl}/login`, `/${globalConfig.baseUrl}/403`, `/${globalConfig.baseUrl}/404`];
 
 router.beforeEach(async (to, _from, next) => {
   NProgress.start();
@@ -53,7 +53,7 @@ router.beforeEach(async (to, _from, next) => {
       if (router.hasRoute(loginStore.homePage)) {
         next({ name: loginStore.homePage });
       } else {
-        next({ path: '/404' });
+        next({ name: 'errorPage404' });
       }
     }
   } else { // no token

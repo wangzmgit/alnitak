@@ -37,8 +37,8 @@ const videoInfo = ref<VideoStatusType>({
 });
 
 const finishUploadVideo = async (data: any) => {
-  if (data && data.data && data.data.videoId) {
-    videoInfo.value.vid = data.data.videoId;
+  if (data && data.data && data.data.resource) {
+    videoInfo.value.vid = data.data.resource.vid;
     getVideoStatus(videoInfo.value.vid);
   }
 }

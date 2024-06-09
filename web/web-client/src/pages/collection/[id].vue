@@ -95,7 +95,6 @@ const videoList = ref<Array<VideoType>>([]);
 const getCollectVideo = async () => {
   const res = await getCollectVideoAPI(collectionId, page.value, 8);
   if (res.data.code === statusCode.OK) {
-    console.log('res.data', res.data)
     total.value = res.data.data.total;
     videoList.value = res.data.data.videos;
   }

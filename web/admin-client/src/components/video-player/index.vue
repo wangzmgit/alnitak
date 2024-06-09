@@ -26,7 +26,6 @@ const options: PlayerOptionsType = {
     type: 'customHls',
     customType: {
       customHls: (video: HTMLVideoElement) => {
-        console.log('video.src', video.src)
         getVideoFileAPI(video.src).then((res) => {
           if (!res.data) return;
           if (!hls.value) hls.value = new Hls();
