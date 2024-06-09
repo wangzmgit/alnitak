@@ -3,6 +3,7 @@ package service
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -99,6 +100,7 @@ func VideoTransCoding(transcodingInfo *dto.TranscodingInfo) {
 
 	// 上传oss
 	if viper.GetString("storage.oss_type") != "local" {
+		fmt.Println("开始上传OSS")
 		files, err := os.ReadDir(transcodingInfo.OutputDir)
 		if err != nil {
 			utils.ErrorLog("读取视频文件夹失败", "oss", err.Error())
@@ -107,13 +109,17 @@ func VideoTransCoding(transcodingInfo *dto.TranscodingInfo) {
 		}
 
 		for _, f := range files {
+			fmt.Println("上传", f.Name())
+
 			if f.Name() == "upload.mp4" && !viper.GetBool("storage.upload_mp4_file") {
 				continue
 			}
 
 			objectKey := "video/" + transcodingInfo.DirName + "/" + f.Name()
 			filePath := "./upload/" + objectKey
-			global.Storage.PutObjectFromFile(objectKey, filePath)
+			if err := global.Storage.PutObjectFromFile(objectKey, filePath); err != nil {
+				utils.ErrorLog("文件上传OSS失败", "oss", err.Error())
+			}
 		}
 	}
 

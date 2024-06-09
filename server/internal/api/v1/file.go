@@ -59,8 +59,7 @@ func GetVideoSlice(ctx *gin.Context) {
 		return
 	}
 
-	// TODO: 1. OSS 2. OSS + 自定义域名 3. OSS + CDN
-	// 使用oss且但不使用cdn
+	// 使用oss
 	redirect := global.Storage.GetObjectUrl("video/" + dir + "/" + file)
 	ctx.Redirect(http.StatusMovedPermanently, redirect)
 }
