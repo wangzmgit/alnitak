@@ -2,10 +2,10 @@ package oss
 
 import (
 	"errors"
-	"fmt"
 	"io"
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
+	"interastral-peace.com/alnitak/utils"
 )
 
 type Aliyun struct {
@@ -32,13 +32,12 @@ func (a *Aliyun) init(config Config) error {
 	}
 
 	if a.bucket == nil {
-		c := config
-		client, err := oss.New(c.Endpoint, c.KeyID, c.KeySecret)
+		client, err := a.initOssClinet(config)
 		if err != nil {
 			return err
 		}
 
-		bucket, err := client.Bucket(c.Bucket)
+		bucket, err := client.Bucket(config.Bucket)
 		if err != nil {
 			return err
 		}
@@ -46,6 +45,14 @@ func (a *Aliyun) init(config Config) error {
 	}
 
 	return nil
+}
+
+func (a *Aliyun) initOssClinet(config Config) (*oss.Client, error) {
+	if config.Domain == "" {
+		return oss.New(config.Endpoint, config.KeyID, config.KeySecret)
+	} else {
+		return oss.New(config.Domain, config.KeyID, config.KeySecret, oss.UseCname(true))
+	}
 }
 
 // 获取文件
@@ -72,20 +79,11 @@ func (a *Aliyun) IsExists(objectKey string) (bool, error) {
 
 // 获取访问URL
 func (a *Aliyun) GetObjectUrl(objectKey string) string {
-	fmt.Println("GetObjectUrl")
-
-	fmt.Println(objectKey)
-
-	if a.config.Domain == "" {
-		url, err := a.bucket.SignURL(objectKey, oss.HTTPGet, 1800)
-		if err != nil {
-			return fmt.Sprintf("https://%s.%s/%s",
-				a.config.Bucket,
-				a.config.Endpoint,
-				objectKey,
-			)
-		}
-		return url
+	url, err := a.bucket.SignURL(objectKey, oss.HTTPGet, 1800)
+	if err != nil {
+		utils.ErrorLog("OSS生成文件URL失败", "transcoding", err.Error())
+		return ""
 	}
-	return fmt.Sprintf("https://%s/%s", a.config.Domain, objectKey)
+
+	return url
 }
