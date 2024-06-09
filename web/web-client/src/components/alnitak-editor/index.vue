@@ -61,7 +61,6 @@ const editorConfig = {
             ElMessage.error("上传失败");
           },
           onFinish: (data?: any) => {
-            console.log('data', data.data.url)
             insertFn(getResourceUrl(data.data.url), "图片", "");
           },
         })

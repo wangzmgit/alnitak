@@ -21,7 +21,6 @@ import HeaderBar from "@/components/header-bar/index.vue";
 
 definePageMeta({
   middleware: ['auth', (to) => {
-    console.log('to',to)
     if (to.name === 'message') {
       return navigateTo("/message/announce");
     }
@@ -34,7 +33,6 @@ useHead({
 
 const defaultOption = ref('');//默认激活菜单
 const route = useRoute();
-console.log('route.name', route.name)
 const menuList = [
   {
     name: '站内公告',

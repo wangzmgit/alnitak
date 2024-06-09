@@ -88,7 +88,6 @@ const beforeSendCode = async () => {
     return;
   }
   const res = await sendEmailCodeAsync(loginForm.email, loginForm.captchaId);
-  console.log('res', res)
   switch (res.code) {
     case statusCode.OK:
       break;

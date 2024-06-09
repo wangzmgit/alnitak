@@ -45,7 +45,6 @@ const getHistoryList = async () => {
       item.viewingDate = time;
       // @ts-ignore
       historyList[group].push(item);
-      console.log('historyList', historyList)
     });
   }
 
