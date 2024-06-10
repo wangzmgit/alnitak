@@ -28,7 +28,7 @@ export default defineConfig({
     },
     nav: [
       { text: '项目指南', link: '/guide/introduce', activeMatch: '/guide/' },
-      { text: '接口文档', link: '/api/', activeMatch: '/api/' },
+      { text: '接口文档', link: '/api/auth', activeMatch: '/api' },
       { text: '赞助', link: '/other/donate' }
     ],
     sidebar: {
@@ -85,7 +85,7 @@ export default defineConfig({
         {
           text: '接口文档',
           items: [
-            // { text: '开始', link: '/api/' },
+            { text: '用户认证相关接口', link: '/api/auth' },
             // { text: '用户相关接口', link: '/api/user' },
             // { text: '人机验证相关接口', link: '/api/captcha' },
             // { text: '文件上传相关接口', link: '/api/upload' },
