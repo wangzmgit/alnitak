@@ -202,11 +202,12 @@ func EditUserInfo(ctx *gin.Context, editUserInfoReq dto.EditUserInfoReq) error {
 	}
 	if err := global.Mysql.Model(&model.User{}).Where("id = ?", userId).Updates(
 		map[string]interface{}{
-			"avatar":   editUserInfoReq.Avatar,
-			"username": editUserInfoReq.Name,
-			"gender":   editUserInfoReq.Gender,
-			"birthday": birthday,
-			"sign":     editUserInfoReq.Sign,
+			"avatar":      editUserInfoReq.Avatar,
+			"username":    editUserInfoReq.Name,
+			"gender":      editUserInfoReq.Gender,
+			"birthday":    birthday,
+			"space_cover": editUserInfoReq.SpaceCover,
+			"sign":        editUserInfoReq.Sign,
 		},
 	).Error; err != nil {
 		return err
