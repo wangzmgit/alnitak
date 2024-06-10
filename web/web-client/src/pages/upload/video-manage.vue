@@ -31,7 +31,7 @@
                 <template #dropdown>
                   <el-dropdown-menu>
                     <el-dropdown-item @click="modifyVideo(item.vid)">编辑</el-dropdown-item>
-                    <el-dropdown-item @click="deleteVideo(item.vid)">删除稿件</el-dropdown-item>
+                    <el-dropdown-item @click="deleteVideo(item, index)">删除稿件</el-dropdown-item>
                   </el-dropdown-menu>
                 </template>
               </el-dropdown>
@@ -40,6 +40,14 @@
         </ul>
       </el-scrollbar>
     </div>
+    <client-only>
+      <el-dialog v-model="deleteDialogVisible" class="delete-dialog" width="500" :before-close="beforeClose">
+        <div class="delete-dialog-title">请输入 <strong>{{ deleteVideoInfo?.title }}</strong> 删除此视频</div>
+        <div class="delete-dialog-desc">视频删除后将无法恢复，请谨慎操作</div>
+        <el-input class="input" v-model="deleteVideoTitle" placeholder="请输入视频标题"></el-input>
+        <el-button type="danger" class="delete-btn" @click="submitDelete">确认删除</el-button>
+      </el-dialog>
+    </client-only>
   </div>
 </template>
 
@@ -77,11 +85,36 @@ const scrollLoad = () => {
   }
 }
 
-const deleteVideo = async (vid: number) => {
-  // TODO: 删除提醒
-  const res = await deleteVideoAPI(vid);
-  if (res.data.code === statusCode.OK) {
-    getUploadVideo();
+const deleteVideoIndex = ref(-1);
+const deleteVideoTitle = ref("");
+const deleteDialogVisible = ref(false);
+const deleteVideoInfo = ref<VideoType>();
+const deleteVideo = async (video: VideoType, index: number) => {
+  deleteVideoInfo.value = video;
+  deleteVideoIndex.value = index;
+  deleteDialogVisible.value = true;
+}
+
+const beforeClose = () => {
+  deleteVideoTitle.value = "";
+  deleteVideoIndex.value = -1;
+  deleteVideoInfo.value = undefined;
+  deleteDialogVisible.value = false;
+}
+
+const submitDelete = async () => {
+  if (deleteVideoTitle.value === deleteVideoInfo.value?.title) {
+    const res = await deleteVideoAPI(deleteVideoInfo.value.vid);
+    if (res.data.code === statusCode.OK) {
+      videoList.value.splice(deleteVideoIndex.value, 1);
+    }
+
+    deleteVideoTitle.value = "";
+    deleteVideoIndex.value = -1;
+    deleteVideoInfo.value = undefined;
+    deleteDialogVisible.value = false;
+  } else {
+    ElMessage.error("输入标题与原标题不一致");
   }
 }
 
@@ -231,6 +264,40 @@ onBeforeMount(() => {
         align-items: center;
         justify-content: center;
       }
+    }
+  }
+}
+
+.delete-dialog {
+
+  .delete-dialog-title {
+    font-size: 16px;
+    color: #1f2328;
+    text-align: center;
+    margin: 20px 0;
+  }
+
+  .delete-dialog-desc {
+    color: #666;
+    font-size: 13px;
+    text-align: center;
+
+  }
+
+  .input {
+    margin: 20px 0;
+
+  }
+
+  .delete-btn {
+    width: 100%;
+    color: #d03050;
+    border: none;
+    font-family: inherit;
+    background-color: rgba(208, 48, 80, 0.16);
+
+    &:hover {
+      background-color: rgba(208, 48, 80, 0.22);
     }
   }
 }

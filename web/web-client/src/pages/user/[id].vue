@@ -3,7 +3,7 @@
     <header-bar class="header-bar"></header-bar>
     <div class="space-container">
       <div class="space-header">
-        <img class="cover" v-if="userInfo?.spacecover" :src="getResourceUrl(userInfo.spacecover)" alt="用户封面图" />
+        <img class="cover" v-if="userInfo?.spaceCover" :src="getResourceUrl(userInfo.spaceCover)" alt="用户封面图" />
         <div class="header-inner">
           <common-avatar :url="userInfo?.avatar" :size="60" :iconsize="36"></common-avatar>
           <div class="header-info">

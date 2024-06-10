@@ -59,7 +59,8 @@ const { data } = await asyncGetArticleInfoAPI(articleId);
 if ((data.value as any).code === statusCode.OK) {
   articleInfo.value = (data.value as any).data.article as ArticleType;
 } else {
-  // TODO: 处理视频信息不存在
+  // 处理文章信息不存在
+  navigateTo('/404');
 }
 
 const getSanitizeHtml = (val: string = "") => {

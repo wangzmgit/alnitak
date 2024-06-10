@@ -58,6 +58,8 @@ const getViedeoList = async () => {
 
 const lazyLoading = (e: Event) => {
   const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+  if (scrollTop === 0) return;
+
   const clientHeight = document.documentElement.clientHeight;
   const scrollHeight = document.documentElement.scrollHeight;
   if (scrollTop + clientHeight >= scrollHeight) {

@@ -2,7 +2,7 @@ interface UserInfoType {
   uid: number
   name: string
   avatar: string
-  spacecover?: string
+  spaceCover?: string
   email?: string
   gender?: number
   sign?: string

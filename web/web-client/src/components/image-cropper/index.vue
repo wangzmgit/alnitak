@@ -1,5 +1,5 @@
 <template>
-  <div v-show="showCropper" class="cropper-mark">
+  <div v-show="showCropper" class="cropper-mark" v-loading="!imgFile">
     <div class="cropper-card">
       <input class="upload-input" ref="inputRef" type="file" accept="image/*" @change="imageChange">
       <div class="close-icon" @click="closeCropper">
@@ -37,6 +37,7 @@ const open = () => {
 const closeCropper = () => {
   if (inputRef.value) {
     inputRef.value.value = "";
+    imgFile.value = undefined;
   }
   showCropper.value = false;
 }
@@ -75,6 +76,8 @@ defineExpose({
   padding: 20px;
   background-color: #fff;
   border-radius: 6px;
+  min-width: 300px;
+  min-height: 200px;
   animation: fadein .3s ease-in;
   box-shadow: 16px 16px 50px -12px rgba(0, 0, 0, 0.8);
 
