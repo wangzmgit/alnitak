@@ -41,3 +41,8 @@ export const asyncGetRandomArticleAPI = async (size: number) => {
 export const getRandomArticleAPI = async (size: number) => {
   return request.get(`v1/article/getRandomArticleList?size=${size}`);
 }
+
+// 删除文章
+export const deleteArticleAPI = (id: number) => {
+  return request.delete(`v1/article/deleteArticle/${id}`);
+}
