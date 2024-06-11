@@ -40,11 +40,12 @@ type RegisterReq struct {
 
 // 编辑用户信息
 type EditUserInfoReq struct {
-	Avatar   string
-	Name     string
-	Gender   int
-	Birthday string
-	Sign     string
+	Avatar     string
+	Name       string
+	Gender     int
+	Birthday   string
+	Sign       string
+	SpaceCover string
 }
 
 // 修改用户密码
