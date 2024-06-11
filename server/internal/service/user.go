@@ -195,6 +195,10 @@ func EditUserInfo(ctx *gin.Context, editUserInfoReq dto.EditUserInfoReq) error {
 		editUserInfoReq.Avatar = current.Avatar
 	}
 
+	if editUserInfoReq.SpaceCover != current.SpaceCover && cache.GetUploadImage(editUserInfoReq.SpaceCover) != userId {
+		editUserInfoReq.SpaceCover = current.SpaceCover
+	}
+
 	birthday, err := time.Parse("2006-01-02", editUserInfoReq.Birthday)
 	if err != nil {
 		utils.ErrorLog("日期转换失败", "user", err.Error())
