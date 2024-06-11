@@ -94,6 +94,7 @@ const editUserInfo = async () => {
     sign: userInfo.value.sign || "",
     gender: userInfo.value.gender || 0,
     birthday: userInfo.value.birthday || '1970-1-1',
+    spaceCover: userInfo.value.spaceCover,
   }
 
   if (!data.name) {

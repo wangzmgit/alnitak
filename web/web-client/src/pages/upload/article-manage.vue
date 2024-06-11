@@ -30,7 +30,7 @@
                         <template #dropdown>
                           <el-dropdown-menu>
                             <el-dropdown-item @click="modifyArticle(item.aid)">编辑</el-dropdown-item>
-                            <el-dropdown-item @click="deleteArticle(item.aid)">删除稿件</el-dropdown-item>
+                            <el-dropdown-item @click="deleteArticle(item, index)">删除稿件</el-dropdown-item>
                           </el-dropdown-menu>
                         </template>
                       </el-dropdown>
@@ -47,12 +47,20 @@
         </ul>
       </el-scrollbar>
     </div>
+    <client-only>
+      <el-dialog v-model="deleteDialogVisible" class="delete-dialog" width="500" :before-close="beforeClose">
+        <div class="delete-dialog-title">请输入 <strong>{{ deleteArticleInfo?.title }}</strong> 删除此专栏</div>
+        <div class="delete-dialog-desc">专栏删除后将无法恢复，请谨慎操作</div>
+        <el-input class="input" v-model="deleteArticleTitle" placeholder="请输入专栏标题"></el-input>
+        <el-button type="danger" class="delete-btn" @click="submitDelete">确认删除</el-button>
+      </el-dialog>
+    </client-only>
   </div>
 </template>
 
 <script setup lang="ts">
 import { onBeforeMount, ref } from 'vue';
-import { getUploadArticleAPI } from '@/api/article';
+import { deleteArticleAPI, getUploadArticleAPI } from '@/api/article';
 import { More as MoreIcon, PreviewOpen } from '@icon-park/vue-next';
 import { getArticleReviewRecordAPI } from '@/api/revies';
 import { getResourceUrl } from '@/utils/resource';
@@ -85,12 +93,37 @@ const scrollLoad = () => {
   }
 }
 
-const deleteArticle = async (aid: number) => {
-  // TODO: 删除提醒
-  // const res = await deleteVideoAPI(vid);
-  // if (res.data.code === statusCode.OK) {
-  //   getUploadArticle();
-  // }
+const deleteArticleIndex = ref(-1);
+const deleteArticleTitle = ref("");
+const deleteDialogVisible = ref(false);
+const deleteArticleInfo = ref<ArticleType>();
+const deleteArticle = async (article: ArticleType, index: number) => {
+  deleteArticleInfo.value = article;
+  deleteArticleIndex.value = index;
+  deleteDialogVisible.value = true;
+}
+
+const beforeClose = () => {
+  deleteArticleTitle.value = "";
+  deleteArticleIndex.value = -1;
+  deleteArticleInfo.value = undefined;
+  deleteDialogVisible.value = false;
+}
+
+const submitDelete = async () => {
+  if (deleteArticleTitle.value === deleteArticleInfo.value?.title) {
+    const res = await deleteArticleAPI(deleteArticleInfo.value.aid);
+    if (res.data.code === statusCode.OK) {
+      articleList.value.splice(deleteArticleIndex.value, 1);
+    }
+
+    deleteArticleTitle.value = "";
+    deleteArticleIndex.value = -1;
+    deleteArticleInfo.value = undefined;
+    deleteDialogVisible.value = false;
+  } else {
+    ElMessage.error("输入标题与原标题不一致");
+  }
 }
 
 const getStatusText = (status: number) => {
@@ -286,6 +319,40 @@ onBeforeMount(() => {
     background-color: #fff;
     border-radius: 4px;
     border: 1px solid rgba(228, 230, 235, 0.5);
+  }
+}
+
+.delete-dialog {
+
+  .delete-dialog-title {
+    font-size: 16px;
+    color: #1f2328;
+    text-align: center;
+    margin: 20px 0;
+  }
+
+  .delete-dialog-desc {
+    color: #666;
+    font-size: 13px;
+    text-align: center;
+
+  }
+
+  .input {
+    margin: 20px 0;
+
+  }
+
+  .delete-btn {
+    width: 100%;
+    color: #d03050;
+    border: none;
+    font-family: inherit;
+    background-color: rgba(208, 48, 80, 0.16);
+
+    &:hover {
+      background-color: rgba(208, 48, 80, 0.22);
+    }
   }
 }
 </style>

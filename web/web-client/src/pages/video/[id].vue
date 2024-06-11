@@ -87,7 +87,8 @@ const { data } = await asyncGetVideoInfoAPI(videoId);
 if ((data.value as any).code === statusCode.OK) {
   videoInfo.value = (data.value as any).data.video as VideoType;
 } else {
-  // TODO: 处理视频信息不存在
+  // 处理视频信息不存在
+  navigateTo('/404');
 }
 
 const videoMainWidth = ref(0);

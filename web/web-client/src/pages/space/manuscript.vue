@@ -98,7 +98,6 @@ onBeforeUnmount(() => {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   padding: 0;
-  background-color: antiquewhite;
 
   .video-item {
     display: block;

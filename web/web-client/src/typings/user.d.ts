@@ -2,7 +2,7 @@ interface UserInfoType {
   uid: number
   name: string
   avatar: string
-  spacecover?: string
+  spaceCover?: string
   email?: string
   gender?: number
   sign?: string
@@ -17,6 +17,7 @@ interface EditUserInfoType {
   gender?: number;
   sign?: string;
   birthday?: string;
+  spaceCover?: string
 }
 
 interface ModifyPwdType {

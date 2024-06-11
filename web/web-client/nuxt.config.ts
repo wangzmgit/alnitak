@@ -5,6 +5,31 @@ export default defineNuxtConfig({
     '@element-plus/nuxt',
     '@pinia/nuxt',
   ],
+  app: {
+    head: {
+      title: globalConfig.title,
+      meta: [
+        {
+          "name": "viewport",
+          "content": "width=device-width, initial-scale=1"
+        },
+        {
+          "charset": "utf-8"
+        },
+        {
+          "name": "keywords",
+          "content": globalConfig.keywords
+        },
+        {
+          "name": "description",
+          "content": globalConfig.description
+        },
+      ],
+      link: [
+        { rel: "icon", type: "image/x-icon", href: "/favicon.ico" }
+    ]
+    }
+  },
   plugins: [
     {
       src: '@/plugins/wang-editor',

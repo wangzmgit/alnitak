@@ -3,8 +3,8 @@
     <header-bar class="header-bar "></header-bar>
     <div class="space-container">
       <div class="space-header">
-        <button class="upload-btn">上传封面图片</button>
-        <img class="cover" v-if="userInfo?.spacecover" :src="userInfo.spacecover" alt="用户封面图" />
+        <button class="upload-btn" @click="uploadCoverClick">上传封面图片</button>
+        <img class="cover" v-if="userInfo?.spaceCover" :src="getResourceUrl(userInfo.spaceCover)" alt="用户封面图" />
         <div class="header-inner">
           <common-avatar :url="userInfo?.avatar" :size="60" :iconSize="36"></common-avatar>
           <div class="header-info">
@@ -49,6 +49,11 @@
         </div>
       </div>
     </div>
+    <image-cropper ref="cropperRef">
+      <template #content="fileSlot">
+        <space-cover-cropper :file="fileSlot.file" @state-change="changeUpload"></space-cover-cropper>
+      </template>
+    </image-cropper>
   </div>
 </template>
 
@@ -57,10 +62,12 @@ import { storeToRefs } from 'pinia';
 import HeaderBar from '@/components/header-bar/index.vue';
 import CommonAvatar from '@/components/common-avatar/index.vue';
 import { useVideoCountStore } from "@/composables/video-count-store";
-import { getUserInfoAPI, asyncGetUserBaseInfoAPI } from '@/api/user';
+import { getUserInfoAPI, asyncGetUserBaseInfoAPI, editUserInfoAPI } from '@/api/user';
 import type { RouteRecordName } from 'vue-router';
 import { getFollowDataAPI } from '@/api/relation';
 import UploadIcon from "@/components/icons/UploadIcon.vue";
+import ImageCropper from "@/components/image-cropper/index.vue";
+import SpaceCoverCropper from "@/components/image-cropper/components/SpaceCoverCropper.vue";
 import { Male, Female, VideoTwo, FolderFocus, History as HistoryIcon, Message as MessageIcon, Config } from '@icon-park/vue-next';
 
 definePageMeta({
@@ -134,14 +141,45 @@ const getMenuName = (name: RouteRecordName | null | undefined) => {
   return name;
 }
 
+// 上传封面图
+const cropperRef = ref<InstanceType<typeof ImageCropper> | null>(null);
+const uploadCoverClick = () => {
+  cropperRef.value?.open();
+}
+
+//上传变化的回调
+const changeUpload = async (status: string, data: any) => {
+  switch (status) {
+    case "success":
+      //更新封面图
+      if (!userInfo.value) return;
+      userInfo.value.spaceCover = data.data.url;
+      const res = await editUserInfoAPI(userInfo.value);
+      if (res.data.code === statusCode.OK) {
+        await getUserInfo();//获取用户信息
+      } else {
+        ElMessage.error(res.data.msg || "修改失败");
+      }
+      break;
+    case "error":
+      ElMessage.error('封面上传失败');
+      break;
+  }
+  cropperRef.value?.closeCropper();
+}
+
+const getUserInfo = async () => {
+  const res = await getUserInfoAPI();
+  if (res.data.code === statusCode.OK) {
+    userInfo.value = res.data.data.userInfo;
+  }
+}
+
 onMounted(async () => {
   // 处理跳转页面回来用户信息为空的问题
   if (!userInfo.value || userInfo.value.uid === 0) {
-    const res = await getUserInfoAPI();
-    if (res.data.code === statusCode.OK) {
-      userInfo.value = res.data.data.userInfo;
-      document.title = `${userInfo.value?.name}的个人中心`;
-    }
+    await getUserInfo();
+    document.title = `${userInfo.value?.name}的个人中心`;
   }
 })
 
