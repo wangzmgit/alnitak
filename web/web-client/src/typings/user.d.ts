@@ -17,6 +17,7 @@ interface EditUserInfoType {
   gender?: number;
   sign?: string;
   birthday?: string;
+  spaceCover?: string
 }
 
 interface ModifyPwdType {
