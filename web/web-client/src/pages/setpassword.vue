@@ -50,7 +50,7 @@ import HeaderBar from '@/components/header-bar/index.vue';
 import Steps from '@/components/alnitak-steps/index.vue';
 import type { FormRules, FormInstance } from "element-plus";
 import { ElMessage } from "element-plus";
-import { resetpwdCheckAPI, mpdifyPwdAPI } from "@/api/user";
+import { resetpwdCheckAPI, mpdifyPwdAPI } from "@/api/auth";
 import SliderCaptcha from "@/components/slider-captcha/index.vue";
 import { sendEmailCodeAPI } from "@/api/code";
 

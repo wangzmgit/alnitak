@@ -12,7 +12,7 @@ interface UserInfoType {
   uid: number;
   name: string;
   avatar: string;
-  spacecover?: string;
+  spaceCover?: string;
   email?: string;
   gender?: number;
   sign?: string;
@@ -25,7 +25,7 @@ interface UserFormType {
   uid: number;
   name: string;
   avatar: string;
-  spacecover: string;
+  spaceCover: string;
   email: string;
   sign: string;
   role: string;
