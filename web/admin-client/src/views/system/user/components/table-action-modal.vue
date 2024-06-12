@@ -6,11 +6,11 @@
           <common-avatar :url="formModel.avatar" :size="36"></common-avatar>
           <n-button class="remove-btn" @click="removeAvatar">移除头像</n-button>
         </n-form-item-grid-item>
-        <n-form-item-grid-item :span="24" label="背景图" path="spacecover">
-          <div class="spacecover">
-            <img v-if="formModel.spacecover" :src="getResourceUrl(formModel.spacecover)" alt="背景图" />
+        <n-form-item-grid-item :span="24" label="背景图" path="spaceCover">
+          <div class="space-cover">
+            <img v-if="formModel.spaceCover" :src="getResourceUrl(formModel.spaceCover)" alt="背景图" />
           </div>
-          <n-button class="remove-btn" @click="removeSpacecover">移除背景图</n-button>
+          <n-button class="remove-btn" @click="removeSpaceCover">移除背景图</n-button>
         </n-form-item-grid-item>
         <n-form-item-grid-item :span="24" label="用户名" path="name">
           <n-input v-model:value="formModel.name" />
@@ -63,7 +63,7 @@ const formModel = reactive<UserFormType>({
   uid: 0,
   name: "",
   avatar: "",
-  spacecover: "",
+  spaceCover: "",
   email: "",
   sign: "",
   role: ""
@@ -85,8 +85,8 @@ const removeAvatar = () => {
   formModel.avatar = "";
 }
 
-const removeSpacecover = () => {
-  formModel.spacecover = "";
+const removeSpaceCover = () => {
+  formModel.spaceCover = "";
 }
 
 const handleSubmit = async () => {
@@ -118,7 +118,7 @@ watch(() => props.visible, (newVal) => {
   width: 72px;
 }
 
-.spacecover {
+.space-cover {
   width: 160px;
   height: 32px;
   background-color: #cccccc;
