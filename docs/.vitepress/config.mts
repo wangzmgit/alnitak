@@ -86,7 +86,7 @@ export default defineConfig({
           text: '接口文档',
           items: [
             { text: '用户认证相关接口', link: '/api/auth' },
-            // { text: '用户相关接口', link: '/api/user' },
+            { text: '用户相关接口', link: '/api/user' },
             // { text: '人机验证相关接口', link: '/api/captcha' },
             // { text: '文件上传相关接口', link: '/api/upload' },
             // { text: '分区相关接口', link: '/api/partition' },
@@ -98,5 +98,5 @@ export default defineConfig({
         }
       ]
     }
-  }
+  },
 })
