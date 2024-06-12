@@ -10,10 +10,6 @@ func CollectUserRoutes(r *gin.RouterGroup) {
 	userGroup := r.Group("user")
 	// 获取用户基本信息
 	userGroup.GET("getUserBaseInfo", api.GetUserBaseInfo)
-	// 修改密码检查
-	userGroup.GET("resetpwdCheck", api.ResetPwdCheck)
-	// 修改密码
-	userGroup.POST("modifyPwd", api.ModifyPwd)
 
 	userAuth := userGroup.Use(middleware.Auth())
 	{
@@ -25,7 +21,7 @@ func CollectUserRoutes(r *gin.RouterGroup) {
 		userAuth.POST("getUserListManage", api.GetUserListManage)
 		// 编辑用户信息（后台管理）
 		userAuth.PUT("editUserInfoManage", api.EditUserInfoManage)
-		// 设置用户角色用户
+		// 设置用户角色
 		userAuth.PUT("editUserRole", api.EditUserRole)
 		// 删除用户
 		userAuth.DELETE("deleteUser/:id", api.DeleteUser)

@@ -14,7 +14,6 @@ type UserInfoResp struct {
 	Phone      string    `json:"phone"`
 	Avatar     string    `json:"avatar"`
 	Gender     int       `json:"gender"`
-	Status     uint      `json:"status"`
 	SpaceCover string    `json:"spaceCover"`
 	Birthday   time.Time `json:"birthday"`
 	CreatedAt  time.Time `json:"createdAt"`
@@ -29,15 +28,15 @@ type UserBaseInfoResp struct {
 }
 
 type UserInfoManageResp struct {
-	ID        uint      `json:"uid"`
-	Username  string    `json:"name"`
-	Sign      string    `json:"sign"`
-	Email     string    `json:"email"`
-	Phone     string    `json:"phone"`
-	Avatar    string    `json:"avatar"`
-	Gender    int       `json:"gender"`
-	Status    uint      `json:"status"`
-	Birthday  time.Time `json:"birthday"`
-	CreatedAt time.Time `json:"createdAt"`
-	Role      string    `json:"role"`
+	ID         uint      `json:"uid"`
+	Username   string    `json:"name"`
+	Sign       string    `json:"sign"`
+	Email      string    `json:"email"`
+	Phone      string    `json:"phone"`
+	Avatar     string    `json:"avatar"`
+	Gender     int       `json:"gender"`
+	SpaceCover string    `json:"spaceCover"`
+	Birthday   time.Time `json:"birthday"`
+	CreatedAt  time.Time `json:"createdAt"`
+	Role       string    `json:"role"`
 }
