@@ -36,6 +36,6 @@ func CollectArticleRoutes(r *gin.RouterGroup) {
 	articleGroup.GET("getArticleById", api.GetArticleById)
 	// 获取用户文章
 	articleGroup.GET("getArticleByUser", api.GetArticleByUser)
-	// 获取分区视频
+	// 获取随机文章列表
 	articleGroup.GET("getRandomArticleList", api.GetRandomArticleList)
 }

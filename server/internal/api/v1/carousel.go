@@ -27,10 +27,10 @@ func GetCarouselList(ctx *gin.Context) {
 		return
 	}
 
-	carousels := service.GetCarouselList(ctx, carouselListReq)
+	total, carousels := service.GetCarouselList(ctx, carouselListReq)
 
 	// 返回
-	resp.OkWithData(ctx, gin.H{"carousels": carousels})
+	resp.OkWithData(ctx, gin.H{"total": total, "list": carousels})
 }
 
 // 上传轮播图信息

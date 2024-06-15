@@ -21,7 +21,8 @@ func GetCarousel(ctx *gin.Context, partitionId uint) (carousels []vo.CarouselRes
 }
 
 // 获取全部轮播图
-func GetCarouselList(ctx *gin.Context, carouselListReq dto.CarouselListReq) (carousels []vo.CarouselResp) {
+func GetCarouselList(ctx *gin.Context, carouselListReq dto.CarouselListReq) (total int64, carousels []vo.CarouselResp) {
+	global.Mysql.Model(&model.Carousel{}).Count(&total)
 	global.Mysql.Model(&model.Carousel{}).Select(vo.CAROUSEL_FIELD).Limit(carouselListReq.PageSize).
 		Offset((carouselListReq.Page - 1) * carouselListReq.PageSize).Scan(&carousels)
 

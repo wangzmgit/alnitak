@@ -252,6 +252,11 @@ func SearchVideo(ctx *gin.Context) {
 		return
 	}
 
+	if searchVideoReq.PageSize > 30 {
+		resp.FailWithMessage(ctx, "请求数量过多")
+		return
+	}
+
 	videos := service.SearchVideo(ctx, searchVideoReq)
 
 	// 返回给前端
