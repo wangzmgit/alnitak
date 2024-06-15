@@ -87,13 +87,18 @@ export default defineConfig({
           items: [
             { text: '用户认证相关接口', link: '/api/auth' },
             { text: '用户相关接口', link: '/api/user' },
-            // { text: '人机验证相关接口', link: '/api/captcha' },
+            { text: '视频相关接口', link: '/api/video' },
+            { text: '视频资源接口', link: '/api/resource' },
+            { text: '文章相关接口', link: '/api/article' },
+            { text: '验证相关接口', link: '/api/verify' },
+            { text: 'API管理相关接口', link: '/api/api' },
+            { text: '视频点赞收藏接口', link: '/api/archive_video' },
+            { text: '文章点赞收藏接口', link: '/api/archive_article' },
+            { text: '轮播图相关接口', link: '/api/carousel' },
+            { text: '收藏夹相关接口', link: '/api/collection' },
+
             // { text: '文件上传相关接口', link: '/api/upload' },
             // { text: '分区相关接口', link: '/api/partition' },
-            // { text: '视频相关接口', link: '/api/video' },
-            // { text: '视频资源接口', link: '/api/resource' },
-            // { text: '点赞收藏接口', link: '/api/archive' },
-            // { text: '收藏夹接口', link: '/api/collection' },
           ]
         }
       ]
