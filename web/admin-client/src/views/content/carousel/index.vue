@@ -146,8 +146,8 @@ const getTableData = async () => {
   const pageSize = pagination.pageSize || 1;
   const res = await getCarouselListAPI({ page, pageSize });
   if (res.data.code === statusCode.OK) {
-    if (res.data.data.carousels) {
-      tableData.value = res.data.data.carousels;
+    if (res.data.data.list) {
+      tableData.value = res.data.data.list;
     } else {
       tableData.value = [];
     }
