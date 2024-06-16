@@ -96,9 +96,20 @@ export default defineConfig({
             { text: '文章点赞收藏接口', link: '/api/archive_article' },
             { text: '轮播图相关接口', link: '/api/carousel' },
             { text: '收藏夹相关接口', link: '/api/collection' },
-
-            // { text: '文件上传相关接口', link: '/api/upload' },
-            // { text: '分区相关接口', link: '/api/partition' },
+            { text: '视频评论回复接口', link: '/api/comment_video' },
+            { text: '文章评论回复接口', link: '/api/comment_article' },
+            { text: '配置相关接口', link: '/api/config' },
+            { text: '弹幕相关接口', link: '/api/danmaku' },
+            { text: '历史记录相关接口', link: '/api/history' },
+            { text: '菜单管理相关接口', link: '/api/menu' },
+            { text: '消息相关接口', link: '/api/message' },
+            { text: '在线人数相关接口', link: '/api/online' },
+            { text: '分区相关接口', link: '/api/partition' },
+            { text: '粉丝关注相关接口', link: '/api/relation' },
+            { text: '视频审核相关接口', link: '/api/review_video' },
+            { text: '文章审核相关接口', link: '/api/review_article' },
+            { text: '角色管理相关接口', link: '/api/role' },
+            { text: '文件上传相关接口', link: '/api/upload' },
           ]
         }
       ]

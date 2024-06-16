@@ -76,8 +76,6 @@ storage:
   oss_type: local
   # 是否将视频的原始mp4上传到oss
   upload_mp4_file: false
-  # 是否使用了CDN
-  use_cdn: false
 user:
   # 用户注册时生成用户名的默认前缀
   prefix: user_
