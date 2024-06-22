@@ -3,7 +3,7 @@
 :::tip 前言
 以下部分简要说明了人机验证流程，使您更容易理解相关功能，或在二次开发中更轻松地引入该功能。
 
-我们为该项目专门开发了拼图生成库，详细信息请参阅[jigsaw](github.com/wangzmgit/jigsaw)。
+我们为该项目专门开发了拼图生成库，详细信息请参阅[jigsaw](https://github.com/wangzmgit/jigsaw)。
 :::
 
 ## 人机验证状态码

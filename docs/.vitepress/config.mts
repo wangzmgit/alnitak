@@ -6,7 +6,6 @@ export default defineConfig({
   description: "基于GO + Nuxt的弹幕视频网站",
   head: [
     ['meta', { name: 'keywords', content: 'go, vue, nuxt, 弹幕网站' }],
-    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' }],
     ['meta', {
       name: 'viewport',
       content: 'width=device-width,initial-scale=1,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no'
