@@ -24,5 +24,4 @@ interface StorageConfigType {
   domain: string;
   private: boolean;
   uploadMp4File: boolean;
-  useCdn: boolean;
 }

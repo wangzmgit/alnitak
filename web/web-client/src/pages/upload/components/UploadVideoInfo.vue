@@ -100,9 +100,18 @@ const showInput = () => {
   })
 }
 
+const reg = /^[0-9a-zA-Z\u4e00-\u9fa5]+$/
 const handleInputConfirm = () => {
   if (inputValue.value) {
-    dynamicTags.value.push(inputValue.value);
+    if (!dynamicTags.value.includes(inputValue.value)) {
+      if (reg.test(inputValue.value)) {
+        dynamicTags.value.push(inputValue.value);
+      } else {
+        ElMessage.error("标签不可包含特殊字符");
+      }
+    } else {
+      ElMessage.error("不能重复添加标签");
+    }
   }
   inputVisible.value = false;
   inputValue.value = '';
@@ -135,6 +144,9 @@ const submitVideoInfo = async () => {
   const res = await reqFunc(videoForm);
   if (res.data.code === statusCode.OK) {
     ElMessage.success("提交成功");
+    navigateTo("/upload/video-manage");
+  } else {
+    ElMessage.error(res.data.msg || "提交失败");
   }
 }
 
@@ -172,7 +184,7 @@ const loadVideoInfo = () => {
   }
 }
 
-watch(() => props.info.vid, () => {
+watch(() => props.info, () => {
   loadingForm.value = true;
   loadVideoInfo();
   nextTick(() => {

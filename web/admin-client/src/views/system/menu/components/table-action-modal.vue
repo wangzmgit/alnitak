@@ -8,7 +8,7 @@
         <n-form-item-grid-item :span="12" label="路由Path" path="path">
           <n-input v-model:value="formModel.path" />
         </n-form-item-grid-item>
-        <n-form-item-grid-item v-if="isRootMenu" :span="24" label="父级菜单" path="parentMenuName">
+        <n-form-item-grid-item v-if="isRootMenu" :span="24" label="所属菜单" path="parentMenuName">
           <n-input :value="parentMenuName" disabled />
         </n-form-item-grid-item>
         <n-form-item-grid-item v-if="isRootMenu" :span="24" label="文件路径" path="component">
