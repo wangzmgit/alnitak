@@ -10,5 +10,5 @@ const (
 type ReviewResp struct {
 	Status    int       `json:"status"`
 	Remark    string    `json:"remark"`
-	CreatedAt time.Time `json:"created_at"`
+	CreatedAt time.Time `json:"createdAt"`
 }

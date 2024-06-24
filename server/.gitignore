@@ -1,4 +1,6 @@
 /conf/*.yaml
 /logs/*.log
-/upload/video/test_video
-/upload/image/test_cover.png
+/upload/video/*
+/upload/image/*
+!/upload/video/.gitkeep
+!/upload/image/.gitkeep
