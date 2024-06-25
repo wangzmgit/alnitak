@@ -172,6 +172,12 @@ const handleChange = (uploadFile: any) => {
     },
   })
 }
+
+watch(() => props.resources, (newVal) => {
+  if (newVal) {
+    resourceList.value = newVal;
+  }
+})
 </script>
 
 <style lang="scss" scoped>

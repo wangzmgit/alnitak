@@ -14,9 +14,6 @@
         <n-form-item v-show="storageForm.type !== 'local'" label="视频原始文件是否上传到OSS">
           <n-switch v-model:value="storageForm.uploadMp4File"></n-switch>
         </n-form-item>
-        <n-form-item v-show="storageForm.type !== 'local'" label="是否开启了CDN">
-          <n-switch v-model:value="storageForm.useCdn"></n-switch>
-        </n-form-item>
         <n-form-item v-show="storageForm.type !== 'local'" label="OSS存储空间(Bucket)">
           <n-input placeholder="存储空间(Bucket)" v-model:value="storageForm.bucket" />
         </n-form-item>
@@ -92,7 +89,6 @@ const storageForm = reactive({
   domain: "",
   private: false,
   uploadMp4File: false,
-  useCdn: false,
 });
 
 const getStorageConfig = async () => {
@@ -110,7 +106,6 @@ const getStorageConfig = async () => {
     storageForm.domain = resData.domain;
     storageForm.private = resData.private;
     storageForm.uploadMp4File = resData.uploadMp4File;
-    storageForm.useCdn = resData.useCdn;
   } else {
     message.error("读取配置失败");
   }
