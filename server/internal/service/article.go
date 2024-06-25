@@ -64,7 +64,7 @@ func EditArticleInfo(ctx *gin.Context, editArticleReq dto.EditArticleReq) error 
 		return errors.New("修改失败")
 	}
 
-	// 删除缓存中的视频ID信息
+	// 删除缓存中的文章ID信息
 	cache.DelArticleId(editArticleReq.Aid)
 
 	return nil
@@ -124,13 +124,13 @@ func DeleteArticle(ctx *gin.Context, id uint) error {
 		return errors.New("删除失败")
 	}
 
-	// 删除缓存中的视频ID信息
+	// 删除缓存中的文章ID信息
 	cache.DelArticleId(article.ID)
 
 	return nil
 }
 
-// 获取所有的视频列表
+// 获取所有的文章列表
 func GetAllArticleList(ctx *gin.Context) (articles []vo.AllArticleResp) {
 	userId := ctx.GetUint("userId")
 	global.Mysql.Model(&model.Article{}).Select("`id`,`title`").Where("uid = ?", userId).Scan(&articles)
@@ -138,7 +138,7 @@ func GetAllArticleList(ctx *gin.Context) (articles []vo.AllArticleResp) {
 	return
 }
 
-// 获取用户视频
+// 获取用户文章
 func GetArticleByUser(ctx *gin.Context, userId uint, page, pageSize int) (total int64, articles []vo.UploadArticleResp) {
 	global.Mysql.Model(&model.Article{}).
 		Where("uid = ? and status = ?", userId, global.AUDIT_APPROVED).Count(&total)

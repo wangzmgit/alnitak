@@ -70,7 +70,7 @@ func GetUploadArticleList(ctx *gin.Context) {
 	resp.OkWithData(ctx, gin.H{"total": total, "articles": articles})
 }
 
-// 获取视频状态
+// 获取文章状态
 func GetArticleStatus(ctx *gin.Context) {
 	articleId := utils.StringToUint(ctx.Query("aid"))
 
@@ -112,7 +112,7 @@ func DeleteArticle(ctx *gin.Context) {
 	resp.Ok(ctx)
 }
 
-// 获取所有的视频列表
+// 获取所有的文章列表
 func GetAllArticleList(ctx *gin.Context) {
 	articles := service.GetAllArticleList(ctx)
 
@@ -120,7 +120,7 @@ func GetAllArticleList(ctx *gin.Context) {
 	resp.OkWithData(ctx, gin.H{"articles": articles})
 }
 
-// 获取用户视频
+// 获取用户文章
 func GetArticleByUser(ctx *gin.Context) {
 	userId := utils.StringToUint(ctx.Query("userId"))
 	page := utils.StringToInt(ctx.Query("page"))
@@ -137,7 +137,7 @@ func GetArticleByUser(ctx *gin.Context) {
 	resp.OkWithData(ctx, gin.H{"total": total, "articles": articles})
 }
 
-// 获取分区视频
+// 获取分区文章
 func GetRandomArticleList(ctx *gin.Context) {
 	size := utils.StringToInt(ctx.Query("size"))
 

@@ -24,7 +24,6 @@ type StorageConfigReq struct {
 	Private   bool
 
 	UploadMp4File bool
-	UseCdn        bool
 }
 
 type OtherConfigReq struct {

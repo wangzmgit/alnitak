@@ -13,8 +13,8 @@ import (
 // 获取邮箱配置信息
 func GetEmailConfig(ctx *gin.Context) {
 	config := vo.EmailConfigResp{
-		User:      viper.GetString("mail.user"),
-		Pass:      viper.GetString("mail.pass"),
+		User: viper.GetString("mail.user"),
+		// Pass:      viper.GetString("mail.pass"),
 		Host:      viper.GetString("mail.host"),
 		Port:      viper.GetInt("mail.port"),
 		Addresser: viper.GetString("mail.addresser"),
@@ -52,18 +52,16 @@ func GetStorageConfig(ctx *gin.Context) {
 		MaxImgSize:   viper.GetInt("file.max_img_size"),
 		MaxVideoSize: viper.GetInt("file.max_video_size"),
 
-		Type:      viper.GetString("storage.oss_type"),
-		KeyID:     viper.GetString("storage.key_id"),
-		KeySecret: viper.GetString("storage.key_secret"),
-		Bucket:    viper.GetString("storage.bucket"),
-		Endpoint:  viper.GetString("storage.endpoint"),
-		AppID:     viper.GetString("storage.app_id"),
-		Region:    viper.GetString("storage.region"),
-		Domain:    viper.GetString("storage.domain"),
-		Private:   viper.GetBool("storage.private"),
+		Type:     viper.GetString("storage.oss_type"),
+		KeyID:    viper.GetString("storage.key_id"),
+		Bucket:   viper.GetString("storage.bucket"),
+		Endpoint: viper.GetString("storage.endpoint"),
+		AppID:    viper.GetString("storage.app_id"),
+		Region:   viper.GetString("storage.region"),
+		Domain:   viper.GetString("storage.domain"),
+		Private:  viper.GetBool("storage.private"),
 
 		UploadMp4File: viper.GetBool("storage.upload_mp4_file"),
-		UseCdn:        viper.GetBool("storage.use_cdn"),
 	}
 
 	resp.OkWithData(ctx, gin.H{"config": config})
@@ -90,7 +88,6 @@ func SetStorageConfig(ctx *gin.Context) {
 	viper.Set("storage.private", storageConfigReq.Private)
 
 	viper.Set("storage.upload_mp4_file", storageConfigReq.UploadMp4File)
-	viper.Set("storage.use_cdn", storageConfigReq.UseCdn)
 
 	if len(storageConfigReq.KeySecret) != 0 {
 		viper.Set("storage.key_secret", storageConfigReq.KeySecret)
