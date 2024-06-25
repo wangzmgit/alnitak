@@ -54,7 +54,7 @@ CREATE TABLE `carousel`  (
   `deleted_at` datetime(3) NULL DEFAULT NULL,
   `uid` bigint UNSIGNED NULL DEFAULT NULL COMMENT '创建者',
   `img` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '图片链接',
-  `title` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '标题',
+  `title` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '标题',
   `url` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '指向的链接',
   `color` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '主题色',
   `use` tinyint(1) NULL DEFAULT NULL COMMENT '是否启用',
