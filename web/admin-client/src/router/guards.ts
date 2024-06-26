@@ -58,7 +58,7 @@ router.beforeEach(async (to, _from, next) => {
     }
   } else { // no token
     const redirect = encodeURIComponent(to.fullPath);
-    next({ path: "/login", query: { redirect } });
+    next({ path: `/${globalConfig.baseUrl}/login`, query: { redirect } });
     window.$message.error("请先登录再进行操作");
   }
 

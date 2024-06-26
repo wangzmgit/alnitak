@@ -51,7 +51,6 @@ const editorConfig = {
   MENU_CONF: {
     uploadImage: {
       async customUpload(file: File, insertFn: any) {
-        console.log('file', file)
         uploadFileAPI({
           name: "image",
           action: "v1/upload/image",
