@@ -1,5 +1,6 @@
 import path from 'path';
-import { defineConfig } from 'vitepress'
+import { defineConfig } from 'vitepress';
+import mdItCustomAttrs from "markdown-it-custom-attrs";
 
 export default defineConfig({
   title: "Alnitak弹幕视频网站文档",
@@ -10,7 +11,9 @@ export default defineConfig({
       name: 'viewport',
       content: 'width=device-width,initial-scale=1,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no'
     }],
-    ['link', { rel: 'icon', href: '/favicon.ico' }]
+    ['link', { rel: 'icon', href: '/favicon.ico' }],
+    ["link", { rel: "stylesheet", href: "/css/fancybox.css" }],
+    ["script", { src: "/js/fancybox.umd.js" }],
   ],
   srcDir: `${path.resolve(process.cwd())}/src`,
   themeConfig: {
@@ -76,7 +79,7 @@ export default defineConfig({
             { text: '贡献指南', link: '/guide/other/contribution' },
             { text: '更新说明', link: '/guide/other/update' },
             { text: '常见问题解答', link: '/guide/other/qa' },
-            { text: '相关截图', link: '/guide/screenshot' }
+            { text: '相关截图', link: '/guide/other/screenshot' }
           ]
         }
       ],
@@ -112,6 +115,13 @@ export default defineConfig({
           ]
         }
       ]
-    }
+    },
   },
+  markdown: {
+    config: (md) => {
+      md.use(mdItCustomAttrs, "image", {
+        "data-fancybox": "gallery",
+      });
+    },
+  }
 })
