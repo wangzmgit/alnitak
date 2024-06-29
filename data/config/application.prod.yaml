@@ -1,6 +1,6 @@
 cors:
   # 跨域配置，存在多个使用 , 分隔，请根据实际状况填写，(格式：http://example.com)
-  allow_origin: http://localhost:5173,http://localhost:3000
+  allow_origin: http://localhost:9010,http://localhost:9030
 file:
   max_img_size: 5
   max_video_size: 500
