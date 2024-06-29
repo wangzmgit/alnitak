@@ -48,7 +48,7 @@ import { Male, Female } from '@icon-park/vue-next';
 definePageMeta({
   middleware: [(to) => {
     if (to.name === 'user-id') {
-      return navigateTo({ name: "user-id-manuscript" });
+      return navigateTo({ name: "user-id-manuscript", params: { id: to.params.id } });
     }
   }]
 })

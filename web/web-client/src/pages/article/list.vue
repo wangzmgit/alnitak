@@ -1,5 +1,5 @@
 <template>
-  <div class="home article-bg">
+  <div class="home">
     <home-header class="home-header" @change-fold="changeMenuFold"></home-header>
     <div class="home-content">
       <div class="home-left" :class="menuFold ? 'home-left-fold' : ''">
@@ -9,7 +9,7 @@
         <div class="home-recommended">
           <ul class="article-list">
             <li class="article-item" v-for="(item, index) in articleList" :key="index">
-              <nuxt-link class="content-wrapper" :to="`/article/${item.aid}`">
+              <nuxt-link class="content-wrapper" :to="`/article/${item.aid}`" target="_blank">
                 <div class="content-main">
                   <div class="title-row" :to="`/article/${item.aid}`">{{ item.title }}</div>
                   <div class="abstract">{{ removeHtml(item.content) }}</div>
@@ -65,10 +65,12 @@ const getViedeoList = async () => {
       articleList.value = articleList.value.concat(res.data.data.articles);
     }
   }
+  console.log('articleList.value ', articleList.value)
   loading.value = false;
 }
 
 const lazyLoading = (e: Event) => {
+  if((e.target as Document).location.pathname !== "/article/list") return;
   const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
   const clientHeight = document.documentElement.clientHeight;
   const scrollHeight = document.documentElement.scrollHeight;
@@ -84,7 +86,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
-  window.removeEventListener('scroll', lazyLoading);
+  window.removeEventListener('scroll', lazyLoading, true);
 })
 </script>
 
@@ -93,6 +95,9 @@ onBeforeUnmount(() => {
   width: 100%;
   min-width: 1000px;
   overflow: hidden;
+  min-height: 100vh;
+  background-color: #f2f3f5;
+
 
   .home-header {
     position: fixed;
@@ -103,16 +108,10 @@ onBeforeUnmount(() => {
   }
 }
 
-.article-bg {
-  position: fixed;
-  width: 100%;
-  height: 100vh;
-  background-color: #f2f3f5;
-}
-
 .home-content {
   display: flex;
   margin-top: 60px;
+  z-index: 999;
 
   .home-left {
     width: 220px;

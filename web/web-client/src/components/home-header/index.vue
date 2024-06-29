@@ -24,7 +24,6 @@
           <div class="transition"></div>
           <div class="header-menu">
             <div class="menu-info">
-              <common-avatar :url="userInfo?.avatar" :size="40" :iconSize="22"></common-avatar>
               <div class="name-box">
                 <span class="name">{{ userInfo?.name }}</span>
                 <span class="sign">{{ userInfo?.sign }}</span>
@@ -177,6 +176,8 @@ onBeforeMount(() => {
 
     .title {
       color: var(--font-primary-1);
+      overflow: hidden;
+      white-space: nowrap;
     }
   }
 
@@ -291,7 +292,7 @@ onBeforeMount(() => {
   .menu-container {
     display: none;
     position: absolute;
-    width: 260px;
+    width: 230px;
     top: 40px;
     left: -110px;
     z-index: 999;
@@ -302,7 +303,7 @@ onBeforeMount(() => {
 
     .header-menu {
       box-sizing: border-box;
-      padding: 12px 18px;
+      padding: 12px 12px 6px;
       background-color: #fff;
       border-radius: 10px;
       animation: menu .3s ease-in;

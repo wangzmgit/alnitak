@@ -75,7 +75,7 @@ onBeforeMount(() => {
 })
 
 onBeforeUnmount(() => {
-  window.removeEventListener('scroll', lazyLoading);
+  window.removeEventListener('scroll', lazyLoading, true);
 })
 </script>
 

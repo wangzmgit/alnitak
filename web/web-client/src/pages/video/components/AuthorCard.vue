@@ -3,16 +3,16 @@
     <div class="up-info-container">
       <div class="up-info-left">
         <div class="up-avatar-wrap">
-          <div class="up-avatar">
+          <nuxt-link class="up-avatar" :to="`/user/${props.info.uid}`" target="_blank">
             <common-avatar :size="48" :url="props.info.avatar"></common-avatar>
-          </div>
+          </nuxt-link>
         </div>
       </div>
       <div class="up-info-right">
         <div class="up-info-detail">
           <div class="up-detail">
             <div class="up-detail-top">
-              <span class="up-name">{{ props.info.name }}</span>
+              <nuxt-link class="up-name" :to="`/user/${props.info.uid}`" target="_blank">{{ props.info.name }}</nuxt-link>
             </div>
             <div class="up-description up-detail-bottom">{{ props.info.sign }}</div>
           </div>
