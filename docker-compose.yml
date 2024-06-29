@@ -8,7 +8,7 @@ services:
     environment:
       TZ: Asia/Shanghai
       MYSQL_ROOT_PASSWORD: AlnitakRoot@123 # root密码(修改要同时修改data/mysql/init/init.sql中的密码)
-      MYSQL_DATABASE: alnitak-prod
+      MYSQL_DATABASE: alnitak
     restart: on-failure
     volumes:
       - ./data/mysql/db:/var/lib/mysql
