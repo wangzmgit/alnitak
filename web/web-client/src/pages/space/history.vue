@@ -5,7 +5,8 @@
       <history-video-list :video-list="historyList.today"></history-video-list>
       <span v-if="historyList.today.length && historyList.yesterday.length" class="date-title">昨天</span>
       <history-video-list :video-list="historyList.yesterday"></history-video-list>
-      <span v-if="historyList.yesterday.length && historyList.earlier.length" class="date-title">更早</span>
+      <span v-if="(historyList.today.length || historyList.yesterday.length) && historyList.earlier.length"
+        class="date-title">更早</span>
       <history-video-list :video-list="historyList.earlier"></history-video-list>
     </div>
   </div>
@@ -64,6 +65,12 @@ onBeforeMount(() => {
     font-size: 18px;
     margin-top: 20px;
     padding-left: 10px;
+  }
+
+  .date-title {
+    display: block;
+    font-size: 16px;
+    margin: 10px 10px;
   }
 }
 </style>

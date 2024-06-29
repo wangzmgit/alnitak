@@ -179,7 +179,12 @@ onMounted(async () => {
   // 处理跳转页面回来用户信息为空的问题
   if (!userInfo.value || userInfo.value.uid === 0) {
     await getUserInfo();
+
     document.title = `${userInfo.value?.name}的个人中心`;
+  }
+
+  if (userInfo.value) {
+    getFollowData(userInfo.value.uid);
   }
 })
 
@@ -199,12 +204,6 @@ const getFollowData = async (id: number | string) => {
 
   userData.loading = false;
 }
-
-onBeforeMount(() => {
-  if (userInfo.value) {
-    getFollowData(userInfo.value.uid);
-  }
-})
 </script>
 
 <style lang="scss" scoped>

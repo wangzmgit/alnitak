@@ -1,17 +1,17 @@
 <template>
   <div class="video-item">
-    <nuxt-link class="img" :to="`/video/${info.vid}`">
+    <nuxt-link class="img" :to="`/video/${info.vid}`" target="_blank">
       <img :src="getResourceUrl(info.cover)" alt="封面" />
       <span class="duration">{{ toDuration(info.duration) }}</span>
     </nuxt-link>
     <div class="video-info">
-      <nuxt-link class="title" :to="`/video/${info.vid}`">{{ info.title }}</nuxt-link>
+      <nuxt-link class="title" :to="`/video/${info.vid}`" target="_blank">{{ info.title }}</nuxt-link>
       <div class="author">
         <div class="avatar">
           <common-avatar :url="info.author.avatar" :size="26" :iconsize="16"></common-avatar>
         </div>
         <div class="name-date">
-          <nuxt-link class="name" :to="`/user/${info.author.uid}`">{{ info.author.name }}</nuxt-link>
+          <nuxt-link class="name" :to="`/user/${info.author.uid}`" target="_blank">{{ info.author.name }}</nuxt-link>
         </div>
       </div>
     </div>

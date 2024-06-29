@@ -68,4 +68,8 @@ onBeforeMount(() => {
     color: #666;
   }
 }
+
+:deep(.n-input .n-input__input-el) {
+  height: auto;
+}
 </style>

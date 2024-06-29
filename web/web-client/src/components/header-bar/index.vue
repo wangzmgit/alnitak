@@ -152,6 +152,8 @@ onBeforeMount(() => {
       font-weight: 500;
       vertical-align: top;
       cursor: pointer;
+      overflow: hidden;
+      white-space: nowrap;
     }
   }
 

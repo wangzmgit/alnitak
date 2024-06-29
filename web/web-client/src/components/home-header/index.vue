@@ -176,6 +176,8 @@ onBeforeMount(() => {
 
     .title {
       color: var(--font-primary-1);
+      overflow: hidden;
+      white-space: nowrap;
     }
   }
 

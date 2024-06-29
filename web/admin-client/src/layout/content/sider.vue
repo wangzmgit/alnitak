@@ -50,13 +50,16 @@ const handleJumpHome = () => {
 .logo-container {
   height: v-bind('(collapsedIconSize + 10) + "px"');
   padding: 10px 0;
-  font-size: 22px;
-  font-weight: 700;
   cursor: pointer;
 }
 
 .divider-style {
   margin: 0;
   padding: 0 10px;
+}
+
+.text-nowrap {
+  font-size: 16px;
+  font-weight: 500;
 }
 </style>
