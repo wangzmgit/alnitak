@@ -360,6 +360,26 @@ INSERT INTO `menu` VALUES (13, '2024-04-13 15:40:49.675', '2024-04-13 15:41:15.8
 INSERT INTO `menu` VALUES (14, '2024-05-18 15:06:40.539', '2024-05-18 15:06:40.539', NULL, 'ContentAnnounce', 'content/announce', 'views/content/announce/index.vue', NULL, 1, 4, '公告管理', 'TodayOutline', 0, 0);
 INSERT INTO `menu` VALUES (15, '2024-06-08 14:17:20.000', '2024-06-08 14:17:20.000', NULL, 'SysConfig', 'system/config', 'views/system/config/index.vue', NULL, 1, 9, '系统配置', 'BriefcaseOutline', 0, 0);
 
+-- 创建分区表
+CREATE TABLE IF NOT EXISTS `partition`  (
+  `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+  `created_at` datetime(3) NULL DEFAULT NULL,
+  `updated_at` datetime(3) NULL DEFAULT NULL,
+  `deleted_at` datetime(3) NULL DEFAULT NULL,
+  `name` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL COMMENT '分区名称',
+  `type` tinyint NULL DEFAULT 0 COMMENT '类型:0视频、1文章',
+  `parent_id` bigint UNSIGNED NULL DEFAULT 0 COMMENT '所属分区ID',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_partition_deleted_at`(`deleted_at`) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
+
+-- 插入初始分区数据
+INSERT INTO `partition` VALUES (1, '2021-12-12 08:16:42.000', '2021-12-12 08:16:42.000', NULL, '生活', 0, 0);
+INSERT INTO `partition` VALUES (2, '2021-12-12 08:16:42.000', '2021-12-12 08:16:42.000', NULL, '日常', 0, 1);
+INSERT INTO `partition` VALUES (3, '2021-12-12 08:16:42.000', '2021-12-12 08:16:42.000', NULL, '生活', 1, 0);
+INSERT INTO `partition` VALUES (4, '2021-12-12 08:16:42.000', '2021-12-12 08:16:42.000', NULL, '日常', 1, 3);
+
+
 -- 创建角色表
 CREATE TABLE IF NOT EXISTS `role`  (
   `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
