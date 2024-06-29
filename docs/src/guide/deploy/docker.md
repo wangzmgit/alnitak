@@ -95,7 +95,7 @@ const maxImgSize = 5;//上传图片最大大小(单位M)
 const maxVideoSize = 500;//上传视频最大大小(单位M)
 ```
 #### 2. 构建项目
-回到`web/web-client`目录下，使用一下命令构建项目
+回到`web/admin-client`目录下，使用一下命令构建项目
 ```sh
 # 先安装项目依赖
 yarn install
