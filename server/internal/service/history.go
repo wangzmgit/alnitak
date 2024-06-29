@@ -18,7 +18,7 @@ func AddHistory(ctx *gin.Context, historyReq dto.HistoryReq) error {
 		historyReq.Part = 1
 	}
 
-	history, err := FindHistory(historyReq.Vid, userId, historyReq.Part)
+	history, err := FindHistory(historyReq.Vid, userId)
 	if err != nil && err != gorm.ErrRecordNotFound {
 		utils.ErrorLog("保存历史记录失败", "history", err.Error())
 		return errors.New("保存失败")
@@ -36,6 +36,7 @@ func AddHistory(ctx *gin.Context, historyReq dto.HistoryReq) error {
 		}
 	} else {
 		history.Time = historyReq.Time
+		history.Part = historyReq.Part
 		if err := global.Mysql.Save(&history).Error; err != nil {
 			utils.ErrorLog("保存历史记录失败", "history", err.Error())
 			return errors.New("保存失败")
@@ -60,7 +61,7 @@ func GetHistoryList(ctx *gin.Context, page, pageSize int) (videos []vo.HistoryVi
 
 func GetHistoryProgress(ctx *gin.Context, videoId, part uint) (progress float64, err error) {
 	userId := ctx.GetUint("userId")
-	history, err := FindHistory(videoId, userId, part)
+	history, err := FindHistoryByPart(videoId, userId, part)
 	if err != nil {
 		utils.ErrorLog("获取历史记录进度失败", "history", err.Error())
 		return 0, errors.New("获取失败")
@@ -69,7 +70,15 @@ func GetHistoryProgress(ctx *gin.Context, videoId, part uint) (progress float64,
 	return history.Time, nil
 }
 
-func FindHistory(videoId, userId, part uint) (history model.History, err error) {
+func FindHistory(videoId, userId uint) (history model.History, err error) {
+	if err = global.Mysql.Where("vid = ? and uid= ?", videoId, userId).First(&history).Error; err != nil {
+		return
+	}
+
+	return
+}
+
+func FindHistoryByPart(videoId, userId, part uint) (history model.History, err error) {
 	if err = global.Mysql.Where("vid = ? and uid= ? and part = ?", videoId, userId, part).
 		First(&history).Error; err != nil {
 		return

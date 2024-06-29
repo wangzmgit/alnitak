@@ -370,7 +370,9 @@ func FindVideoById(id uint) (video model.Video, err error) {
 func GetVideoInfo(videoId uint) (video vo.VideoResp) {
 	video = cache.GetVideoInfo(videoId)
 	if video.ID == 0 {
-		return VideoWriteCache(videoId)
+		video = VideoWriteCache(videoId)
+	} else {
+		video.Author = GetUserBaseInfo(video.Uid)
 	}
 
 	return

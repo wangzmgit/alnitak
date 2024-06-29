@@ -45,6 +45,8 @@ func main() {
 	// 初始化casbin
 	global.Casbin = casbin.InitCasbin()
 
+	// 手动执行一次刷新热点视频
+	cron.RefreshPopular()
 	// 启动定时任务
 	go cron.StartCronTask()
 
