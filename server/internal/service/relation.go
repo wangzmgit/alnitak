@@ -130,6 +130,10 @@ func GetFollowers(ctx *gin.Context, userId uint, page, pageSize int) (relation [
 
 	// 查询用户信息
 	for i := 0; i < len(relation); i++ {
+		if relation[i].Relation != global.MUTUAL_FANS {
+			relation[i].Relation = global.NOT_FOLLOWING
+		}
+
 		relation[i].User = GetUserBaseInfo(relation[i].Uid)
 	}
 

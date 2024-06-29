@@ -76,8 +76,9 @@ func RefreshPopular() {
 	}
 
 	// 写入缓存
+	total := h.Len()
 	cache.DelHotVideoId()
-	for i := 0; i < h.Len(); i++ {
+	for i := 0; i < total; i++ {
 		cache.SetHotVideoId(heap.Pop(h).(VideoData).ID)
 	}
 
