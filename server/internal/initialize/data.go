@@ -342,24 +342,46 @@ func initMenuData() {
 	}
 
 	zap.L().Info("菜单数据不存在，添加默认数据", zap.String("module", "initialize"))
-	entities := []model.Menu{
-		{Name: "review", Path: "review", Component: "", Desc: "", Sort: 1, ParentId: 0, Title: "内容审核", Icon: "LayersOutline", Hidden: false, KeepAlive: false},
-		{Name: "ReviewVideo", Path: "review/video", Component: "views/review/video/index.vue", Desc: "", Sort: 1, ParentId: 1, Title: "视频审核", Icon: "FileTrayOutline", Hidden: false, KeepAlive: false},
-		{Name: "ReviewArticle", Path: "review/article", Component: "views/review/article/index.vue", Desc: "", Sort: 1, ParentId: 1, Title: "专栏审核", Icon: "AlbumsOutline", Hidden: false, KeepAlive: false},
-		{Name: "Content", Path: "content", Component: "", Desc: "", Sort: 1, ParentId: 0, Title: "内容管理", Icon: "ReaderOutline", Hidden: false, KeepAlive: false},
-		{Name: "ContentVideo", Path: "content/video", Component: "views/content/video/index.vue", Desc: "", Sort: 1, ParentId: 4, Title: "视频管理", Icon: "PlayCircleOutline", Hidden: false, KeepAlive: false},
-		{Name: "ContentArticle", Path: "content/article", Component: "views/content/article/index.vue", Desc: "", Sort: 1, ParentId: 4, Title: "专栏管理", Icon: "DocumentTextOutline", Hidden: false, KeepAlive: false},
-		{Name: "ContentCarousel", Path: "content/carousel", Component: "views/content/carousel/index.vue", Desc: "", Sort: 1, ParentId: 4, Title: "轮播图管理", Icon: "ImagesOutline", Hidden: false, KeepAlive: false},
-		{Name: "ContentPartition", Path: "content/partition", Component: "views/content/partition/index.vue", Desc: "", Sort: 1, ParentId: 4, Title: "分区管理", Icon: "BookmarkOutline", Hidden: false, KeepAlive: false},
-		{Name: "ContentAnnounce", Path: "content/announce", Component: "views/content/announce/index.vue", Desc: "", Sort: 1, ParentId: 4, Title: "公告管理", Icon: "TodayOutline", Hidden: false, KeepAlive: false},
-		{Name: "System", Path: "system", Component: "", Desc: "", Sort: 1, ParentId: 0, Title: "系统管理", Icon: "TerminalOutline", Hidden: false, KeepAlive: false},
-		{Name: "SystemApi", Path: "system/api", Component: "views/system/api/index.vue", Desc: "", Sort: 1, ParentId: 9, Title: "API管理", Icon: "ShieldOutline", Hidden: false, KeepAlive: false},
-		{Name: "SystemMenu", Path: "system/menu", Component: "views/system/menu/index.vue", Desc: "", Sort: 1, ParentId: 9, Title: "菜单管理", Icon: "GridOutline", Hidden: false, KeepAlive: false},
-		{Name: "SystemRole", Path: "system/role", Component: "views/system/role/index.vue", Desc: "", Sort: 1, ParentId: 9, Title: "角色管理", Icon: "PeopleOutline", Hidden: false, KeepAlive: false},
-		{Name: "SysUser", Path: "system/user", Component: "views/system/user/index.vue", Desc: "", Sort: 1, ParentId: 9, Title: "用户管理", Icon: "PersonOutline", Hidden: false, KeepAlive: false},
-		{Name: "SysConfig", Path: "system/config", Component: "views/system/config/index.vue", Desc: "", Sort: 1, ParentId: 9, Title: "系统配置", Icon: "BriefcaseOutline", Hidden: false, KeepAlive: false},
+
+	reviewMenu := model.Menu{Name: "review", Path: "review", Component: "", Desc: "", Sort: 1, ParentId: 0, Title: "内容审核", Icon: "LayersOutline", Hidden: false, KeepAlive: false}
+	if err := global.Mysql.Create(&reviewMenu).Error; err != nil {
+		zap.L().Error("菜单数据初始化失败", zap.String("err", err.Error()), zap.String("module", "initialize"))
 	}
-	if err := global.Mysql.Create(&entities).Error; err != nil {
+	reviewMenuEntities := []model.Menu{
+		{Name: "ReviewVideo", Path: "review/video", Component: "views/review/video/index.vue", Desc: "", Sort: 1, ParentId: reviewMenu.ID, Title: "视频审核", Icon: "FileTrayOutline", Hidden: false, KeepAlive: false},
+		{Name: "ReviewArticle", Path: "review/article", Component: "views/review/article/index.vue", Desc: "", Sort: 1, ParentId: reviewMenu.ID, Title: "专栏审核", Icon: "AlbumsOutline", Hidden: false, KeepAlive: false},
+	}
+	if err := global.Mysql.Create(&reviewMenuEntities).Error; err != nil {
+		zap.L().Error("菜单数据初始化失败", zap.String("err", err.Error()), zap.String("module", "initialize"))
+	}
+
+	contentMenu := model.Menu{Name: "Content", Path: "content", Component: "", Desc: "", Sort: 1, ParentId: 0, Title: "内容管理", Icon: "ReaderOutline", Hidden: false, KeepAlive: false}
+	if err := global.Mysql.Create(&contentMenu).Error; err != nil {
+		zap.L().Error("菜单数据初始化失败", zap.String("err", err.Error()), zap.String("module", "initialize"))
+	}
+	contentMenuEntities := []model.Menu{
+		{Name: "ContentVideo", Path: "content/video", Component: "views/content/video/index.vue", Desc: "", Sort: 1, ParentId: contentMenu.ID, Title: "视频管理", Icon: "PlayCircleOutline", Hidden: false, KeepAlive: false},
+		{Name: "ContentArticle", Path: "content/article", Component: "views/content/article/index.vue", Desc: "", Sort: 1, ParentId: contentMenu.ID, Title: "专栏管理", Icon: "DocumentTextOutline", Hidden: false, KeepAlive: false},
+		{Name: "ContentCarousel", Path: "content/carousel", Component: "views/content/carousel/index.vue", Desc: "", Sort: 1, ParentId: contentMenu.ID, Title: "轮播图管理", Icon: "ImagesOutline", Hidden: false, KeepAlive: false},
+		{Name: "ContentPartition", Path: "content/partition", Component: "views/content/partition/index.vue", Desc: "", Sort: 1, ParentId: contentMenu.ID, Title: "分区管理", Icon: "BookmarkOutline", Hidden: false, KeepAlive: false},
+		{Name: "ContentAnnounce", Path: "content/announce", Component: "views/content/announce/index.vue", Desc: "", Sort: 1, ParentId: contentMenu.ID, Title: "公告管理", Icon: "TodayOutline", Hidden: false, KeepAlive: false},
+	}
+	if err := global.Mysql.Create(&contentMenuEntities).Error; err != nil {
+		zap.L().Error("菜单数据初始化失败", zap.String("err", err.Error()), zap.String("module", "initialize"))
+	}
+
+	systemMenu := model.Menu{Name: "System", Path: "system", Component: "", Desc: "", Sort: 1, ParentId: 0, Title: "系统管理", Icon: "TerminalOutline", Hidden: false, KeepAlive: false}
+	if err := global.Mysql.Create(&systemMenu).Error; err != nil {
+		zap.L().Error("菜单数据初始化失败", zap.String("err", err.Error()), zap.String("module", "initialize"))
+	}
+	systemMenuEntities := []model.Menu{
+		{Name: "SystemApi", Path: "system/api", Component: "views/system/api/index.vue", Desc: "", Sort: 1, ParentId: systemMenu.ID, Title: "API管理", Icon: "ShieldOutline", Hidden: false, KeepAlive: false},
+		{Name: "SystemMenu", Path: "system/menu", Component: "views/system/menu/index.vue", Desc: "", Sort: 1, ParentId: systemMenu.ID, Title: "菜单管理", Icon: "GridOutline", Hidden: false, KeepAlive: false},
+		{Name: "SystemRole", Path: "system/role", Component: "views/system/role/index.vue", Desc: "", Sort: 1, ParentId: systemMenu.ID, Title: "角色管理", Icon: "PeopleOutline", Hidden: false, KeepAlive: false},
+		{Name: "SysUser", Path: "system/user", Component: "views/system/user/index.vue", Desc: "", Sort: 1, ParentId: systemMenu.ID, Title: "用户管理", Icon: "PersonOutline", Hidden: false, KeepAlive: false},
+		{Name: "SysConfig", Path: "system/config", Component: "views/system/config/index.vue", Desc: "", Sort: 1, ParentId: systemMenu.ID, Title: "系统配置", Icon: "BriefcaseOutline", Hidden: false, KeepAlive: false},
+	}
+	if err := global.Mysql.Create(&systemMenuEntities).Error; err != nil {
 		zap.L().Error("菜单数据初始化失败", zap.String("err", err.Error()), zap.String("module", "initialize"))
 	}
 }
