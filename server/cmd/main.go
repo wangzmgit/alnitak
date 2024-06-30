@@ -37,6 +37,7 @@ func main() {
 	// 初始化mysql
 	global.Mysql = mysql.Init()
 	initialize.InitTables()
+	initialize.InitDefaultData()
 	// 初始化分区数据
 	global.VideoPartitionMap = service.GetPartitionMap(global.CONTENT_TYPE_VIDEO)
 	// 初始化缓存
