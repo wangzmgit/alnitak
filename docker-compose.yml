@@ -1,13 +1,12 @@
 version: '3'
 
 services:
-  #MySQL
   mysql:
     image: mysql:8.0.31
     container_name: alnitak-mysql
     environment:
       TZ: Asia/Shanghai
-      MYSQL_ROOT_PASSWORD: AlnitakRoot@123 # root密码(修改要同时修改data/mysql/init/init.sql中的密码)
+      MYSQL_ROOT_PASSWORD: AlnitakRoot@123
       MYSQL_DATABASE: alnitak
     restart: on-failure
     volumes:
@@ -16,8 +15,11 @@ services:
     ports:
       - '3307:3306'
     command:
-      # 将mysql8.0默认密码策略 修改为 原先 策略 (mysql8.0对其默认策略做了更改 会导致密码无法匹配)
-      --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci --explicit_defaults_for_timestamp=true --lower_case_table_names=1
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_general_ci
+      --character-set-client-handshake=false
+      --init-connect='SET NAMES utf8mb4'
 
   #Redis
   redis:
