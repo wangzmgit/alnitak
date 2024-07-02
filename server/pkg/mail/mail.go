@@ -131,10 +131,10 @@ func Send(email string, subject string, body string) error {
 		viper.GetString("mail.addresser")
 
 	m := NewMessage()
-	m.SetHeader("From", addresser+"<"+user+">") //添加别名
-	m.SetHeader("To", email)                    //发送给多个用户
-	m.SetHeader("Subject", subject)             //设置邮件主题
-	m.SetBody(body)                             //设置邮件正文
+	m.SetHeader("From", addresser+" "+"<"+user+">") //添加别名
+	m.SetHeader("To", email)                        //发送给多个用户
+	m.SetHeader("Subject", subject)                 //设置邮件主题
+	m.SetBody(body)                                 //设置邮件正文
 
 	m.SetDialer(host, port, user, pass)
 
