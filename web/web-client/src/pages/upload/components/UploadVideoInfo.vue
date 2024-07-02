@@ -51,6 +51,7 @@
 <script setup lang="ts">
 import { ref, onMounted, reactive } from "vue";
 import { statusCode } from "@/utils/status-code";
+import { isLegalTag } from "@/utils/verify";
 import CoverUploader from "./CoverUploader.vue";
 import PartitionSelector from "./PartitionSelector.vue";
 import FormSkeleton from "@/components/form-skeleton/index.vue";
@@ -100,11 +101,10 @@ const showInput = () => {
   })
 }
 
-const reg = /^[0-9a-zA-Z\u4e00-\u9fa5]+$/
 const handleInputConfirm = () => {
   if (inputValue.value) {
     if (!dynamicTags.value.includes(inputValue.value)) {
-      if (reg.test(inputValue.value)) {
+      if (isLegalTag(inputValue.value)) {
         dynamicTags.value.push(inputValue.value);
       } else {
         ElMessage.error("标签不可包含特殊字符");

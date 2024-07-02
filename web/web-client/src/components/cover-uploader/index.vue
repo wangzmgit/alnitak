@@ -23,7 +23,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { ElMessage } from "element-plus";
-import { isUrl } from "@/utils/format";
+import { isUrl } from "@/utils/verify";
 import { globalConfig } from "@/utils/global-config";
 import { Upload as UploadIcon } from "@icon-park/vue-next";
 import ImageCropper from "@/components/image-cropper/index.vue";
