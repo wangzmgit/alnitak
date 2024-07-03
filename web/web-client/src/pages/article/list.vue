@@ -128,13 +128,13 @@ onBeforeUnmount(() => {
 
   .home-right {
     flex: 1;
-    margin-top: 6px;
+    margin-top: 12px;
   }
 }
 
 .home-recommended {
-  margin-left: 25px;
-  width: calc(100% - 50px);
+  margin-left: 16px;
+  width: calc(100% - 32px);
 }
 
 .article-list {
@@ -142,11 +142,12 @@ onBeforeUnmount(() => {
   box-sizing: border-box;
   width: 100%;
   margin: 0;
-  padding: 20px 12px 0;
+  padding: 12px 0;
   background-color: #fff;
 
   .article-item {
     height: 110px;
+  padding: 0 20px 0;
     box-sizing: border-box;
   }
 }
@@ -156,6 +157,7 @@ onBeforeUnmount(() => {
   padding-bottom: 12px;
   border-bottom: 1px solid rgba(228, 230, 235, 0.5);
   width: 100%;
+  margin-top: 2px;
 
   .content-main {
     flex: 1 1 auto;

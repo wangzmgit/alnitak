@@ -233,14 +233,14 @@ const getFollowData = async (id: number | string) => {
     right: 20px;
     width: 120px;
     height: 32px;
-    color: #d3d3d3;
-    background-color: transparent;
+    color: #fff;
+    background-color: rgba(0, 0, 0, .45);
     cursor: pointer;
-    border-radius: 3px;
-    border: 1px solid rgba(255, 255, 255, .2);
+    border-radius: 6px;
+    border: none;
 
     &:hover {
-      border-color: #d3d3d3;
+      background-color: rgba(0, 0, 0, .5);
     }
   }
 
