@@ -27,7 +27,7 @@ func CollectAuthRoutes(r *gin.RouterGroup) {
 	// 清除Cookie
 	authGroup.POST("clearCookie", api.ClearCookie)
 	// 修改密码检查
-	authGroup.GET("resetpwdCheck", api.ResetPwdCheck)
+	authGroup.POST("resetpwdCheck", api.ResetPwdCheck)
 	// 修改密码
 	authGroup.POST("modifyPwd", api.ModifyPwd)
 }

@@ -16,11 +16,16 @@ import (
 
 func UploadVideoInfo(ctx *gin.Context, uploadVideoReq dto.UploadVideoReq) error {
 	userId := ctx.GetUint("userId")
+	v, _ := FindVideoById(uploadVideoReq.Vid)
 	if cache.GetUploadImage(uploadVideoReq.Cover) != userId {
 		// 查询是否与旧封面图一致
-		if v, _ := FindVideoById(uploadVideoReq.Vid); v.Cover != uploadVideoReq.Cover {
+		if v.Cover != uploadVideoReq.Cover {
 			return errors.New("文件链接无效")
 		}
+	}
+
+	if v.PartitionId != 0 {
+		return errors.New("视频信息已存在")
 	}
 
 	if !IsSubpartition(uploadVideoReq.PartitionId, global.CONTENT_TYPE_VIDEO) {

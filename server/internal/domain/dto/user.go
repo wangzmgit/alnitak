@@ -48,6 +48,12 @@ type EditUserInfoReq struct {
 	SpaceCover string
 }
 
+// 修改用户密码验证
+type ModifyPwdCheckReq struct {
+	Email     string
+	CaptchaId string
+}
+
 // 修改用户密码
 type ModifyPwdReq struct {
 	Email     string

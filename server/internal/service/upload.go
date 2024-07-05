@@ -168,10 +168,11 @@ func initVideo(userId uint, videoPath, title string) (uint, error) {
 	}
 
 	videoId, err := CreateVideo(&model.Video{
-		Uid:    userId,
-		Cover:  generateFileUrl(objectKey),
-		Title:  title,
-		Status: global.CREATED_VIDEO,
+		Uid:       userId,
+		Cover:     generateFileUrl(objectKey),
+		Title:     title,
+		Copyright: true,
+		Status:    global.CREATED_VIDEO,
 	})
 	if err != nil {
 		return 0, err
