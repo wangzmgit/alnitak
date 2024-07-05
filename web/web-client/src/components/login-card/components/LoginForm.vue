@@ -40,7 +40,7 @@
 </template>
 
 <script setup lang="ts">
-import { isEmail } from "@/utils/format";
+import { isEmail } from "@/utils/verify";
 import { loginAPI, emailLoginAPI } from "@/api/auth";
 import type { AxiosResponse } from "axios";
 import BaseTabs from "@/components/base-tabs/index.vue";

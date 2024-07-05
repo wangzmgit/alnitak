@@ -1,4 +1,4 @@
-import { isUrl } from "./format";
+import { isUrl } from "./verify";
 import { globalConfig } from "./global-config";
 
 export const getResourceUrl = (originalUrl: string) => {

@@ -15,3 +15,9 @@
   color: rgba(0, 0, 0, 0.88) !important;
 }
 
+.el-button--primary {
+  --el-button-bg-color: var(--primary-color) !important;
+  --el-button-border-color: var(--primary-color) !important;
+  --el-button-hover-bg-color: var(--primary-hover-color) !important;
+  --el-button-active-border-color: var(--primary-hover-color) !important;
+}

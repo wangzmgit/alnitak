@@ -53,6 +53,7 @@
 
 <script setup lang="ts">
 import type { ElInput } from 'element-plus';
+import { isLegalTag } from "@/utils/verify";
 import PartitionSelector from "./components/PartitionSelector.vue";
 import { getPartitionAPI } from '@/api/partition';
 import CoverUploader from "./components/CoverUploader.vue";
@@ -102,11 +103,10 @@ const showInput = () => {
   })
 }
 
-const reg = /^[0-9a-zA-Z\u4e00-\u9fa5]+$/
 const handleInputConfirm = () => {
   if (inputValue.value) {
     if (!dynamicTags.value.includes(inputValue.value)) {
-      if (reg.test(inputValue.value)) {
+      if (isLegalTag(inputValue.value)) {
         dynamicTags.value.push(inputValue.value);
       } else {
         ElMessage.error("标签不可包含特殊字符");
