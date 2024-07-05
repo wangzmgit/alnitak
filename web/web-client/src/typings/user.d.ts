@@ -20,6 +20,11 @@ interface EditUserInfoType {
   spaceCover?: string
 }
 
+interface ModifyPwdCheckType {
+  email: string;
+  captchaId: string;
+}
+
 interface ModifyPwdType {
   email: string;
   password: string;

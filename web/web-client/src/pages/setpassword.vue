@@ -88,7 +88,7 @@ const checkUser = async () => {
     return;
   };
 
-  const res = await resetpwdCheckAPI(modifyForm.email, captchaId.value);
+  const res = await resetpwdCheckAPI({ email: modifyForm.email, captchaId: captchaId.value });
   if (res.data.code === statusCode.CAPTCHA_REQUIRED) {
     captchaId.value = res.data.data.captchaId;
     showCaptcha.value = true;

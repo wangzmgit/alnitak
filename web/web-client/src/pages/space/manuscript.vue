@@ -2,11 +2,13 @@
   <div class="video-box">
     <p class="video-title">我的视频</p>
     <ul ref="videoListRef" class="video-list">
-      <li class="video-item" v-for="item in videoList">
-        <nuxt-link class="cover" :to="`/video/${item.vid}`">
+      <li class="video-item" v-for="item in videoList ">
+        <nuxt-link class="cover" :to="item.status === reviewCode.AUDIT_APPROVED ? `/video/${item.vid}` : ''">
           <img class="img" :src="getResourceUrl(item.cover)" />
         </nuxt-link>
-        <nuxt-link class="title" :to="`/video/${item.vid}`">{{ item.title }}</nuxt-link>
+        <nuxt-link class="title" :to="item.status === reviewCode.AUDIT_APPROVED ? `/video/${item.vid}` : ''">
+          {{ item.title }}
+        </nuxt-link>
         <div class="meta">
           <div class="play-count">
             <el-icon size="16" :style="{ marginRight: '4px' }">

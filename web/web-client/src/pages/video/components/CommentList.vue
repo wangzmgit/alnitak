@@ -103,7 +103,7 @@ import { handleMention } from '@/utils/mention';
 import { statusCode } from '@/utils/status-code';
 import { ElMessage } from "element-plus";
 import { formatRelativeTime } from "@/utils/format";
-import { asyncGetUserBaseInfoAPI } from "@/api/user";
+import { asyncGetUserBaseInfoAPI, getUserInfoAPI } from "@/api/user";
 import CommonAvatar from "@/components/common-avatar/index.vue";
 import { addVideoCommentAPI, getVideoCommentAPI, getVideoReplyAPI, deleteVideoCommentAPI } from "@/api/comment";
 import { scrollToViewCenter } from "@/utils/scroll";
@@ -112,6 +112,14 @@ const props = defineProps<{
   vid: number
 }>();
 
+const getUserInfo = async () => {
+  const res = await getUserInfoAPI();
+  if (res.data.code === statusCode.OK) {
+    userInfo.value = res.data.data.userInfo;
+    isLoggedIn.value = true;
+  }
+}
+
 const isLoggedIn = ref(false);
 const userId = useCookie('user_id');
 const userInfo = ref<UserInfoType>();
@@ -119,6 +127,12 @@ const { data } = await asyncGetUserBaseInfoAPI(userId.value!);
 if ((data.value as any).code === statusCode.OK) {
   userInfo.value = (data.value as any).data.userInfo;
   isLoggedIn.value = true;
+}
+
+if (!process.server) {
+  if (!userInfo.value) {
+    getUserInfo();
+  }
 }
 
 const pagination = reactive({
