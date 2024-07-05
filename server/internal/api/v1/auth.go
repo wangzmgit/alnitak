@@ -178,31 +178,34 @@ func ClearCookie(ctx *gin.Context) {
 // 重置密码检查
 func ResetPwdCheck(ctx *gin.Context) {
 	// 获取参数
-	email := ctx.Query("email")
-	captchaId := ctx.Query("captchaId")
+	var modifyPwdCheckReq dto.ModifyPwdCheckReq
+	if err := ctx.Bind(&modifyPwdCheckReq); err != nil {
+		resp.FailWithMessage(ctx, "请求参数有误")
+		return
+	}
 
 	// 参数校验
-	if !utils.VerifyEmail(email) {
+	if !utils.VerifyEmail(modifyPwdCheckReq.Email) {
 		resp.FailWithMessage(ctx, "邮箱格式错误")
 		return
 	}
 
-	if utils.VerifyStringLength(captchaId, "=", 0) {
+	if utils.VerifyStringLength(modifyPwdCheckReq.CaptchaId, "=", 0) {
 		captchaId := cache.CreateCaptchaStatus()
 		resp.Result(ctx, -1, gin.H{"captchaId": captchaId}, "需要人机验证")
 		return
 	}
 
-	switch cache.GetCaptchaStatus(captchaId) {
+	switch cache.GetCaptchaStatus(modifyPwdCheckReq.CaptchaId) {
 	case global.CAPTCHA_STATUS_ABSENT: // 如果未进行人机验证
 		captchaId := cache.CreateCaptchaStatus()
 		resp.Result(ctx, -1, gin.H{"captchaId": captchaId}, "需要人机验证")
 		return
 	case global.CAPTCHA_STATUS_PASS:
-		cache.DelCaptchaStatus(captchaId) // 删除人机验证状态
+		cache.DelCaptchaStatus(modifyPwdCheckReq.CaptchaId) // 删除人机验证状态
 	}
 
-	if err := service.ResetPwdCheck(ctx, email); err != nil {
+	if err := service.ResetPwdCheck(ctx, modifyPwdCheckReq.Email); err != nil {
 		resp.FailWithMessage(ctx, err.Error())
 		return
 	}
