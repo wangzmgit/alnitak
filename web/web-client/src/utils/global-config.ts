@@ -6,6 +6,7 @@ const icp = "icp备案信息";
 const security = "公网安备信息";
 const keywords = "视频,弹幕";
 const description = "这里是介绍";
+const article = true; // 是否开启专栏模块
 
 //上传文件大小限制，需要先修改后端大小限制
 const maxImgSize = 5;//上传图片最大大小(单位M)
@@ -22,4 +23,5 @@ export const globalConfig = {
     security: security,
     maxImgSize: maxImgSize,
     maxVideoSize: maxVideoSize,
+    article: article,
 }

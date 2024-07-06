@@ -42,6 +42,10 @@ import HomeHeader from "@/components/home-header/index.vue";
 import { PreviewOpen } from '@icon-park/vue-next';
 import { asyncGetRandomArticleAPI, getRandomArticleAPI } from '@/api/article';
 
+definePageMeta({
+  middleware: ['article']
+})
+
 const menuFold = ref(false);
 const changeMenuFold = (val: boolean) => {
   menuFold.value = val;

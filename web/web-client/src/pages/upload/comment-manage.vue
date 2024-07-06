@@ -58,7 +58,7 @@ import { getAllArticleAPI } from "~/api/article";
 
 const tabsOptions = [
   { key: '0', label: '视频评论' },
-  { key: '1', label: '专栏评论' }
+  { key: '1', label: '专栏评论', hidden: !globalConfig.article }
 ];
 
 const commentType = ref('0');

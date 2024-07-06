@@ -3,7 +3,7 @@
     <header-bar class="header-bar"></header-bar>
     <div class="upload-container">
       <div class="upload-menu-container">
-        <nuxt-link v-for="item in menuList" :to="item.to" class="menu-item"
+        <nuxt-link v-for="item in menuList" :to="item.to" class="menu-item" v-show="item.show"
           :class="route.name === item.key ? 'menu-item-active' : ''">
           <span class="menu-icon">
             <component :is="item.icon" size="18" :strokeWidth="3"></component>
@@ -23,7 +23,8 @@ import { h, ref, onBeforeMount } from "vue";
 import HeaderBar from '@/components/header-bar/index.vue';
 import VideoIcon from "@/components/icons/VideoIcon.vue";
 import CommentIcon from "@/components/icons/CommentIcon.vue";
-import { Upload as UploadIcon, Editor as EditorIcon, Inbox } from '@icon-park/vue-next';
+import UploadIcon from "@/components/icons/UploadIcon.vue";
+import { Editor as EditorIcon, Inbox } from '@icon-park/vue-next';
 
 useHead({
   title: `创作中心 - ${globalConfig.title}`
@@ -43,30 +44,35 @@ const menuList = [
     key: 'upload-video',
     name: '视频投稿',
     to: '/upload/video',
+    show: true,
     icon: UploadIcon,
   },
   {
     key: 'upload-article',
     name: '专栏投稿',
     to: '/upload/article',
+    show: globalConfig.article,
     icon: EditorIcon,
   },
   {
     key: 'upload-video-manage',
     name: '视频管理',
     to: '/upload/video-manage',
+    show: true,
     icon: VideoIcon,
   },
   {
     key: 'upload-article-manage',
     name: '专栏管理',
     to: '/upload/article-manage',
+    show: globalConfig.article,
     icon: Inbox,
   },
   {
     key: 'upload-comment-manage',
     name: '评论管理',
     to: '/upload/comment-manage',
+    show: true,
     icon: CommentIcon,
   },
 ]

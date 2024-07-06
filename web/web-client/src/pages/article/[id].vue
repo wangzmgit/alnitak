@@ -47,6 +47,10 @@ import AuthorCard from './components/AuthorCard.vue';
 import ArchiveInfo from './components/ArchiveInfo.vue';
 import { getArticleArchiveStatAPI } from "@/api/archive";
 
+definePageMeta({
+  middleware: ['article']
+})
+
 const route = useRoute();
 const router = useRouter();
 

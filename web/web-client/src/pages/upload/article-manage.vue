@@ -65,6 +65,10 @@ import { More as MoreIcon, PreviewOpen } from '@icon-park/vue-next';
 import { getArticleReviewRecordAPI } from '@/api/revies';
 import { getResourceUrl } from '@/utils/resource';
 
+definePageMeta({
+  middleware: ['article']
+})
+
 const page = ref(1);
 const total = ref(0);
 const pageSize = 8;
