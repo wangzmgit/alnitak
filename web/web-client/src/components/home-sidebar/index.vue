@@ -9,7 +9,7 @@
             </el-icon>
             <span class="menu-text">首页</span>
           </nuxt-link>
-          <nuxt-link class="menu-item menu-item-with-icon" to="/article/list">
+          <nuxt-link v-if="globalConfig.article" class="menu-item menu-item-with-icon" to="/article/list">
             <el-icon class="menu-item-icon" size="20">
               <article-icon></article-icon>
             </el-icon>
@@ -64,6 +64,7 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
 import { asyncGetPartition } from "@/api/partition";
+import { globalConfig } from "@/utils/global-config";
 import HomeIcon from "@/components/icons/HomeIcon.vue";
 import ArticleIcon from "@/components/icons/ArticleIcon.vue";
 

@@ -60,6 +60,10 @@ import CoverUploader from "./components/CoverUploader.vue";
 import AlnitakEditor from '@/components/alnitak-editor/index.vue';
 import { uploadArticleInfoAPI, editArticleAPI, getArticleStatusAPI } from "@/api/article";
 
+definePageMeta({
+  middleware: ['article']
+})
+
 const route = useRoute();
 
 const isEdit = ref(false);
