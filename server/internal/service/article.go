@@ -167,7 +167,7 @@ func GetRandomArticleList(ctx *gin.Context, size int) []vo.ArticleResp {
 		}
 		articles[i] = GetArticleItemInfo(id)
 		// 同步播放量
-		articles[i].Clicks += GetVideoClicks(id)
+		articles[i].Clicks += GetArticleClicks(id)
 	}
 
 	return articles
