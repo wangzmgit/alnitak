@@ -66,7 +66,7 @@ func initApiData() {
 		{Method: "GET", Path: "/api/v1/collection/getVideoList", Category: "收藏夹", Desc: "获取收藏夹的视频列表"},
 		{Method: "POST", Path: "/api/v1/comment/article/addComment", Category: "评论回复", Desc: "发表文章评论或回复"},
 		{Method: "GET", Path: "/api/v1/comment/article/getCommentList", Category: "评论回复", Desc: "获取文章评论列表"},
-		{Method: "DELETE", Path: "/api/v1/comment/varticle/deleteComment/:id", Category: "评论回复", Desc: "删除文章评论或回复"},
+		{Method: "DELETE", Path: "/api/v1/comment/article/deleteComment/:id", Category: "评论回复", Desc: "删除文章评论或回复"},
 		{Method: "POST", Path: "/api/v1/comment/video/addComment", Category: "评论回复", Desc: "发表视频评论或回复"},
 		{Method: "DELETE", Path: "/api/v1/comment/video/deleteComment/:id", Category: "评论回复", Desc: "删除视频评论或回复"},
 		{Method: "GET", Path: "/api/v1/comment/video/getCommentList", Category: "评论回复", Desc: "获取视频评论列表"},
