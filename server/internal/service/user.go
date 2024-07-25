@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 	"interastral-peace.com/alnitak/internal/cache"
 	"interastral-peace.com/alnitak/internal/domain/dto"
 	"interastral-peace.com/alnitak/internal/domain/model"
@@ -50,14 +51,18 @@ func UserLogin(ctx *gin.Context, loginReq dto.LoginReq) (accessToken, refreshTok
 	// 读取数据库
 	user, err := FindUserByEmail(loginReq.Email)
 	if err != nil {
-		return "", "", errors.New("获取用户信息失败")
+		if err == gorm.ErrRecordNotFound {
+			cache.IncrLoginTryCount(loginReq.Email) // 记录登录尝试次数
+			return "", "", errors.New("用户名密码不匹配")
+		} else {
+			return "", "", errors.New("获取用户信息失败")
+		}
 	}
 
 	// 验证账号密码
 	passwordError := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(loginReq.Password))
 	if passwordError != nil {
-		// 记录登录尝试次数
-		cache.IncrLoginTryCount(loginReq.Email)
+		cache.IncrLoginTryCount(loginReq.Email) // 记录登录尝试次数
 		return "", "", errors.New("用户名密码不匹配")
 	}
 
@@ -85,13 +90,17 @@ func EmailLogin(ctx *gin.Context, loginReq dto.EmailLoginReq) (accessToken, refr
 	// 读取数据库
 	user, err := FindUserByEmail(loginReq.Email)
 	if err != nil {
-		return "", "", errors.New("获取用户信息失败")
+		if err == gorm.ErrRecordNotFound {
+			cache.IncrLoginTryCount(loginReq.Email) // 记录登录尝试次数
+			return "", "", errors.New("用户名密码不匹配")
+		} else {
+			return "", "", errors.New("获取用户信息失败")
+		}
 	}
 
 	// 验证邮箱验证码
 	if cache.GetEmailCode(loginReq.Email) != loginReq.Code {
-		// 记录登录尝试次数
-		cache.IncrLoginTryCount(loginReq.Email)
+		cache.IncrLoginTryCount(loginReq.Email) // 记录登录尝试次数
 		return "", "", errors.New("邮箱验证错误")
 	}
 
