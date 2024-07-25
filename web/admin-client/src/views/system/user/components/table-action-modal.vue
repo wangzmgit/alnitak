@@ -8,7 +8,7 @@
         </n-form-item-grid-item>
         <n-form-item-grid-item :span="24" label="背景图" path="spaceCover">
           <div class="space-cover">
-            <img v-if="formModel.spaceCover" :src="getResourceUrl(formModel.spaceCover)" alt="背景图" />
+            <n-image class="image" v-if="formModel.spaceCover" :src="getResourceUrl(formModel.spaceCover)" />
           </div>
           <n-button class="remove-btn" @click="removeSpaceCover">移除背景图</n-button>
         </n-form-item-grid-item>
@@ -33,11 +33,11 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
 import type { FormInst, FormRules } from 'naive-ui';
+import { editUserInfoAPI } from '@/api/user';
 import { statusCode } from '@/utils/status-code';
 import { getResourceUrl } from "@/utils/resource";
 import CommonAvatar from "@/components/common-avatar/index.vue";
-import { NGrid, NButton, NSpace, NModal, NForm, NFormItemGridItem, NInput, useMessage } from 'naive-ui';
-import { editUserInfoAPI } from '@/api/user';
+import { NGrid, NButton, NSpace, NModal, NForm, NFormItemGridItem, NInput, NImage, useMessage } from 'naive-ui';
 
 const emit = defineEmits(['update:visible', 'refresh']);
 const props = withDefaults(defineProps<{
@@ -122,6 +122,11 @@ watch(() => props.visible, (newVal) => {
   width: 160px;
   height: 32px;
   background-color: #cccccc;
+
+  .image {
+    width: 160px;
+    height: 32px;
+  }
 }
 
 .remove-btn {
