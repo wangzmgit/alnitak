@@ -59,9 +59,8 @@ if ((data.value as any).code === statusCode.OK) {
   articleList.value = (data.value as any).data.articles;
 }
 
-const noMore = ref(false);
 const loading = ref(false);
-const getViedeoList = async () => {
+const getArticleList = async () => {
   loading.value = true;
   const res = await getRandomArticleAPI(size);
   if (res.data.code === statusCode.OK) {
@@ -69,7 +68,6 @@ const getViedeoList = async () => {
       articleList.value = articleList.value.concat(res.data.data.articles);
     }
   }
-  console.log('articleList.value ', articleList.value)
   loading.value = false;
 }
 
@@ -80,7 +78,7 @@ const lazyLoading = (e: Event) => {
   const scrollHeight = document.documentElement.scrollHeight;
   if (scrollTop + clientHeight >= scrollHeight) {
     if (!loading.value) {
-      getViedeoList();
+      getArticleList();
     }
   }
 }
