@@ -92,6 +92,9 @@ const btnText = computed(() => {
 })
 
 const followBtnClick = async () => {
+  if (!storageData.get("refreshToken")) {
+    return navigateTo(`/login?redirect=${location.pathname}`);
+  }
   const reqFunc = relation.value === relationCode.NOT_FOLLOWING ? followAPI : unfollowAPI;
   const res = await reqFunc(userId);
   if (res.data.code === statusCode.OK) {
