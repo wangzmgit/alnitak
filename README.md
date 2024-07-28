@@ -32,11 +32,17 @@ Alnitak是一个基于nuxt和go开发的前后端分离的弹幕视频网站。
 本项目仅供学习和研究使用，请勿将本项目的任何内容用于商业或非法目的，否则后果自负。
 
 ## 项目截图
-|                                     Web端                                     |                                                                                |
-| :---------------------------------------------------------------------------: | :----------------------------------------------------------------------------: |
-|      ![Web端登录](https://alnitak.interastral-peace.com//web_login.png)       |       ![Web端首页](https://alnitak.interastral-peace.com//web_home.png)        |
-|      ![Web端上传](https://alnitak.interastral-peace.com//web_upload.png)      |       ![Web端视频](https://alnitak.interastral-peace.com//web_video.png)       |
-|    ![Web端个人中心](https://alnitak.interastral-peace.com//web_space.png)     |      ![Web端消息](https://alnitak.interastral-peace.com//web_message.png)      |
-|                                  后台管理端                                   |                                                                                |
-|  ![后台管理端登录](https://alnitak.interastral-peace.com//manage_login.png)   | ![后台管理端视频管理](https://alnitak.interastral-peace.com//manage_video.png) |
-| ![后台管理端用户管理](https://alnitak.interastral-peace.com//manage_user.png) |                                                                                |
+|                                 Web端                                 |                                Web端                                |
+| :-------------------------------------------------------------------: | :-----------------------------------------------------------------: |
+|   ![Web端登录](https://alnitak.interastral-peace.com/web_login.png)   |  ![Web端首页](https://alnitak.interastral-peace.com/web_home.png)   |
+|  ![Web端上传](https://alnitak.interastral-peace.com/web_upload.png)   |  ![Web端视频](https://alnitak.interastral-peace.com/web_video.png)  |
+| ![Web端个人中心](https://alnitak.interastral-peace.com/web_space.png) | ![Web端消息](https://alnitak.interastral-peace.com/web_message.png) |
+
+|                                  后台管理端                                  |                                  后台管理端                                   |
+| :--------------------------------------------------------------------------: | :---------------------------------------------------------------------------: |
+|  ![后台管理端登录](https://alnitak.interastral-peace.com/manage_login.png)   | ![后台管理端视频管理](https://alnitak.interastral-peace.com/manage_video.png) |
+| ![后台管理端用户管理](https://alnitak.interastral-peace.com/manage_user.png) |                                                                               |
+
+|                                移动端                                |                                移动端                                 |
+| :------------------------------------------------------------------: | :-------------------------------------------------------------------: |
+| ![移动端首页](https://alnitak.interastral-peace.com/mobile_home.png) | ![移动端视频](https://alnitak.interastral-peace.com/mobile_video.png) |
