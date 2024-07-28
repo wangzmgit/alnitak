@@ -28,7 +28,7 @@ func CORS() gin.HandlerFunc {
 func getAllowOrigin(origin string) string {
 	allowOrigin := viper.GetString("cors.allow_origin")
 	if allowOrigin == "*" {
-		return "*"
+		return origin
 	}
 
 	for _, v := range strings.Split(allowOrigin, ",") {
