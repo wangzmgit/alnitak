@@ -11,7 +11,7 @@
   </div>
   <!-- 评论输入框 -->
   <div v-show="showCommentBox" class="comment-box">
-    <n-input class="comment-input" v-model="commentContent" resize="none" :rows="3" type="textarea"
+    <n-input class="comment-input" v-model:value="commentContent" resize="none" :rows="3" type="textarea"
       placeholder="善语结善缘，恶言伤人心" />
     <button class="comment-submit" :class="isLoggedIn ? '' : 'submit-disabled'" @click="submitComment">发表评论</button>
   </div>

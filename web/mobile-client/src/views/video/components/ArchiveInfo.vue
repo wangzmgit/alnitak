@@ -2,7 +2,7 @@
   <div class="archive-data">
     <!--点赞收藏-->
     <div class="archive-item">
-      <n-icon  :class="[likeAnimation, archive.hasLike ? 'active' : 'icon']" @click="likeClick">
+      <n-icon :class="[likeAnimation, archive.hasLike ? 'active' : 'icon']" @click="likeClick">
         <like-icon></like-icon>
       </n-icon>
     </div>
@@ -11,7 +11,7 @@
         <collect-icon></collect-icon>
       </n-icon>
     </div>
-    <!-- <collection-list v-if="showCollect" :vid="vid" @close="closeCollectionCard"></collection-list> -->
+    <collection-list v-if="showCollect" :vid="vid" @close="closeCollectionCard"></collection-list>
   </div>
 </template>
 
@@ -24,7 +24,7 @@ import { getVideoArchiveStatAPI } from "@/api/archive";
 import { getLikeVideoStatusAPI, likeVideoAPI, cancelLikeVideoAPI } from "@/api/like";
 import { getCollectVideoStatusAPI } from '@/api/collect';
 import { statusCode } from '@/utils/status-code';
-// import CollectionList from './CollectionList.vue';
+import CollectionList from './CollectionList.vue';
 
 const props = defineProps<{
   vid: number;
@@ -75,11 +75,14 @@ const likeClick = async () => { // 点赞点赞按钮
     likeAnimation.value = 'like-active';
     stat.value.like++;
   } else {
+
     await cancelLikeVideoAPI(props.vid);
+    likeAnimation.value = '';
     stat.value.like--;
   }
 
   archive.hasLike = !archive.hasLike;
+  console.log('archive.hasLike',archive.hasLike)
 }
 
 
@@ -93,7 +96,7 @@ const closeCollectionCard = (val: number) => {
     stat.value.collect--;
     archive.hasCollect = false;
   }
-  
+
   showCollect.value = false;
 }
 
@@ -117,6 +120,7 @@ onBeforeMount(async () => {
 
     i {
       font-size: 24px;
+      color: #9499a0;
       // line-height: 30px;
       cursor: pointer;
     }
@@ -126,10 +130,6 @@ onBeforeMount(async () => {
       float: right;
       margin: 0 6px;
       line-height: 30px;
-    }
-
-    .icon:hover {
-      color: var(--primary-color);
     }
 
     .active {

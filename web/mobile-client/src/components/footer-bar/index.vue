@@ -2,7 +2,7 @@
   <footer class="footer">
     <div class="links link-list">
       <span>
-        <a :href="webUrl">桌面端</a>
+        <a :href="globalConfig.webUrl">桌面端</a>
       </span>
       <span>|</span>
       <span>
@@ -27,7 +27,6 @@
 <script setup lang="ts">
 import { globalConfig } from '@/utils/global-config';
 
-const webUrl = `http${globalConfig.https ? 's' : ''}://${globalConfig.domain}/`;
 </script>
 
 <style lang="scss" scoped>

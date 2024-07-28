@@ -1,13 +1,18 @@
-import { fileURLToPath, URL } from 'node:url'
+import { fileURLToPath, URL } from 'node:url';
+import { defineConfig } from 'vite';
+import vue from '@vitejs/plugin-vue';
+import { globalConfig } from "./src/utils/global-config";
 
-import { defineConfig } from 'vite'
-import vue from '@vitejs/plugin-vue'
 
-// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
     vue(),
   ],
+  base: `/${globalConfig.baseUrl}`,
+  build: {
+    chunkSizeWarningLimit: 2048,
+    outDir: 'mobile', //指定输出路径
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))

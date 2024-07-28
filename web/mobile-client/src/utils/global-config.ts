@@ -3,7 +3,8 @@ const https = false;
 const domain = "localhost:9000";
 const icp = "icp备案信息";
 const security = "公网安备信息";
-const baseUrl = "admin"
+const baseUrl = "mobile";
+const webUrl = "/"; // 跳转到web端
 
 //上传文件大小限制，需要先修改后端大小限制
 const maxImgSize = 5;//上传图片最大大小(单位M)
@@ -18,4 +19,5 @@ export const globalConfig = {
   maxImgSize: maxImgSize,
   maxVideoSize: maxVideoSize,
   baseUrl: baseUrl,
+  webUrl: webUrl,
 }
