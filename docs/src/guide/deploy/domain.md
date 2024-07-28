@@ -9,8 +9,8 @@
 在`/etc/nginx/conf.d/`目录新建`alnitak.conf`文件，内容如下：
 ```
 server {
-    listen       9030;
-	server_name  localhost; 
+    listen       80; #默认80端口
+	server_name  localhost; #这里可以改成自己的域名
 	client_max_body_size 1024M;
 
     # 转发用户端
@@ -24,7 +24,7 @@ server {
     	proxy_set_header Connection "upgrade";
 	}
 
-    #后台管理
+    # 后台管理
     location /admin/ {
         root /usr/share/nginx/html;
         index index.html index.htm;
@@ -34,6 +34,18 @@ server {
     # 解决后台管理history路由问题
     location @admin {
         rewrite ^.*$ /admin/index.html;
+    }
+
+    # 移动端
+    location /mobile/ {
+        root /usr/share/nginx/html;
+        index index.html index.htm;
+        try_files $uri $uri/ @mobile;
+    }
+
+    # 解决移动端history路由问题
+    location @mobile {
+        rewrite ^.*$ /mobile/index.html;
     }
 
     # 转发后端

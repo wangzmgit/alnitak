@@ -11,7 +11,8 @@
 ```yaml
 cors:
   # 跨域配置，存在多个使用 , 分隔，请根据实际状况填写，(格式：http://example.com)
-  allow_origin: http://localhost:5173,http://localhost:3000
+  # 建议部署完成后在后台管理中配置
+  allow_origin: "*"
 file:
   # 上传图片文件大小限制，单位M
   max_img_size: 5

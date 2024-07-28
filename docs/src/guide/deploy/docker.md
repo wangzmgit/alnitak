@@ -111,4 +111,38 @@ docker build -t alnitak-admin .
 docker run -itd --name alnitakAdmin -p 9030:9030 alnitak-admin
 ```
 
+### 移动端部署
+:::tip 建议
+如果你已经熟悉Nginx的配置，建议直接采取[手动部署](/guide/deploy/manual#部署移动端)来部署管理端，
+因为额外运行一个Docker和Nginx会增加性能开销。
+:::
+
+#### 1. 配置项目
+配置文件位于目录`web/mobile-client/src/utils/global-config.ts`，配置文件内容如下：
+```js
+const title = "弹幕网站标题"; // 网站标题
+const https = false; // 是否使用https
+const domain = "localhost:9000"; // 后端地址
+const icp = "icp备案信息"; // icp备案信息
+const security = "公网安备信息"; // 公网安备信息
+
+//上传文件大小限制，需要先修改后端大小限制
+const maxImgSize = 5;//上传图片最大大小(单位M)
+const maxVideoSize = 500;//上传视频最大大小(单位M)
+```
+#### 2. 构建项目
+回到`web/mobile-client`目录下，使用一下命令构建项目
+```sh
+# 先安装项目依赖
+yarn install
+# 然后对项目进行打包
+yarn build
+# 最后使用docker部署项目
+docker build -t alnitak-mobile .
+```
+
+#### 3. 启动项目
+```sh
+docker run -itd --name alnitakMobile -p 9020:9020 alnitak-mobile
+```
 
