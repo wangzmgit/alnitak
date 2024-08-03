@@ -23,13 +23,14 @@
         </div>
         <!-- 解决div无法撑开的问题 -->
         <div style="clear:both;">
+        </div>
       </div>
-    </div>
 
-    <div class="msg-input">
-      <n-input v-model:value="msgForm.content" placeholder="发个消息呗~" maxlength="255" show-count
-        @keydown.enter="sendMsg"></n-input>
-      <n-button type="primary" :loading="sendLoading" @click="sendMsg">发送</n-button>
+      <div class="msg-input">
+        <n-input v-model:value="msgForm.content" placeholder="发个消息呗~" maxlength="255" show-count
+          @keydown.enter="sendMsg"></n-input>
+        <n-button type="primary" :loading="sendLoading" @click="sendMsg">发送</n-button>
+      </div>
     </div>
   </div>
 </template>
@@ -187,7 +188,7 @@ onBeforeUnmount(() => {
 })
 </script>
 
-<style lang="less" scoped>
+<style lang="scss" scoped>
 .msg {
 
   .msg-header {
