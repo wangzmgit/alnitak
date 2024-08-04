@@ -1,0 +1,1 @@
+import{_ as t,c as a,o as s,a2 as i}from"./chunks/framework.CmeiYqq3.js";const g=JSON.parse('{"title":"文件上传相关接口","description":"","frontmatter":{},"headers":[],"relativePath":"api/upload.md","filePath":"api/upload.md"}'),l={name:"api/upload.md"},e=i("",49),n=[e];function h(d,r,k,p,o,E){return s(),a("div",null,n)}const y=t(l,[["render",h]]);export{g as __pageData,y as default};
