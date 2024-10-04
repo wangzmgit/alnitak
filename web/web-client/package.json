@@ -1,7 +1,7 @@
 {
   "name": "alnitak-web",
   "private": true,
-  "type": "module",
+  "type": "commonjs",
   "license": "MIT",
   "scripts": {
     "build": "nuxt build",
