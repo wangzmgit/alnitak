@@ -103,7 +103,7 @@ import { handleMention } from '@/utils/mention';
 import { statusCode } from '@/utils/status-code';
 import { ElMessage } from "element-plus";
 import { formatRelativeTime } from "@/utils/format";
-import { asyncGetUserBaseInfoAPI } from "@/api/user";
+import { asyncGetUserBaseInfoAPI, getUserInfoAPI } from "@/api/user";
 import CommonAvatar from "@/components/common-avatar/index.vue";
 import { addArticleCommentAPI, getArticleCommentAPI, getArticleReplyAPI, deleteArticleCommentAPI } from "@/api/comment";
 import { scrollToViewCenter } from "@/utils/scroll";
