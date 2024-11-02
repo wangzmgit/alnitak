@@ -113,6 +113,14 @@ const props = defineProps<{
   aid: number
 }>();
 
+const getUserInfo = async () => {
+  const res = await getUserInfoAPI();
+  if (res.data.code === statusCode.OK) {
+    userInfo.value = res.data.data.userInfo;
+    isLoggedIn.value = true;
+  }
+}
+
 const isLoggedIn = ref(false);
 const userId = useCookie('user_id');
 const userInfo = ref<UserInfoType>();
@@ -120,6 +128,12 @@ const { data } = await asyncGetUserBaseInfoAPI(userId.value!);
 if ((data.value as any).code === statusCode.OK) {
   userInfo.value = (data.value as any).data.userInfo;
   isLoggedIn.value = true;
+}
+
+if (!process.server) {
+  if (!userInfo.value) {
+    getUserInfo();
+  }
 }
 
 const pagination = reactive({
