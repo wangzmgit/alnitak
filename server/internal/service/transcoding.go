@@ -46,7 +46,7 @@ func ProcessVideoInfo(input string) (*dto.TranscodingInfo, error) {
 	}
 
 	if videoData.Stream[0].CodecName != "h264" {
-		utils.ErrorLog("视频编码不为h264", "transcoding", err.Error())
+		utils.ErrorLog("视频编码不为h264", "transcoding", "")
 		return &transcodingInfo, errors.New("not h264")
 	}
 
