@@ -48,6 +48,7 @@ func SendRegisterEmailCode(ctx *gin.Context) {
 		zap.L().Debug("邮箱:" + sendEmailReq.Email + ",验证码:" + code)
 	} else {
 		if err := mail.SendCaptcha(sendEmailReq.Email, code); err != nil {
+			utils.ErrorLog("邮箱验证码发送失败", "email", err.Error())
 			resp.FailWithMessage(ctx, "邮箱验证码发送失败")
 			return
 		}
