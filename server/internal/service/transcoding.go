@@ -171,7 +171,7 @@ func getTranscodingTarget(videoInfo *dto.TranscodingInfo) []TranscodingTarget {
 		targets = append(targets, TranscodingTarget{Resolution: "1920x1080", BitrateRate: "3000k", FPS: "30"})
 		fallthrough
 	case 720:
-		targets = append(targets, TranscodingTarget{Resolution: "1080x720", BitrateRate: "2000k", FPS: "30"})
+		targets = append(targets, TranscodingTarget{Resolution: "1280x720", BitrateRate: "2000k", FPS: "30"})
 		fallthrough
 	case 480:
 		targets = append(targets, TranscodingTarget{Resolution: "854x480", BitrateRate: "900k", FPS: "30"})
