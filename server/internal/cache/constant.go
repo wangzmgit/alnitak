@@ -35,6 +35,9 @@ const REFRESH_TOKEN_KEY = "refresh_token_key:"
 // 刷新token过期时间 n 小时
 const REFRESH_TOKEN_EXPRIRATION_TIME = time.Hour * time.Duration(7*24)
 
+// 刷新token缓冲时间 n 小时
+const REFRESH_TOKEN_BUFFER_TIME = time.Hour * time.Duration(24)
+
 // 验证token过期时间 n 分钟
 const ACCESS_TOKEN_EXPRIRATION_TIME = time.Minute * time.Duration(60)
 
