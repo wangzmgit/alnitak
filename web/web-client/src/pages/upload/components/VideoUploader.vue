@@ -18,7 +18,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { ElMessage } from "element-plus";
-import { uploadFileAPI } from "@/api/upload";
+import { uploadFileChunkAPI } from "@/api/upload";
 import { globalConfig } from "@/utils/global-config";
 import { Upload as UploadIcon } from "@icon-park/vue-next";
 
@@ -49,7 +49,7 @@ const beforeUploadVideo = async (options: any) => {
 const handleChange = (uploadFile: any) => {
   if (!uploadFile.raw) return;
   uploading.value = true;
-  uploadFileAPI({
+  uploadFileChunkAPI({
     name: "video",
     action: props.vid ? `v1/upload/video/${props.vid}` : `v1/upload/video`,
     file: uploadFile.raw,
