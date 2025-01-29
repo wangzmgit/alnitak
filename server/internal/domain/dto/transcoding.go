@@ -9,4 +9,5 @@ type TranscodingInfo struct {
 	InputFile  string  // 输入文件
 	ResourceID uint    // 资源ID
 	VideoID    uint    // 视频ID
+	FPS        string  // 视频帧率
 }

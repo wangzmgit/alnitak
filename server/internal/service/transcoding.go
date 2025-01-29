@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/spf13/viper"
@@ -32,9 +33,9 @@ func GenerateCover(inputFile, outputFile string) error {
 		utils.ErrorLog("提取封面失败", "transcoding", err.Error())
 		return err
 	}
-
 	return nil
 }
+
 
 // 获取视频信息
 func ProcessVideoInfo(input string) (*dto.TranscodingInfo, error) {
@@ -45,20 +46,52 @@ func ProcessVideoInfo(input string) (*dto.TranscodingInfo, error) {
 		return &transcodingInfo, err
 	}
 
-	if videoData.Stream[0].CodecName != "h264" {
-		utils.ErrorLog("视频编码不为h264", "transcoding", "")
-		return &transcodingInfo, errors.New("not h264")
-	}
+	// 打印视频流的相关信息，便于调试
+	//utils.DebugLog("视频信息", "transcoding", fmt.Sprintf("视频编码：%s", videoData.Stream[0].CodecName))
 
-	//计算最大分辨率
+	// 如果视频编码不是h264、hevc、vp9或av1，记录具体的编码格式
+    if videoData.Stream[0].CodecName != "h264" && videoData.Stream[0].CodecName != "hevc" && videoData.Stream[0].CodecName != "vp9" && videoData.Stream[0].CodecName != "av1" {
+        utils.ErrorLog("视频编码不为h264、hevc、vp9或av1", "transcoding", fmt.Sprintf("实际编码：%s", videoData.Stream[0].CodecName))
+        return &transcodingInfo, errors.New("unsupported codec")
+    }
+
+	// 计算最大分辨率
 	transcodingInfo.Width = videoData.Stream[0].Width
 	transcodingInfo.Height = videoData.Stream[0].Height
 
-	//获取视频时长
+	// 获取视频时长
 	transcodingInfo.Duration, _ = strconv.ParseFloat(videoData.Stream[0].Duration, 64)
 
-	return &transcodingInfo, err
+	// 获取帧率
+	// 在这里定义 numerator 和 denominator
+	parts := strings.Split(videoData.Stream[0].AvgFrameRate, "/")
+	if len(parts) == 2 {
+		numerator, err := strconv.Atoi(parts[0])
+		if err != nil {
+			utils.ErrorLog("解析 numerator 失败", "transcoding", err.Error())
+			return &transcodingInfo, err
+		}
+		denominator, err := strconv.Atoi(parts[1])
+		if err != nil {
+			utils.ErrorLog("解析 denominator 失败", "transcoding", err.Error())
+			return &transcodingInfo, err
+		}
+		if denominator != 0 {
+			// 计算帧率
+			fps := float64(numerator) / float64(denominator)
+			// 判断是否为整数，是则不显示小数部分
+			if fps == float64(int(fps)) {
+				transcodingInfo.FPS = fmt.Sprintf("%d", int(fps)) // 转为整数输出
+			} else {
+				transcodingInfo.FPS = fmt.Sprintf("%.2f", fps) // 保留两位小数
+			}
+		}
+	}
+
+	return &transcodingInfo, nil
 }
+
+
 
 func VideoTransCoding(transcodingInfo *dto.TranscodingInfo) {
 	var wg sync.WaitGroup
@@ -168,16 +201,16 @@ func getTranscodingTarget(videoInfo *dto.TranscodingInfo) []TranscodingTarget {
 
 	switch maxRresolution {
 	case 1080:
-		targets = append(targets, TranscodingTarget{Resolution: "1920x1080", BitrateRate: "3000k", FPS: "30"})
+		targets = append(targets, TranscodingTarget{Resolution: "1920x1080", BitrateRate: "3000k", FPS: videoInfo.FPS})
 		fallthrough
 	case 720:
-		targets = append(targets, TranscodingTarget{Resolution: "1280x720", BitrateRate: "2000k", FPS: "30"})
+		targets = append(targets, TranscodingTarget{Resolution: "1280x720", BitrateRate: "2000k", FPS: videoInfo.FPS})
 		fallthrough
 	case 480:
-		targets = append(targets, TranscodingTarget{Resolution: "854x480", BitrateRate: "900k", FPS: "30"})
+		targets = append(targets, TranscodingTarget{Resolution: "854x480", BitrateRate: "900k", FPS: videoInfo.FPS})
 		fallthrough
 	case 360:
-		targets = append(targets, TranscodingTarget{Resolution: "640x360", BitrateRate: "500k", FPS: "30"})
+		targets = append(targets, TranscodingTarget{Resolution: "640x360", BitrateRate: "500k", FPS: videoInfo.FPS})
 	}
 
 	return targets
@@ -197,14 +230,30 @@ func getVideoInfo(input string) (info global.VideoInfo, err error) {
 		return info, err
 	}
 
+	// 提取帧率信息
+	if len(info.Stream) > 0 && info.Stream[0].AvgFrameRate != "" {
+		// 将帧率转换为浮点数（例如 "30000/1001" 转换为 29.97）
+		parts := strings.Split(info.Stream[0].AvgFrameRate, "/")
+		if len(parts) == 2 {
+			numerator, _ := strconv.Atoi(parts[0])
+			denominator, _ := strconv.Atoi(parts[1])
+			if denominator != 0 {
+				// 将浮点数转换为字符串
+				info.Stream[0].RFrameRate = fmt.Sprintf("%.2f", float64(numerator)/float64(denominator))
+			}
+		}
+	}
+
 	return info, nil
 }
 
+
 // 压缩视频
 func pressingVideo(inputFile, outputFile, quality, rate string) error {
+	// 修改前，强制设置了帧率为 30000/1001
+	// 改为不设置帧率，保留原始帧率
 	command := []string{"-i", inputFile, "-crf", "20", "-s", quality,
-		"-b:v", rate, "-c:v", "libx264", "-r", "30000/1001",
-		"-c:a", "aac", "-f", "mpegts", outputFile,
+		"-b:v", rate, "-c:v", "libx264", "-c:a", "aac", "-f", "mpegts", outputFile,
 	}
 
 	_, err := utils.RunCmd(exec.Command("ffmpeg", command...))
@@ -215,6 +264,7 @@ func pressingVideo(inputFile, outputFile, quality, rate string) error {
 
 	return nil
 }
+
 
 func generateVideoSlices(inputFile, outputDir, outputName string) (string, error) {
 	outputM3U8 := outputDir + outputName + ".m3u8"

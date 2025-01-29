@@ -138,14 +138,16 @@ func UpdateToken(ctx *gin.Context, tokenReq dto.TokenReq) (accessToken, refreshT
 		return "", "", errors.New("无效Token")
 	}
 
-	// 移除refreshToken
-	cache.DelRefreshToken(claims.UserId, tokenReq.RefreshToken)
-
-	// 重新生成refreshToken
-	refreshToken, err = jwt.GenerateRefreshToken(claims.UserId)
-	if err != nil {
-		utils.ErrorLog("Token生成失败", "user", err.Error())
-		return "", "", errors.New("Token生成失败")
+	// refreshToken过期时间小于缓冲时间
+	if claims.ExpiresAt.Before(time.Now().Add(cache.REFRESH_TOKEN_BUFFER_TIME)) {
+		// 移除refreshToken
+		cache.DelRefreshToken(claims.UserId, tokenReq.RefreshToken)
+		// 重新生成refreshToken
+		refreshToken, err = jwt.GenerateRefreshToken(claims.UserId)
+		if err != nil {
+			utils.ErrorLog("Token生成失败", "user", err.Error())
+			return "", "", errors.New("Token生成失败")
+		}
 	}
 
 	// 刷新accessToken
@@ -157,8 +159,6 @@ func UpdateToken(ctx *gin.Context, tokenReq dto.TokenReq) (accessToken, refreshT
 
 	// 用户ID写入Cookie
 	SetUserIdCookie(ctx, claims.UserId)
-	// token写入Cookie
-	// SetTokenCookie(ctx, accessToken)
 
 	// 存入缓存
 	cache.SetRefreshToken(claims.UserId, refreshToken)

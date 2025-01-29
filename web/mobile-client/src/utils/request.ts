@@ -27,18 +27,21 @@ service.interceptors.request.use(async (config) => {
     config.headers.Authorization = storage.get('token');
   } else {
     //如果没有accessToken且有refreshTokenoken
-    if (storage.get('refreshToken')) {
+    const localRefreshToken = storage.get('refreshToken')
+    if (localRefreshToken) {
       // 只发送一次刷新token请求
       if (!isRefreshing) {
         isRefreshing = true;
-        const tokenRes = await updateTokenAPI(storage.get('refreshToken'));
+        const tokenRes = await updateTokenAPI(localRefreshToken);
         isRefreshing = false;
         if (tokenRes.data.code === statusCode.OK) {
           const token = tokenRes.data.data.token;
           const refreshToken = tokenRes.data.data.refreshToken;
 
           storage.set("token", token, 60);
-          storage.set("refreshToken", refreshToken, 7 * 24 * 60);
+          if (refreshToken !== localRefreshToken) {
+            storage.set("refreshToken", refreshToken, 7 * 24 * 60);
+          }
           config.headers.Authorization = token;
 
           //token刷新前的401请求队列重试
