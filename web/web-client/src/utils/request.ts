@@ -37,7 +37,7 @@ service.interceptors.request.use(async (config) => {
             const refreshToken = tokenRes.data.data.refreshToken;
 
             storage.set("token", token, 60);
-            if (refreshToken !== localRefreshToken) {
+            if (refreshToken && refreshToken !== localRefreshToken) {
               storage.set("refreshToken", refreshToken, 7 * 24 * 60);
             }
             config.headers.Authorization = token;
