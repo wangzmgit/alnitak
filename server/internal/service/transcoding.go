@@ -2,7 +2,6 @@ package service
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -45,14 +44,10 @@ func ProcessVideoInfo(input string) (*dto.TranscodingInfo, error) {
 		return &transcodingInfo, err
 	}
 
-	if videoData.Stream[0].CodecName != "h264" {
-		utils.ErrorLog("视频编码不为h264", "transcoding", "")
-		return &transcodingInfo, errors.New("not h264")
-	}
-
 	//计算最大分辨率
 	transcodingInfo.Width = videoData.Stream[0].Width
 	transcodingInfo.Height = videoData.Stream[0].Height
+	transcodingInfo.CodecName = videoData.Stream[0].CodecName
 
 	//获取视频时长
 	transcodingInfo.Duration, _ = strconv.ParseFloat(videoData.Stream[0].Duration, 64)

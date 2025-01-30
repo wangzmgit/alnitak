@@ -162,10 +162,9 @@ func UploadVideoMerge(ctx *gin.Context, videoFileReq dto.VideoFileReq) error {
 		return errors.New("合并分片失败")
 	}
 
-	// if err := os.RemoveAll(fileDir + "/chunks/"); err != nil {
-	// 	utils.ErrorLog("删除临时文件夹失败", "upload", err.Error())
-	// 	return errors.New("未知错误")
-	// }
+	if err := os.RemoveAll(fileDir + "/chunks/"); err != nil {
+		utils.ErrorLog("删除临时文件夹失败", "upload", err.Error())
+	}
 
 	return nil
 }
@@ -201,11 +200,12 @@ func CompleteUploadVideo(vid, userId uint, videoName, title string) (vo.Resource
 
 	// 存入数据库
 	resource := model.Resource{
-		Vid:      vid,
-		Uid:      userId,
-		Title:    title,
-		Status:   global.VIDEO_PROCESSING,
-		Duration: transcodingInfo.Duration,
+		Vid:       vid,
+		Uid:       userId,
+		Title:     title,
+		CodecName: transcodingInfo.CodecName,
+		Status:    global.VIDEO_PROCESSING,
+		Duration:  transcodingInfo.Duration,
 	}
 	if err := global.Mysql.Create(&resource).Error; err != nil {
 		return vo.ResourceResp{}, errors.New("保存视频失败")
