@@ -32,7 +32,7 @@ export const uploadFileAPI = ({ name, file, action, onProgress, onFinish, onErro
 }
 
 const getUploadedChunksAPI = async (hash: string) => {
-  const res = await request.post("v1/upload/video/check", { hash }, {})
+  const res = await request.post("v1/upload/checkVideo", { hash }, {})
   if (res.data.code === statusCode.OK) {
     if (res.data.data.chunks) {
       return res.data.data.chunks
@@ -45,7 +45,7 @@ const getUploadedChunksAPI = async (hash: string) => {
 }
 
 const mergeUploadedChunksAPI = async (hash: string) => {
-  const res = await request.post("v1/upload/video/merge", { hash }, {})
+  const res = await request.post("v1/upload/mergeVideo", { hash }, {})
   if (res.data.code === statusCode.OK) {
     return true
   }
@@ -99,7 +99,7 @@ export const uploadFileChunkAPI = async (param: UploadOptionsType) => {
     formData.append('chunkIndex', i.toString());
     formData.append('totalChunks', totalChunks.toString());
 
-    request.post("v1/upload/video/chunk", formData, {}).then(async (res) => {
+    request.post("v1/upload/chunkVideo", formData, {}).then(async (res) => {
       if (res.data.code === statusCode.OK) {
         uploadedChunksCount++
         // 更新进度
