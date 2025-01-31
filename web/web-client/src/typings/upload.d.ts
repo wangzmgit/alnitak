@@ -6,3 +6,10 @@ interface UploadOptionsType {
   onFinish: (data?: any) => void
   onError: (error?: any) => void
 }
+
+interface FinishUploadType {
+  hash: string;
+  action: string;
+  onFinish: (data?: any) => void
+  onError: (error?: any) => void
+}
