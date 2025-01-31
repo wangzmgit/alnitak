@@ -8,8 +8,7 @@ export const uploadFileAPI = ({ name, file, action, onProgress, onFinish, onErro
   const formData = new FormData();
   formData.append(name, file)
   request.post(action, formData, {
-    // 文件上传20分钟超时 1200000 = 1000*60*20
-    timeout: 1200000,
+    timeout: 50000,
     headers: {
       'Content-Type': 'multipart/form-data'
     },
@@ -31,6 +30,84 @@ export const uploadFileAPI = ({ name, file, action, onProgress, onFinish, onErro
   })
 }
 
+export const uploadFileChunkAPI = async ({ name, file, action, onProgress, onFinish, onError }: UploadOptionsType) => {
+  onProgress(0);
+  const hash = await getFileMD5(file)
+  const chunkSize = 5 * 1024 * 1024; // 每个分片大小为5MB
+  const totalChunks = Math.ceil(file.size / chunkSize);
+  const formDataGenerator = createFormDataGenerator(hash, name, file.name, totalChunks.toString());
+
+
+  const tasks: number[] = []
+  const uploadedChunks = await getUploadedChunksAPI(hash)
+  for (let i = 0; i < totalChunks; i++) {
+    if (!uploadedChunks.includes(i)) {
+      tasks.push(i)
+    }
+  }
+
+  if (tasks.length === 0) {
+    finishUploadAPI({ hash, action, onFinish, onError })
+    return;
+  }
+
+  // 如果服务器不存在数据则手动上传第一个分片
+  if (tasks.length === totalChunks) {
+    const chunk = file.slice(0, Math.min(chunkSize, file.size));
+    const formData = formDataGenerator(chunk, "0");
+    const firstChunkRes = await uploadChunkAPI(formData)
+    if (firstChunkRes.data.code === statusCode.OK) {
+      uploadedChunks.push(0);
+      tasks.splice(tasks.indexOf(0), 1);
+    } else {
+      onError(firstChunkRes.data)
+      return;
+    }
+  }
+
+  // 上传进度
+  let uploadedChunksCount = uploadedChunks.length;
+  for (let i of tasks) {
+    const start = i * chunkSize;
+    const end = Math.min(start + chunkSize, file.size);
+    const chunk = file.slice(start, end);
+    const formData = formDataGenerator(chunk, i.toString());
+    uploadChunkAPI(formData).then(async (res) => {
+      if (res.data.code === statusCode.OK) {
+        uploadedChunksCount++
+        // 更新进度
+        const progress = Math.floor((uploadedChunksCount / totalChunks) * 100);
+        if (uploadedChunksCount === totalChunks) {
+          finishUploadAPI({ hash, action, onFinish, onError })
+        } else {
+          onProgress(progress);
+        }
+      } else {
+        onError(res.data);
+      }
+    })
+
+  }
+}
+
+const createFormDataGenerator = (hash: string, name: string, fileName: string, totalChunks: string) => {
+  const savedHash = hash;
+  const savedName = name;
+  const savedFileName = fileName;
+  const savedTotalChunks = totalChunks;
+
+  return (chunk: Blob, i: string) => {
+    const formData = new FormData();
+    formData.append(savedName, chunk);
+    formData.append('hash', savedHash);
+    formData.append('name', savedFileName);
+    formData.append('chunkIndex', i.toString());
+    formData.append('totalChunks', savedTotalChunks);
+
+    return formData;
+  };
+}
+
 const getUploadedChunksAPI = async (hash: string) => {
   const res = await request.post("v1/upload/checkVideo", { hash }, {})
   if (res.data.code === statusCode.OK) {
@@ -44,6 +121,10 @@ const getUploadedChunksAPI = async (hash: string) => {
   return []
 }
 
+const uploadChunkAPI = (formData: FormData) => {
+  return request.post("v1/upload/chunkVideo", formData)
+}
+
 const mergeUploadedChunksAPI = async (hash: string) => {
   const res = await request.post("v1/upload/mergeVideo", { hash }, {})
   if (res.data.code === statusCode.OK) {
@@ -53,7 +134,7 @@ const mergeUploadedChunksAPI = async (hash: string) => {
   return false
 }
 
-const finishUploadAPI = async (hash: string, action: string, onFinish: (data?: any) => void, onError: (data?: any) => void) => {
+const finishUploadAPI = async ({ hash, action, onFinish, onError }: FinishUploadType) => {
   if (await mergeUploadedChunksAPI(hash)) {
     request.post(action, { hash }, {}).then((res) => {
       if (res.data.code === statusCode.OK) {
@@ -64,54 +145,5 @@ const finishUploadAPI = async (hash: string, action: string, onFinish: (data?: a
     })
   } else {
     onError();
-  }
-}
-
-export const uploadFileChunkAPI = async (param: UploadOptionsType) => {
-  param.onProgress(0);
-  const hash = await getFileMD5(param.file)
-  const chunkSize = 5 * 1024 * 1024; // 每个分片大小为5MB
-  const totalChunks = Math.ceil(param.file.size / chunkSize);
-
-  const tasks: number[] = []
-  const uploadedChunks = await getUploadedChunksAPI(hash)
-  for (let i = 0; i < totalChunks; i++) {
-    if (!uploadedChunks.includes(i)) {
-      tasks.push(i)
-    }
-  }
-
-  if (tasks.length === 0) {
-    finishUploadAPI(hash, param.action, param.onFinish, param.onError)
-  }
-
-  // 上传进度
-  let uploadedChunksCount = uploadedChunks.length;
-  for (let i of tasks) {
-    const start = i * chunkSize;
-    const end = Math.min(start + chunkSize, param.file.size);
-    const chunk = param.file.slice(start, end);
-
-    const formData = new FormData();
-    formData.append(param.name, chunk);
-    formData.append('hash', hash);
-    formData.append('name', param.file.name);
-    formData.append('chunkIndex', i.toString());
-    formData.append('totalChunks', totalChunks.toString());
-
-    request.post("v1/upload/chunkVideo", formData, {}).then(async (res) => {
-      if (res.data.code === statusCode.OK) {
-        uploadedChunksCount++
-        // 更新进度
-        const progress = Math.floor((uploadedChunksCount / totalChunks) * 100);
-        if (uploadedChunksCount === totalChunks) {
-          finishUploadAPI(hash, param.action, param.onFinish, param.onError)
-        } else {
-          param.onProgress(progress);
-        }
-      } else {
-        param.onError(res.data);
-      }
-    })
   }
 }
