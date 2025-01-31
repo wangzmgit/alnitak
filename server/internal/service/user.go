@@ -161,7 +161,9 @@ func UpdateToken(ctx *gin.Context, tokenReq dto.TokenReq) (accessToken, refreshT
 	SetUserIdCookie(ctx, claims.UserId)
 
 	// 存入缓存
-	cache.SetRefreshToken(claims.UserId, refreshToken)
+	if refreshToken != "" {
+		cache.SetRefreshToken(claims.UserId, refreshToken)
+	}
 
 	return accessToken, refreshToken, nil
 }
