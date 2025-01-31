@@ -56,14 +56,14 @@ func IsVideoType(suffix string) bool {
 	return reg.MatchString(suffix)
 }
 
-func FileSize(contentLength string, targetSize int64) bool {
+func FileSize(contentLength string, count int64, targetSize int64) bool {
 	contentSize, err := strconv.ParseInt(contentLength, 10, 64)
 	if err != nil {
 		zap.L().Info("请求大小转换int失败", zap.String("module", "utils"))
 		return false
 	}
 	//'限制整体大小为 目标大小 + 1 MB
-	if contentSize > (targetSize+1)*1024*1024 {
+	if (contentSize * count) > (targetSize+1)*1024*1024 {
 		return false
 	}
 	return true

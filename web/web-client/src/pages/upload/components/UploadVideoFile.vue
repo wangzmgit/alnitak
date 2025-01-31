@@ -50,7 +50,7 @@ import { ElIcon, ElButton, ElInput, ElPopconfirm } from "element-plus";
 import MonitorIcon from "@/components/icons/MonitorIcon.vue";
 import { submitReviewAPI, getVideoStatusAPI } from "@/api/video";
 import { deleteResourceAPI, modifyTitleAPI } from "@/api/resource";
-import { uploadFileAPI } from "~/api/upload";
+import { uploadFileChunkAPI } from "@/api/upload";
 
 const emit = defineEmits(["review"]);
 const props = defineProps<{
@@ -155,7 +155,7 @@ const handleChange = (uploadFile: any) => {
 
   const index = resourceList.value.push(uploadData) - 1;
 
-  uploadFileAPI({
+  uploadFileChunkAPI({
     name: "video",
     action: props.vid ? `v1/upload/video/${props.vid}` : `v1/upload/video`,
     file: uploadFile.raw,
