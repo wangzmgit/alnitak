@@ -1,0 +1,38 @@
+{
+  "name": "alnitak-web",
+  "private": true,
+  "type": "commonjs",
+  "license": "MIT",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "devDependencies": {
+    "@element-plus/nuxt": "^1.0.7",
+    "@nuxt/devtools": "latest",
+    "@types/spark-md5": "^3.0.5",
+    "nuxt": "^3.8.2",
+    "sass": "^1.69.5",
+    "vue": "^3.3.8",
+    "vue-router": "^4.2.5"
+  },
+  "dependencies": {
+    "@icon-park/vue-next": "^1.4.2",
+    "@pinia/nuxt": "^0.5.1",
+    "@wangeditor/editor": "^5.1.23",
+    "@wangeditor/editor-for-vue": "^5.1.12",
+    "axios": "^1.6.2",
+    "element-plus": "^2.4.4",
+    "hls.js": "^1.5.7",
+    "isomorphic-dompurify": "^2.9.0",
+    "js-base64": "^3.7.7",
+    "moment": "^2.30.1",
+    "pinia": "^2.1.7",
+    "spark-md5": "^3.0.2",
+    "vue-picture-cropper": "^0.7.0",
+    "wplayer-next": "^1.0.0"
+  }
+}

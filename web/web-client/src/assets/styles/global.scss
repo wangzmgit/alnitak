@@ -1,0 +1,24 @@
+:root {
+  --primary-color: #4668f3;
+  --primary-hover-color: #4a7df0;
+  --primary-color-active: rgba(70, 104, 243, .1);
+  --primary-text-color: #fdfdfd;
+
+  --font-primary-1: #1f2225;
+  --font-primary-2: #515767;
+  --font-primary-3: #8491a5;
+  --font-primary-4: #c2c8d1;
+  --font-primary-5: #c0c4cc;
+  --font-primary-6: #ffffff;
+  --font-danger: #f64242;
+
+  --input-bg-color: #f2f3f5;
+  --input-focus-bg-color: #fdfdfd;
+}
+
+.disabled-select {
+  -ms-user-select: none;
+  -moz-user-select: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
