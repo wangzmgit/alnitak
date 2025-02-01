@@ -194,20 +194,20 @@ func getHeigthRes(height int) int {
 // 获取转码目标
 func getTranscodingTarget(videoInfo *dto.TranscodingInfo) []TranscodingTarget {
 	targets := make([]TranscodingTarget, 0)
-	maxRresolution := utils.Max(getWidthRes(videoInfo.Width), getHeigthRes(videoInfo.Height))
+	maxResolution := utils.Max(getWidthRes(videoInfo.Width), getHeigthRes(videoInfo.Height))
 
-	switch maxRresolution {
+	switch maxResolution {
 	case 1080:
-		targets = append(targets, TranscodingTarget{Resolution: "1920x1080", BitrateRate: "3000k", FPS: videoInfo.FPS})
+		targets = append(targets, TranscodingTarget{Resolution: "1920x1080", BitrateRate: "10000k", FPS: videoInfo.FPS}) // 1080p
 		fallthrough
 	case 720:
-		targets = append(targets, TranscodingTarget{Resolution: "1280x720", BitrateRate: "2000k", FPS: videoInfo.FPS})
+		targets = append(targets, TranscodingTarget{Resolution: "1280x720", BitrateRate: "5000k", FPS: videoInfo.FPS}) // 720p
 		fallthrough
 	case 480:
-		targets = append(targets, TranscodingTarget{Resolution: "854x480", BitrateRate: "900k", FPS: videoInfo.FPS})
+		targets = append(targets, TranscodingTarget{Resolution: "854x480", BitrateRate: "1500k", FPS: videoInfo.FPS}) // 480p
 		fallthrough
 	case 360:
-		targets = append(targets, TranscodingTarget{Resolution: "640x360", BitrateRate: "500k", FPS: videoInfo.FPS})
+		targets = append(targets, TranscodingTarget{Resolution: "640x360", BitrateRate: "900k", FPS: videoInfo.FPS}) // 360p
 	}
 
 	return targets
