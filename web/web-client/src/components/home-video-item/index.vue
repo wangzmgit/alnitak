@@ -34,8 +34,8 @@ const props = defineProps<{
   .img {
     position: relative;
     display: block;
-    width: 100%;
-    height: 160px;
+    height: auto; /* 让高度自动调整以保持比例 */
+    max-height: 160px; /* 最大高度限制 */
     border-radius: 10px;
     overflow: hidden;
     cursor: pointer;
@@ -44,6 +44,7 @@ const props = defineProps<{
     img {
       width: 100%;
       height: 100%;
+	  object-fit: cover; /* 保持图片比例，裁剪超出的部分 */
     }
 
     .duration {
