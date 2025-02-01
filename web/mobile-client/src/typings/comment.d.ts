@@ -24,7 +24,7 @@ interface CommentType {
   // 本地使用的数据，接口不返回
   page?: number;
   showReplyBox?: boolean;
-  noMore?: boolean;
+  hiddenMoreBtn?: boolean;
 }
 
 interface ReplyType {

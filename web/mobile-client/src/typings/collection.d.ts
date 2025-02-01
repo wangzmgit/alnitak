@@ -20,6 +20,8 @@ interface CollectionInfoType {
   author: UserInfoType;
 }
 
+
+
 interface EditCollectionType {
   id: number,
   name?: string,

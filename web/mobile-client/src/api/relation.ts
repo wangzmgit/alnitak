@@ -1,4 +1,6 @@
 import request from '@/utils/request';
+import { baseURL } from '@/utils/request';
+import { useAsyncData } from 'nuxt/app';
 
 // 获取用户关系
 export const getUserRelationAPI = (userId: number) => {
@@ -18,6 +20,11 @@ export const unfollowAPI = (userId: number) => {
 // 获取关注数据
 export const getFollowDataAPI = (uid: number | string) => {
   return request.get(`v1/relation/getFollowCount?userId=${uid}`)
+}
+
+// 获取关注数据
+export const asyncetFollowDataAPI = async (userId: number | string) => {
+  return await useAsyncData(() => $fetch(`${baseURL}/api/v1/relation/getFollowCount?userId=${userId}`));
 }
 
 //获取关注列表

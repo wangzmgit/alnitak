@@ -68,32 +68,31 @@ const loadVideo = async (resourceId: number) => {
 }
 
 const resourceNameMap = {
-  "640x360_500k": "360p",
-  "854x480_900k": "480p",
-  "1080x720_2000k": "720p", // 兼容之前的错误
-  "1280x720_2000k": "720p",
-  "1920x1080_3000k": "1080p",
+  "640x360": "360p",
+  "854x480": "480p",
+  "1280x720": "720p",
+  "1920x1080": "1080p",
 };
 
-const loadResource = async (resourceId: number) => {
-  const res = await getResourceQualityApi(resourceId);
+const loadResource = async (part: number) => {
+  const resource = props.videoInfo.resources[part - 1];
+  const res = await getResourceQualityApi(resource.id);
 
   if (res.data.code === statusCode.OK) {
-    options.video.quality = [];
+    options.video.quality = res.data.data.quality.map((item: string, index: number) => {
+      // 使用正则表达式移除码率和帧率部分，只保留分辨率
+      const normalizedItem = item.replace(/(_\d+k(?:_\d+)?)$/, ""); // 去除码率和帧率部分
 
-    res.data.data.quality.forEach((item: string, i: number) => {
-      // 使用正则表达式移除分辨率和码率后的小数帧率部分
-      const normalizedItem = item.replace(/(_\d+)(?:\.\d+)?$/, ""); // 去掉可能出现的帧率部分
       const qualityName = resourceNameMap[normalizedItem];
 
       if (qualityName === defaultQuality.value) {
-        options.video.defaultQuality = i;
+        options.video.defaultQuality = index;
       }
 
-      options.video.quality.push({
-        name: qualityName || "Unknown", // 如果未找到匹配的名称，显示 "Unknown"
-        url: getVideoFileUrl(resourceId, item),
-      });
+      return {
+        name: qualityName || "Unknown", 
+        url: getVideoFileUrl(resource.id, item),
+      };
     });
   }
 };

@@ -29,3 +29,14 @@ export function logoutAPI(refreshToken: string) {
 export function clearCookieAPI() {
   return request.post('v1/auth/clearCookie',);
 }
+
+// 重置密码验证
+export const resetpwdCheckAPI = (data: ModifyPwdCheckType) => {
+  return request.post('v1/auth/resetpwdCheck', data);
+}
+
+// 重置密码
+export const mpdifyPwdAPI = (data: ModifyPwdType) => {
+  return request.post('v1/auth/modifyPwd', data);
+}
+

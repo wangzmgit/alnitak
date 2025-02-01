@@ -1,21 +1,6 @@
 import moment from "moment";
 
-export const isEmail = (str: string) => {
-  const reg = /^([a-zA-Z]|[0-9])(\w|\-)+@[a-zA-Z0-9]+\.([a-zA-Z]{2,4})$/;
-  return reg.test(str);
-}
-
-export const isPhone = (str: string) => {
-  const reg = /^1[3|4|5|6|7|8|9][0-9]{9}$/;
-  return reg.test(str);
-}
-
-export const isUrl = (str: string) => {
-  var reg = /^(http|https):\/\/[^\s/$.?#].[^\s]*$/;
-  return reg.test(str);
-}
-
-export const formatDate = (time: string) => {
+export const formatDate = (time: string | Date) => {
   return moment(time).format("YYYY-MM-DD")
 }
 
@@ -34,7 +19,7 @@ export const formatRelativeTime = (timeStr: string | Date) => {
   } else if (diff < 60 * 60 * 24) {
     return Math.floor(diff / (60 * 60)) + '小时前';
   } else {
-    return formatTime(timeStr);
+    return formatDate(timeStr);
   }
 }
 
@@ -80,4 +65,9 @@ export const toDuration = (duration: number) => {
   const mm = m < 10 ? "0" + m : m;
   const ss = s < 10 ? "0" + s : s;
   return mm + ":" + ss;
+}
+
+// 移除html标签
+export const removeHtml = (val: string) => {
+  return val.replace(/<\/?.+?>/g, "");
 }

@@ -14,5 +14,5 @@ interface HistoryVideoType {
   updatedAt: string;
 
   // 观看日期，后端不返回
-  viewingDate?: string;
+  viewingDate?:string;
 }	

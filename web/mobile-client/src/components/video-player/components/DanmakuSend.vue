@@ -3,13 +3,13 @@
     <div class="bottom-left">
       <span class="danmaku-amount">{{ danmakuCount }}条弹幕</span>
       <div class="danmaku-switch">
-        <n-switch v-model="showDanmaku" inline-prompt active-text="弹" @change="changeShow" />
+        <el-switch v-model="showDanmaku" inline-prompt active-text="弹" @change="changeShow" />
       </div>
       <!-- 弹幕设置 -->
       <div class="control-btn setting-type">
-        <!-- <n-icon class="setting-icon">
+        <el-icon class="setting-icon">
           <setting-config theme="outline" />
-        </n-icon> -->
+        </el-icon>
         <!--弹幕类型设置-->
         <div class="player-danmaku-setting-menu">
           <div class="setting-menu-content">
@@ -33,9 +33,9 @@
     <div class="bottom-right">
       <div class="input-container">
         <div class="control-btn setting-style">
-          <n-icon class="style-icon">
+          <el-icon class="style-icon">
             <text-icon></text-icon>
-          </n-icon>
+          </el-icon>
           <div class="player-danmaku-menu">
             <!--弹幕样式设置-->
             <div class="style-menu-content">
@@ -71,11 +71,10 @@
 </template>
 
 <script  setup lang="ts">
-import { ref, reactive, onBeforeMount } from "vue";
+import { ref, reactive } from "vue";
 import BaseSlider from "@/components/base-slider/index.vue";
 import TextIcon from "@/components/icons/TextIcon.vue";
 import { SettingConfig } from "@icon-park/vue-next";
-import { NIcon, NSwitch } from "naive-ui";
 
 const emit = defineEmits(["changeShow", "opacityChange", "send", "setFilter"]);
 const props = defineProps<{
@@ -214,7 +213,7 @@ onBeforeMount(() => {
   }
 
   .bottom-left {
-    width: 120px;
+    width: 200px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -230,13 +229,11 @@ onBeforeMount(() => {
 
     .danmaku-switch {
       width: 40px;
-      display: flex;
-      align-items: center;
     }
   }
 
   .bottom-right {
-    width: calc(100% - 130px);
+    width: calc(100% - 200px);
     display: flex;
     align-items: center;
 
@@ -275,7 +272,7 @@ onBeforeMount(() => {
     .send-btn {
       width: 72px;
       height: 26px;
-      margin: 0 12px 0 10px;
+      margin-left: 10px;
       font-weight: 400;
       font-size: 12px;
       outline: none;

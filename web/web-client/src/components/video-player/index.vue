@@ -103,11 +103,10 @@ const loadPart = async (part: number) => {
 }
 
 const resourceNameMap = {
-  "640x360_500k": "360p",
-  "854x480_900k": "480p",
-  "1080x720_2000k": "720p", 
-  "1280x720_2000k": "720p",
-  "1920x1080_3000k": "1080p",
+  "640x360": "360p",
+  "854x480": "480p",
+  "1280x720": "720p",
+  "1920x1080": "1080p",
 };
 
 const loadResource = async (part: number) => {
@@ -116,8 +115,9 @@ const loadResource = async (part: number) => {
 
   if (res.data.code === statusCode.OK) {
     options.video.quality = res.data.data.quality.map((item: string, index: number) => {
-      // 使用正则表达式移除分辨率和码率后的小数帧率部分
-      const normalizedItem = item.replace(/(_\d+)(?:\.\d+)?$/, "") as keyof typeof resourceNameMap; // 去掉可能出现的帧率部分
+      // 使用正则表达式移除码率和帧率部分，只保留分辨率
+      const normalizedItem = item.replace(/(_\d+k(?:_\d+)?)$/, ""); // 去除码率和帧率部分
+
       const qualityName = resourceNameMap[normalizedItem];
 
       if (qualityName === defaultQuality.value) {
@@ -131,6 +131,7 @@ const loadResource = async (part: number) => {
     });
   }
 };
+
 
 // 获取当前清晰度设置
 const getDefaultQuality = () => {

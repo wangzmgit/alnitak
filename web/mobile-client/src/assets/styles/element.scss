@@ -1,0 +1,23 @@
+.el-message {
+  height: 40px;
+  border: none !important;
+  border-radius: 8px !important;
+  padding: 9px 12px !important;
+  background-color: #fff !important;
+  box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.08),
+    0 3px 6px -4px rgba(0, 0, 0, 0.12),
+    0 9px 28px 8px rgba(0, 0, 0, 0.05);
+}
+
+.el-message__content {
+  font-size: 14px !important;
+  font-weight: 400;
+  color: rgba(0, 0, 0, 0.88) !important;
+}
+
+.el-button--primary {
+  --el-button-bg-color: var(--primary-color) !important;
+  --el-button-border-color: var(--primary-color) !important;
+  --el-button-hover-bg-color: var(--primary-hover-color) !important;
+  --el-button-active-border-color: var(--primary-hover-color) !important;
+}

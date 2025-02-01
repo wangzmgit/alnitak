@@ -2,6 +2,8 @@ export const statusCode = {
     OK: 200,
     FAIL: 500,
 
+    NOT_FOUND: 404,
+
     CAPTCHA_REQUIRED: -1, // 需要人机验证
 
     LOGIN_AGAIN: 2000,
