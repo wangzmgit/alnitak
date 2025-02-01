@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
@@ -134,7 +135,18 @@ func UploadVideoChunk(ctx *gin.Context, file *multipart.FileHeader) error {
 	global.Mysql.Where("uid = ? and hash = ?", userId, fileHash).First(&videoFileInfo)
 	if videoFileInfo.ID == 0 {
 		dirName = generateVideoFilename()
-		global.Mysql.Create(&model.VideoFile{Uid: userId, Hash: fileHash, DirName: dirName, OriginalName: fileName, ChunksCount: totalChunks})
+		// 去掉文件扩展名，处理 UTF-8 编码的文件名
+		title := strings.TrimSuffix(strings.TrimSpace(fileName), suffix)
+		if title == "" {
+			title = "未命名视频"
+		}
+		global.Mysql.Create(&model.VideoFile{
+			Uid:          userId,
+			Hash:         fileHash,
+			DirName:      dirName,
+			OriginalName: title,
+			ChunksCount:  totalChunks,
+		})
 	} else {
 		dirName = videoFileInfo.DirName
 	}
@@ -164,6 +176,9 @@ func UploadVideoMerge(ctx *gin.Context, videoFileReq dto.VideoFileReq) error {
 
 	if err := os.RemoveAll(fileDir + "/chunks/"); err != nil {
 		utils.ErrorLog("删除临时文件夹失败", "upload", err.Error())
+		return errors.New("删除临时文件夹失败")
+	} else {
+		utils.InfoLog("临时文件夹删除成功: "+fileDir+"/chunks/", "upload")
 	}
 
 	return nil
