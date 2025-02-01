@@ -1,0 +1,6 @@
+/conf/*.yaml
+/logs/*.log
+/upload/video/*
+/upload/image/*
+!/upload/video/.gitkeep
+!/upload/image/.gitkeep
