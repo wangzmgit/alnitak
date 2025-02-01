@@ -11,4 +11,6 @@ type TranscodingInfo struct {
 	VideoID    uint    // 视频ID
 	CodecName  string  // 视频编码名称
 	FPS        string  // 视频帧率
+	FPS30      string  // 30帧实际帧率
+	FPS60      string  // 60帧实际帧率
 }

@@ -21,6 +21,7 @@ type TranscodingTarget struct {
 	Resolution  string // 分辨率
 	BitrateRate string // 码率
 	FPS         string // 帧率
+	FpsName     string // 帧率名称
 }
 
 // 生成封面
@@ -44,9 +45,6 @@ func ProcessVideoInfo(input string) (*dto.TranscodingInfo, error) {
 		return &transcodingInfo, err
 	}
 
-	// 打印视频流的相关信息，便于调试
-	//utils.DebugLog("视频信息", "transcoding", fmt.Sprintf("视频编码：%s", videoData.Stream[0].CodecName))
-
 	// 计算最大分辨率
 	transcodingInfo.Width = videoData.Stream[0].Width
 	transcodingInfo.Height = videoData.Stream[0].Height
@@ -56,30 +54,8 @@ func ProcessVideoInfo(input string) (*dto.TranscodingInfo, error) {
 	transcodingInfo.Duration, _ = strconv.ParseFloat(videoData.Stream[0].Duration, 64)
 
 	// 获取帧率
-	// 在这里定义 numerator 和 denominator
-	parts := strings.Split(videoData.Stream[0].AvgFrameRate, "/")
-	if len(parts) == 2 {
-		numerator, err := strconv.Atoi(parts[0])
-		if err != nil {
-			utils.ErrorLog("解析 numerator 失败", "transcoding", err.Error())
-			return &transcodingInfo, err
-		}
-		denominator, err := strconv.Atoi(parts[1])
-		if err != nil {
-			utils.ErrorLog("解析 denominator 失败", "transcoding", err.Error())
-			return &transcodingInfo, err
-		}
-		if denominator != 0 {
-			// 计算帧率
-			fps := float64(numerator) / float64(denominator)
-			// 判断是否为整数，是则不显示小数部分
-			if fps == float64(int(fps)) {
-				transcodingInfo.FPS = fmt.Sprintf("%d", int(fps)) // 转为整数输出
-			} else {
-				transcodingInfo.FPS = fmt.Sprintf("%.2f", fps) // 保留两位小数
-			}
-		}
-	}
+	transcodingInfo.FPS = videoData.Stream[0].AvgFrameRate
+	transcodingInfo.FPS30, transcodingInfo.FPS60 = getFpsInfo(transcodingInfo.FPS)
 
 	return &transcodingInfo, nil
 }
@@ -91,15 +67,15 @@ func VideoTransCoding(transcodingInfo *dto.TranscodingInfo) {
 	for _, v := range targets {
 		c := v // 处理协程引用循环变量问题
 		go func() {
-			fileName := c.Resolution + "_" + c.BitrateRate + "_" + c.FPS
+			fileName := c.Resolution + "_" + c.BitrateRate + "_" + c.FpsName
 			tsFileName := transcodingInfo.OutputDir + fileName + ".ts"
 
 			// 根据配置选择使用 CPU 或 GPU
 			var err error
-			if viper.GetString("video.transcoding_method") == "gpu" {
-				err = pressingVideoGPU(transcodingInfo.InputFile, tsFileName, c.Resolution, c.BitrateRate)
+			if viper.GetBool("transcoding.gpu") {
+				err = pressingVideoGPU(transcodingInfo.InputFile, tsFileName, c.Resolution, c.BitrateRate, v.FPS)
 			} else {
-				err = pressingVideo(transcodingInfo.InputFile, tsFileName, c.Resolution, c.BitrateRate)
+				err = pressingVideo(transcodingInfo.InputFile, tsFileName, c.Resolution, c.BitrateRate, v.FPS)
 			}
 			if err != nil {
 				wg.Done()
@@ -191,6 +167,29 @@ func getHeigthRes(height int) int {
 	return 360
 }
 
+// 获取帧率信息
+func getFpsInfo(avgFrameRate string) (string, string) {
+	parts := strings.Split(avgFrameRate, "/")
+	if len(parts) == 2 {
+		numerator := utils.StringToInt(parts[0])
+		denominator := utils.StringToInt(parts[1])
+		if denominator == 0 {
+			return "30000/1001", ""
+		}
+
+		// 计算帧率
+		fps := float64(numerator) / float64(denominator)
+		if fps < 30 {
+			return avgFrameRate, ""
+		}
+		if fps >= 30 {
+			return "30000/1001", "60000/1001"
+		}
+	}
+
+	return "30000/1001", ""
+}
+
 // 获取转码目标
 func getTranscodingTarget(videoInfo *dto.TranscodingInfo) []TranscodingTarget {
 	targets := make([]TranscodingTarget, 0)
@@ -198,16 +197,19 @@ func getTranscodingTarget(videoInfo *dto.TranscodingInfo) []TranscodingTarget {
 
 	switch maxRresolution {
 	case 1080:
-		targets = append(targets, TranscodingTarget{Resolution: "1920x1080", BitrateRate: "3000k", FPS: videoInfo.FPS})
+		if viper.GetBool("transcoding.1080p60") && videoInfo.FPS60 != "" {
+			targets = append(targets, TranscodingTarget{Resolution: "1920x1080", BitrateRate: "3000k", FPS: videoInfo.FPS60, FpsName: "60"})
+		}
+		targets = append(targets, TranscodingTarget{Resolution: "1920x1080", BitrateRate: "3000k", FPS: videoInfo.FPS30, FpsName: "30"})
 		fallthrough
 	case 720:
-		targets = append(targets, TranscodingTarget{Resolution: "1280x720", BitrateRate: "2000k", FPS: videoInfo.FPS})
+		targets = append(targets, TranscodingTarget{Resolution: "1280x720", BitrateRate: "2000k", FPS: videoInfo.FPS30, FpsName: "30"})
 		fallthrough
 	case 480:
-		targets = append(targets, TranscodingTarget{Resolution: "854x480", BitrateRate: "900k", FPS: videoInfo.FPS})
+		targets = append(targets, TranscodingTarget{Resolution: "854x480", BitrateRate: "900k", FPS: videoInfo.FPS30, FpsName: "30"})
 		fallthrough
 	case 360:
-		targets = append(targets, TranscodingTarget{Resolution: "640x360", BitrateRate: "500k", FPS: videoInfo.FPS})
+		targets = append(targets, TranscodingTarget{Resolution: "640x360", BitrateRate: "500k", FPS: videoInfo.FPS30, FpsName: "30"})
 	}
 
 	return targets
@@ -245,11 +247,9 @@ func getVideoInfo(input string) (info global.VideoInfo, err error) {
 }
 
 // 压缩视频
-func pressingVideo(inputFile, outputFile, quality, rate string) error {
-	// 修改前，强制设置了帧率为 30000/1001
-	// 改为不设置帧率，保留原始帧率
-	command := []string{"-i", inputFile, "-crf", "20", "-s", quality,
-		"-b:v", rate, "-c:v", "libx264", "-c:a", "aac", "-f", "mpegts", outputFile,
+func pressingVideo(inputFile, outputFile, quality, rate, fps string) error {
+	command := []string{"-i", inputFile, "-crf", "20", "-s", quality, "-b:v", rate,
+		"-c:v", "libx264", "-r", fps, "-c:a", "aac", "-f", "mpegts", outputFile,
 	}
 
 	_, err := utils.RunCmd(exec.Command("ffmpeg", command...))
@@ -262,11 +262,9 @@ func pressingVideo(inputFile, outputFile, quality, rate string) error {
 }
 
 // GPU压缩视频
-func pressingVideoGPU(inputFile, outputFile, quality, rate string) error {
-	// 修改前，强制设置了帧率为 30000/1001
-	// 改为不设置帧率，保留原始帧率
-	command := []string{"-i", inputFile, "-crf", "20", "-s", quality,
-		"-b:v", rate, "-c:v", "h264_nvenc", "-c:a", "aac", "-f", "mpegts", outputFile,
+func pressingVideoGPU(inputFile, outputFile, quality, rate, fps string) error {
+	command := []string{"-i", inputFile, "-crf", "20", "-s", quality, "-b:v", rate,
+		"-c:v", "libx264", "-r", fps, "-c:a", "aac", "-f", "mpegts", outputFile,
 	}
 
 	_, err := utils.RunCmd(exec.Command("ffmpeg", command...))

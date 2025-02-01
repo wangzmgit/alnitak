@@ -176,9 +176,6 @@ func UploadVideoMerge(ctx *gin.Context, videoFileReq dto.VideoFileReq) error {
 
 	if err := os.RemoveAll(fileDir + "/chunks/"); err != nil {
 		utils.ErrorLog("删除临时文件夹失败", "upload", err.Error())
-		return errors.New("删除临时文件夹失败")
-	} else {
-		utils.InfoLog("临时文件夹删除成功: "+fileDir+"/chunks/", "upload")
 	}
 
 	return nil
