@@ -109,7 +109,7 @@ const createFormDataGenerator = (hash: string, name: string, fileName: string, t
 }
 
 const getUploadedChunksAPI = async (hash: string) => {
-  const res = await request.post("v1/upload/checkVideo", { hash }, {})
+  const res = await request.post("v1/upload/video/check", { hash }, {})
   if (res.data.code === statusCode.OK) {
     if (res.data.data.chunks) {
       return res.data.data.chunks
@@ -122,11 +122,11 @@ const getUploadedChunksAPI = async (hash: string) => {
 }
 
 const uploadChunkAPI = (formData: FormData) => {
-  return request.post("v1/upload/chunkVideo", formData)
+  return request.post("v1/upload/video/chunk", formData)
 }
 
 const mergeUploadedChunksAPI = async (hash: string) => {
-  const res = await request.post("v1/upload/mergeVideo", { hash }, {})
+  const res = await request.post("v1/upload/video/merge", { hash }, {})
   if (res.data.code === statusCode.OK) {
     return true
   }
