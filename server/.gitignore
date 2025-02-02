@@ -4,3 +4,5 @@
 /upload/image/*
 !/upload/video/.gitkeep
 !/upload/image/.gitkeep
+*.exe~
+*.exe
