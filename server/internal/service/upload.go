@@ -7,7 +7,6 @@ import (
 	"os"
 	"path"
 	"strconv"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
@@ -135,18 +134,7 @@ func UploadVideoChunk(ctx *gin.Context, file *multipart.FileHeader) error {
 	global.Mysql.Where("uid = ? and hash = ?", userId, fileHash).First(&videoFileInfo)
 	if videoFileInfo.ID == 0 {
 		dirName = generateVideoFilename()
-		// 去掉文件扩展名，处理 UTF-8 编码的文件名
-		title := strings.TrimSuffix(strings.TrimSpace(fileName), suffix)
-		if title == "" {
-			title = "未命名视频"
-		}
-		global.Mysql.Create(&model.VideoFile{
-			Uid:          userId,
-			Hash:         fileHash,
-			DirName:      dirName,
-			OriginalName: title,
-			ChunksCount:  totalChunks,
-		})
+		global.Mysql.Create(&model.VideoFile{Uid: userId, Hash: fileHash, DirName: dirName, OriginalName: fileName, ChunksCount: totalChunks})
 	} else {
 		dirName = videoFileInfo.DirName
 	}
@@ -210,11 +198,14 @@ func CompleteUploadVideo(vid, userId uint, videoName, title string) (vo.Resource
 		return vo.ResourceResp{}, errors.New("读取视频信息失败")
 	}
 
+	// 去掉后缀名
+	titleWithoutExt := title[:len(title)-len(path.Ext(title))]
+
 	// 存入数据库
 	resource := model.Resource{
 		Vid:       vid,
 		Uid:       userId,
-		Title:     title,
+		Title:     titleWithoutExt, // 使用去掉后缀的标题
 		CodecName: transcodingInfo.CodecName,
 		Status:    global.VIDEO_PROCESSING,
 		Duration:  transcodingInfo.Duration,
@@ -256,10 +247,13 @@ func initVideo(userId uint, videoPath, title string) (uint, error) {
 		global.Storage.PutObjectFromFile(objectKey, filePath)
 	}
 
+	// 去掉后缀名
+	titleWithoutExt := title[:len(title)-len(path.Ext(title))]
+
 	videoId, err := CreateVideo(&model.Video{
 		Uid:       userId,
 		Cover:     generateFileUrl(objectKey),
-		Title:     title,
+		Title:     titleWithoutExt, // 使用去掉后缀的标题
 		Copyright: true,
 		Status:    global.CREATED_VIDEO,
 	})
