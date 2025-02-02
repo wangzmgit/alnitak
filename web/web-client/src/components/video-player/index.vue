@@ -114,23 +114,53 @@ const loadResource = async (part: number) => {
   const res = await getResourceQualityApi(resource.id);
 
   if (res.data.code === statusCode.OK) {
-    options.video.quality = res.data.data.quality.map((item: string, index: number) => {
-      // 使用正则表达式移除码率和帧率部分，只保留分辨率
-      const normalizedItem = item.replace(/(_\d+k(?:_\d+)?)$/, ""); // 去除码率和帧率部分
+    let videoQuality = res.data.data.quality.map((item: string, index: number) => {
+      // 使用正则表达式提取分辨率和帧率
+      const resolutionMatch = item.match(/^(\d{3,4}x\d{3,4})(_\d+k)?(_\d+)?$/);
+      let qualityName = "Unknown"; // 默认值
 
-      const qualityName = resourceNameMap[normalizedItem];
+      if (resolutionMatch) {
+        const resolution = resolutionMatch[1] as keyof typeof resourceNameMap; // Type assertion here
+        const frameRate = resolutionMatch[3]; // 帧率（如果存在）
 
+        // 根据是否有帧率来判断应该显示什么分辨率
+        qualityName = resourceNameMap[resolution] || 'Unknown';
+
+        // 如果有帧率并且是60fps，设置为1080p60
+        if (frameRate === '_60') {
+          qualityName = '1080p60';
+        }
+      }
+
+      // 如果质量名称与默认质量匹配，则设置默认质量
       if (qualityName === defaultQuality.value) {
         options.video.defaultQuality = index;
       }
 
       return {
-        name: qualityName || "Unknown", 
+        name: qualityName,
         url: getVideoFileUrl(resource.id, item),
       };
     });
+
+    // 排序：首先确保1080p60出现在1080p之前
+    videoQuality.sort((a: { name: string; }, b: { name: string; }) => {
+      // 优先将 1080p60 排在前面
+      if (a.name === '1080p60' && b.name !== '1080p60') return -1;
+      if (b.name === '1080p60' && a.name !== '1080p60') return 1;
+
+      // 处理其余分辨率，从高到低排序
+      const aRes = parseInt(a.name.replace('p', '').replace('60', ''));
+      const bRes = parseInt(b.name.replace('p', '').replace('60', ''));
+
+      return bRes - aRes; // 从高到低排序
+    });
+
+    // 将排序后的质量列表赋值给 options.video.quality
+    options.video.quality = videoQuality;
   }
 };
+
 
 
 // 获取当前清晰度设置

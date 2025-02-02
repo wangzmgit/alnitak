@@ -11,29 +11,12 @@
 <script setup lang="ts">
 import Hls from "hls.js";
 import Wplayer from 'wplayer-next';
-import { ref, onBeforeMount, watch, onMounted } from 'vue';
+import { ref, shallowRef, watch, onMounted, onBeforeUnmount } from 'vue';
 import { getDanmakuAPI, sendDanmakuAPI } from "@/api/danmaku";
 import DanmakuSend from "./components/DanmakuSend.vue";
 import { getResourceQualityApi, getVideoFileUrl } from "@/api/video";
 import { addHistoryAPI, getHistoryProgressAPI } from "@/api/history";
-
-// 获取路由信息
-const route = useRoute();
-
-// 设置网络状态自动选择的清晰度
-const getNetworkQuality = () => {
-  const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
-  if (connection) {
-    // 根据网络类型或下行速度选择清晰度
-    const effectiveType = connection.effectiveType;
-    if (effectiveType === "4g" || effectiveType === "3g") {
-      return '1080p';  // 高速网络，选择1080p
-    } else if (effectiveType === "2g" || effectiveType === "slow-2g") {
-      return '360p';  // 网络较差，选择360p
-    }
-  }
-  return '720p';  // 默认选择720p
-};
+import { statusCode } from "@/utils/status-code";
 
 const props = withDefaults(defineProps<{
   videoInfo: VideoType;
@@ -54,6 +37,7 @@ const options: PlayerOptionsType = {
     pic: 'demo.png',
     type: 'customHls',
     customType: {
+      // TODO: 处理IOS系统中的hls视频播放
       customHls: function (video: HTMLVideoElement) {
         if (!hls.value) hls.value = new Hls();
         hls.value.loadSource(video.src);
@@ -63,8 +47,6 @@ const options: PlayerOptionsType = {
         });
       },
     },
-    //autoplay: true,  // 确保播放器设置为自动播放
-    //muted: true,     // 设置为静音
   },
   danmaku: {}
 }
@@ -97,8 +79,7 @@ const loadPart = async (part: number) => {
       localStorage.setItem('default-video-quality', quality.name);
     })
     filterDanmaku({ disableLeave, disableType });
-	// 模拟点击播放
-    simulatePlay();
+
   }
 }
 
@@ -114,30 +95,54 @@ const loadResource = async (part: number) => {
   const res = await getResourceQualityApi(resource.id);
 
   if (res.data.code === statusCode.OK) {
-    options.video.quality = res.data.data.quality.map((item: string, index: number) => {
-      // 使用正则表达式移除码率和帧率部分，只保留分辨率
-      const normalizedItem = item.replace(/(_\d+k(?:_\d+)?)$/, ""); // 去除码率和帧率部分
+    let videoQuality = res.data.data.quality.map((item: string, index: number) => {
+      // 使用正则表达式提取分辨率和帧率
+      const resolutionMatch = item.match(/^(\d{3,4}x\d{3,4})(_\d+k)?(_\d+)?$/);
+      let qualityName = "Unknown"; // 默认质量名称
 
-      const qualityName = resourceNameMap[normalizedItem];
+      if (resolutionMatch) {
+        const resolution = resolutionMatch[1]; // 分辨率
+        const frameRate = resolutionMatch[3]; // 帧率（如果存在）
 
+        // 根据是否有帧率来判断应该显示什么分辨率
+        qualityName = resourceNameMap[resolution as keyof typeof resourceNameMap] || "Unknown";
+
+        // 如果有帧率并且是60fps，设置为1080p60
+        if (frameRate === "_60") {
+          qualityName = "1080p60";
+        }
+      }
+
+      // 判断是否是默认质量
       if (qualityName === defaultQuality.value) {
         options.video.defaultQuality = index;
       }
 
       return {
-        name: qualityName || "Unknown", 
-        url: getVideoFileUrl(resource.id, item),
+        name: qualityName, // 显示质量名称
+        url: getVideoFileUrl(resource.id, item), // 视频文件的 URL
       };
     });
+
+    // 排序：首先确保1080p60排在其他质量之前，然后按分辨率从高到低排序
+    videoQuality.sort((a: { name: string; }, b: { name: string; }) => {
+      // 优先将 1080p60 排在前面
+      if (a.name === "1080p60" && b.name !== "1080p60") return -1;
+      if (b.name === "1080p60" && a.name !== "1080p60") return 1;
+
+      // 对其他分辨率按从高到低排序
+      const aRes = parseInt(a.name.replace('p', '').replace('60', ''));
+      const bRes = parseInt(b.name.replace('p', '').replace('60', ''));
+
+      return bRes - aRes; // 从高到低排序
+    });
+
+    // 将排序后的质量列表赋值给 options.video.quality
+    options.video.quality = videoQuality;
   }
 };
 
 
-// 获取当前清晰度设置
-const getDefaultQuality = () => {
-  const storedQuality = localStorage.getItem('default-video-quality');
-  return storedQuality || getNetworkQuality();
-};
 
 let originalDanmaku: DanmakuType[] = [];
 const getDanmaku = async (part: number) => {
@@ -149,6 +154,7 @@ const getDanmaku = async (part: number) => {
   }
 }
 
+// 弹幕显示改变
 const changeShow = (val: boolean) => {
   if (val) {
     player.danmaku.show();
@@ -188,9 +194,11 @@ const filterDanmaku = (filter: FilterDanmakuType) => {
     console.log("danmaku_load_end")
   })
 
+  // 更新弹幕数量
   danmakuSendRef.value?.updateDanmakuCount(data.length);
 }
 
+//是否为屏蔽类型
 const isDisableType = (item: DanmakuType, disableType: Array<number>) => {
   if (disableType.includes(item.type))
     return true;
@@ -200,13 +208,15 @@ const isDisableType = (item: DanmakuType, disableType: Array<number>) => {
   return false;
 }
 
+// 上传历史记录
 const uploadHistory = async () => {
   await addHistoryAPI({ vid: props.videoInfo.vid, part: props.part, time: player.video.currentTime });
 }
 
+// 获取历史记录
 const getHistoryProgress = async () => {
-  const res = await getHistoryProgressAPI(props.videoInfo.vid,props.part);
-  if(res.data.code === statusCode.OK){
+  const res = await getHistoryProgressAPI(props.videoInfo.vid, props.part);
+  if (res.data.code === statusCode.OK) {
     player.seek(res.data.data.progress)
   } else {
     uploadHistory();
@@ -218,36 +228,25 @@ watch(() => props.part, (val) => {
 });
 
 let timer: number | null = null;
-
-// 模拟点击播放
-const simulatePlay = () => {
-  const videoElement = document.querySelector('video');
-  if (videoElement) {
-    const playButton = videoElement.querySelector('.play-button'); // 如果有播放按钮，模拟点击
-    if (playButton) {
-      playButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    } else {
-      videoElement.play();  // 如果没有按钮，直接播放
-    }
-  }
-}
-
-
 onMounted(async () => {
-  defaultQuality.value = getDefaultQuality(); // 自动选择清晰度
-  localStorage.setItem('default-video-quality', defaultQuality.value);
+  const quality = localStorage.getItem('default-video-quality');
+  if (quality) {
+    defaultQuality.value = quality;
+  } else {
+    defaultQuality.value = '720p';
+    localStorage.setItem('default-video-quality', '720p');
+  }
 
   initFilterConfig();
   await loadPart(props.part);
 
+  // 获取当前播放进度（如果没有就保存历史记录）
   await getHistoryProgress();
 
   timer = window.setInterval(() => {
     uploadHistory();
   }, 10000)
 })
-
-
 
 onBeforeUnmount(() => {
   if (timer) clearInterval(timer);
@@ -267,8 +266,8 @@ onBeforeUnmount(() => {
     height: 100%;
     position: absolute;
     background-color: black;
-	
   }
+
 
   .danmaku-send {
     position: absolute;
