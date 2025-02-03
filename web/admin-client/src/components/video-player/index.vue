@@ -46,8 +46,6 @@ const options: PlayerOptionsType = {
         })
       },
     },
-    autoplay: true,  // 确保播放器设置为自动播放
-    muted: true,     // 设置为静音
   },
   danmaku: {}
 }
@@ -68,35 +66,31 @@ const loadVideo = async (resourceId: number) => {
 }
 
 const resourceNameMap = {
-  "640x360_500k": "360p",
-  "854x480_900k": "480p",
-  "1080x720_2000k": "720p", // 兼容之前的错误
-  "1280x720_2000k": "720p",
-  "1920x1080_3000k": "1080p",
-};
+  "640x360_500k_30": "360p",
+  "854x480_900k_30": "480p",
+  "1080x720_2000k_30": "720p", // 兼容之前的错误
+  "1280x720_2000k_30": "720p",
+  "1920x1080_3000k_30": "1080p",
+  "1920x1080_6000k_60": "1080p60",
+}
 
 const loadResource = async (resourceId: number) => {
   const res = await getResourceQualityApi(resourceId);
-
   if (res.data.code === statusCode.OK) {
     options.video.quality = [];
-
-    res.data.data.quality.forEach((item: string, i: number) => {
-      // 使用正则表达式移除分辨率和码率后的小数帧率部分
-      const normalizedItem = item.replace(/(_\d+)(?:\.\d+)?$/, ""); // 去掉可能出现的帧率部分
-      const qualityName = resourceNameMap[normalizedItem];
-
-      if (qualityName === defaultQuality.value) {
+    for (let i = 0; i < res.data.data.quality.length; i++) {
+      const item = res.data.data.quality[i] as (keyof typeof resourceNameMap);
+      if (resourceNameMap[item] === defaultQuality.value) {
         options.video.defaultQuality = i;
       }
 
-      options.video.quality.push({
-        name: qualityName || "Unknown", // 如果未找到匹配的名称，显示 "Unknown"
+      options.video.quality[i] = {
+        name: resourceNameMap[item],
         url: getVideoFileUrl(resourceId, item),
-      });
-    });
+      }
+    }
   }
-};
+}
 
 defineExpose({
   loadVideo
