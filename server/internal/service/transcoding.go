@@ -73,9 +73,9 @@ func VideoTransCoding(transcodingInfo *dto.TranscodingInfo) {
 			// 根据配置选择使用 CPU 或 GPU
 			var err error
 			if viper.GetBool("transcoding.gpu") {
-				err = pressingVideoGPU(transcodingInfo.InputFile, tsFileName, c.Resolution, c.BitrateRate, v.FPS)
+				err = pressingVideoGPU(transcodingInfo.InputFile, tsFileName, c.Resolution, c.BitrateRate, c.FPS)
 			} else {
-				err = pressingVideo(transcodingInfo.InputFile, tsFileName, c.Resolution, c.BitrateRate, v.FPS)
+				err = pressingVideo(transcodingInfo.InputFile, tsFileName, c.Resolution, c.BitrateRate, c.FPS)
 			}
 			if err != nil {
 				wg.Done()
@@ -246,7 +246,7 @@ func getVideoInfo(input string) (info global.VideoInfo, err error) {
 	return info, nil
 }
 
-// 压缩视频
+// CPU压缩视频
 func pressingVideo(inputFile, outputFile, quality, rate, fps string) error {
 	command := []string{"-i", inputFile, "-crf", "20", "-s", quality, "-b:v", rate,
 		"-c:v", "libx264", "-r", fps, "-c:a", "aac", "-f", "mpegts", outputFile,
@@ -263,8 +263,8 @@ func pressingVideo(inputFile, outputFile, quality, rate, fps string) error {
 
 // GPU压缩视频
 func pressingVideoGPU(inputFile, outputFile, quality, rate, fps string) error {
-	command := []string{"-i", inputFile, "-crf", "20", "-s", quality, "-b:v", rate,
-		"-c:v", "libx264", "-r", fps, "-c:a", "aac", "-f", "mpegts", outputFile,
+	command := []string{"-i", inputFile, "-crf", "20", "-s", quality, "-preset", "p3", "-b:v", rate,
+		"-c:v", "h264_nvenc", "-r", fps, "-c:a", "aac", "-f", "mpegts", outputFile,
 	}
 
 	_, err := utils.RunCmd(exec.Command("ffmpeg", command...))
