@@ -10,7 +10,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/spf13/viper"
 	"interastral-peace.com/alnitak/internal/domain/dto"
 	"interastral-peace.com/alnitak/internal/domain/model"
 	"interastral-peace.com/alnitak/internal/global"
@@ -72,7 +71,7 @@ func VideoTransCoding(transcodingInfo *dto.TranscodingInfo) {
 
 			// 根据配置选择使用 CPU 或 GPU
 			var err error
-			if viper.GetBool("transcoding.gpu") {
+			if global.Config.Transcoding.Gpu {
 				err = pressingVideoGPU(transcodingInfo.InputFile, tsFileName, c.Resolution, c.BitrateRate, c.FPS)
 			} else {
 				err = pressingVideo(transcodingInfo.InputFile, tsFileName, c.Resolution, c.BitrateRate, c.FPS)
@@ -105,8 +104,7 @@ func VideoTransCoding(transcodingInfo *dto.TranscodingInfo) {
 	wg.Wait()
 
 	// 上传oss
-	if viper.GetString("storage.oss_type") != "local" {
-		fmt.Println("开始上传OSS")
+	if global.Config.Storage.OssType != "local" {
 		files, err := os.ReadDir(transcodingInfo.OutputDir)
 		if err != nil {
 			utils.ErrorLog("读取视频文件夹失败", "oss", err.Error())
@@ -115,9 +113,7 @@ func VideoTransCoding(transcodingInfo *dto.TranscodingInfo) {
 		}
 
 		for _, f := range files {
-			fmt.Println("上传", f.Name())
-
-			if f.Name() == "upload.mp4" && !viper.GetBool("storage.upload_mp4_file") {
+			if f.Name() == "upload.mp4" && !global.Config.Storage.UploadMp4File {
 				continue
 			}
 
@@ -197,7 +193,7 @@ func getTranscodingTarget(videoInfo *dto.TranscodingInfo) []TranscodingTarget {
 
 	switch maxRresolution {
 	case 1080:
-		if viper.GetBool("transcoding.1080p60") && videoInfo.FPS60 != "" {
+		if global.Config.Transcoding.Res1080p60 && videoInfo.FPS60 != "" {
 			targets = append(targets, TranscodingTarget{Resolution: "1920x1080", BitrateRate: "6000k", FPS: videoInfo.FPS60, FpsName: "60"})
 		}
 		targets = append(targets, TranscodingTarget{Resolution: "1920x1080", BitrateRate: "3000k", FPS: videoInfo.FPS30, FpsName: "30"})

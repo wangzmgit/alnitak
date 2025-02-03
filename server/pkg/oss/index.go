@@ -4,7 +4,7 @@ import (
 	"errors"
 	"io"
 
-	"github.com/spf13/viper"
+	"interastral-peace.com/alnitak/internal/config"
 	"interastral-peace.com/alnitak/utils"
 )
 
@@ -21,20 +21,19 @@ type Storage interface {
 	GetObjectUrl(objectKey string) string
 }
 
-func InitStorage() Storage {
-	ossName := viper.GetString("storage.oss_type")
+func InitStorage(c config.Storage) Storage {
 	config := Config{
-		KeyID:     viper.GetString("storage.key_id"),
-		KeySecret: viper.GetString("storage.key_secret"),
-		Bucket:    viper.GetString("storage.bucket"),
-		Endpoint:  viper.GetString("storage.endpoint"),
-		AppID:     viper.GetString("storage.app_id"),
-		Region:    viper.GetString("storage.region"),
-		Domain:    viper.GetString("storage.domain"),
-		Private:   viper.GetBool("storage.private"),
+		KeyID:     c.KeyId,
+		KeySecret: c.KeySecret,
+		Bucket:    c.Bucket,
+		Endpoint:  c.Endpoint,
+		AppID:     c.AppId,
+		Region:    c.Region,
+		Domain:    c.Domain,
+		Private:   c.Private,
 	}
 
-	s, err := initOss(ossName, config)
+	s, err := initOss(c.OssType, config)
 	if err != nil {
 		utils.ErrorLog("oss初始化失败", "oss", err.Error())
 		panic(err)

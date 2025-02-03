@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/spf13/viper"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 	"interastral-peace.com/alnitak/internal/cache"
@@ -179,7 +178,7 @@ func Logout(ctx *gin.Context, tokenReq dto.TokenReq) {
 
 // 生成用户Id和md5并写入Cookie
 func SetUserIdCookie(ctx *gin.Context, userId uint) {
-	salt := viper.GetString("security.user_id_salt")
+	salt := global.Config.Security.UserIdSalt
 	ckMd5 := utils.GenerateSaltedMD5(strconv.Itoa(int(userId)), salt)
 
 	ctx.SetCookie("user_id", strconv.Itoa(int(userId)), math.MaxInt32, "/", "", false, true)
@@ -412,5 +411,5 @@ func generateUniqueUsername() string {
 	id := global.SnowflakeNode.Generate()
 
 	// 前缀 + snowflake ID(36进制)
-	return viper.GetString("user.prefix") + strconv.FormatInt(id.Int64(), 36)
+	return global.Config.User.Prefix + strconv.FormatInt(id.Int64(), 36)
 }

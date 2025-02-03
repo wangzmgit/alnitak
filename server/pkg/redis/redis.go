@@ -2,11 +2,12 @@ package redis
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/redis/go-redis/v9"
-	"github.com/spf13/viper"
 	"go.uber.org/zap"
+	"interastral-peace.com/alnitak/internal/config"
 )
 
 type Redis struct {
@@ -14,13 +15,10 @@ type Redis struct {
 	ctx         context.Context
 }
 
-func Init() *Redis {
-	host := viper.GetString("redis.host")
-	port := viper.GetString("redis.port")
-	password := viper.GetString("redis.password")
+func Init(c config.Redis) *Redis {
 	redisClient := redis.NewClient(&redis.Options{
-		Addr:     host + ":" + port,
-		Password: password,
+		Addr:     fmt.Sprintf("%s:%d", c.Host, c.Port),
+		Password: c.Password,
 		DB:       0, // use default DB
 	})
 	zap.L().Info("redis连接成功", zap.String("module", "db"))

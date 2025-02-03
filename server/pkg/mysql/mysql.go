@@ -3,25 +3,18 @@ package mysql
 import (
 	"fmt"
 
-	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"interastral-peace.com/alnitak/internal/config"
 	"interastral-peace.com/alnitak/utils"
 	"moul.io/zapgorm2"
 )
 
 var db *gorm.DB
 
-func Init() *gorm.DB {
-	dns := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?%s",
-		viper.GetString("mysql.username"),
-		viper.GetString("mysql.password"),
-		viper.GetString("mysql.host"),
-		viper.GetString("mysql.port"),
-		viper.GetString("mysql.datasource"),
-		viper.GetString("mysql.param"))
-
+func Init(c config.Mysql) *gorm.DB {
+	dns := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?%s", c.Username, c.Password, c.Host, c.Port, c.Datasource, c.Param)
 	logger := zapgorm2.New(zap.L())
 	logger.SetAsDefault()
 	if mysqlClient, err := gorm.Open(mysql.Open(dns), &gorm.Config{Logger: logger}); err != nil {

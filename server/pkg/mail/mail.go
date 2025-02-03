@@ -6,7 +6,7 @@ import (
 	"net"
 	"net/smtp"
 
-	"github.com/spf13/viper"
+	"interastral-peace.com/alnitak/internal/global"
 )
 
 type Message struct {
@@ -123,20 +123,13 @@ func SendCaptcha(email string, code string) error {
  * return: 发送失败时的错误信息
  */
 func Send(email string, subject string, body string) error {
-	user, pass, host, port, addresser :=
-		viper.GetString("mail.user"),
-		viper.GetString("mail.pass"),
-		viper.GetString("mail.host"),
-		viper.GetInt("mail.port"),
-		viper.GetString("mail.addresser")
-
 	m := NewMessage()
-	m.SetHeader("From", addresser+" "+"<"+user+">") //添加别名
-	m.SetHeader("To", email)                        //发送给多个用户
-	m.SetHeader("Subject", subject)                 //设置邮件主题
-	m.SetBody(body)                                 //设置邮件正文
+	m.SetHeader("From", global.Config.Mail.Addresser+" "+"<"+global.Config.Mail.User+">") //添加别名
+	m.SetHeader("To", email)                                                              //发送给多个用户
+	m.SetHeader("Subject", subject)                                                       //设置邮件主题
+	m.SetBody(body)                                                                       //设置邮件正文
 
-	m.SetDialer(host, port, user, pass)
+	m.SetDialer(global.Config.Mail.Host, global.Config.Mail.Port, global.Config.Mail.User, global.Config.Mail.Pass)
 
 	err := m.DialAndSend(email)
 	return err

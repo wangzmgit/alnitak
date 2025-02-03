@@ -2,7 +2,6 @@ package api
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"interastral-peace.com/alnitak/internal/cache"
 	"interastral-peace.com/alnitak/internal/domain/dto"
@@ -43,7 +42,7 @@ func SendRegisterEmailCode(ctx *gin.Context) {
 	code := utils.GenerateNumberCode(6)
 
 	// 发送code
-	if viper.GetBool("mail.debug") {
+	if global.Config.Mail.Debug {
 		// 验证码debug模式不发送邮件
 		zap.L().Debug("邮箱:" + sendEmailReq.Email + ",验证码:" + code)
 	} else {

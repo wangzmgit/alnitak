@@ -9,7 +9,6 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/spf13/viper"
 	"interastral-peace.com/alnitak/internal/cache"
 	"interastral-peace.com/alnitak/internal/domain/dto"
 	"interastral-peace.com/alnitak/internal/domain/model"
@@ -30,7 +29,7 @@ func UploadImg(ctx *gin.Context, file *multipart.FileHeader) (string, error) {
 	}
 
 	//文件大小限制
-	if !utils.FileSize(ctx.GetHeader("Content-Length"), 1, viper.GetInt64("file.max_img_size")) {
+	if !utils.FileSize(ctx.GetHeader("Content-Length"), 1, global.Config.File.MaxImgSize) {
 		return "", errors.New("文件大小超出限制")
 	}
 
@@ -40,7 +39,7 @@ func UploadImg(ctx *gin.Context, file *multipart.FileHeader) (string, error) {
 	}
 
 	url := generateFileUrl(objectKey)
-	if viper.GetString("storage.oss_type") != "local" {
+	if global.Config.Storage.OssType != "local" {
 		// 上传到OSS
 		global.Storage.PutObjectFromFile(objectKey, filePath)
 	}
@@ -124,7 +123,7 @@ func UploadVideoChunk(ctx *gin.Context, file *multipart.FileHeader) error {
 		return errors.New("视频上传失败")
 	}
 
-	if !utils.FileSize(ctx.GetHeader("Content-Length"), int64(totalChunks), viper.GetInt64("file.max_video_size")) {
+	if !utils.FileSize(ctx.GetHeader("Content-Length"), totalChunks, global.Config.File.MaxVideoSize) {
 		return errors.New("文件大小超出限制")
 	}
 
@@ -227,7 +226,7 @@ func CompleteUploadVideo(vid, userId uint, videoName, title string) (vo.Resource
 
 // 生成文件url
 func generateFileUrl(objectKey string) string {
-	if viper.GetString("storage.oss_type") != "local" {
+	if global.Config.Storage.OssType != "local" {
 		global.Storage.GetObjectUrl(objectKey)
 	}
 
@@ -242,7 +241,7 @@ func initVideo(userId uint, videoPath, title string) (uint, error) {
 	filePath := "./upload/image/" + coverName
 
 	GenerateCover(videoPath, filePath)
-	if viper.GetString("storage.oss_type") != "local" {
+	if global.Config.Storage.OssType != "local" {
 		// 上传到OSS
 		global.Storage.PutObjectFromFile(objectKey, filePath)
 	}
