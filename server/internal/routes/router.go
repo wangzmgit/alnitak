@@ -3,6 +3,7 @@ package routes
 import (
 	"github.com/gin-gonic/gin"
 	"interastral-peace.com/alnitak/internal/api/v1"
+	"interastral-peace.com/alnitak/internal/global"
 	"interastral-peace.com/alnitak/internal/middleware"
 )
 
@@ -19,7 +20,10 @@ func InitRouter() {
 
 	//跨域中间件
 	r.Use(middleware.CORS())
-	r.Use(middleware.OperationRecord())
+	if !global.Config.Security.CloseRecordUserOperation {
+		r.Use(middleware.OperationRecord())
+	}
+
 	// 收集添加路由
 	CollectRoutes(r)
 

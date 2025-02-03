@@ -71,7 +71,7 @@ func VideoTransCoding(transcodingInfo *dto.TranscodingInfo) {
 
 			// 根据配置选择使用 CPU 或 GPU
 			var err error
-			if global.Config.Transcoding.Gpu {
+			if global.Config.Transcoding.UseGpu {
 				err = pressingVideoGPU(transcodingInfo.InputFile, tsFileName, c.Resolution, c.BitrateRate, c.FPS)
 			} else {
 				err = pressingVideo(transcodingInfo.InputFile, tsFileName, c.Resolution, c.BitrateRate, c.FPS)
@@ -193,7 +193,7 @@ func getTranscodingTarget(videoInfo *dto.TranscodingInfo) []TranscodingTarget {
 
 	switch maxRresolution {
 	case 1080:
-		if global.Config.Transcoding.Res1080p60 && videoInfo.FPS60 != "" {
+		if global.Config.Transcoding.Generate1080p60 && videoInfo.FPS60 != "" {
 			targets = append(targets, TranscodingTarget{Resolution: "1920x1080", BitrateRate: "6000k", FPS: videoInfo.FPS60, FpsName: "60"})
 		}
 		targets = append(targets, TranscodingTarget{Resolution: "1920x1080", BitrateRate: "3000k", FPS: videoInfo.FPS30, FpsName: "30"})
