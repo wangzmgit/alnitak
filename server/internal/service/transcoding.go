@@ -182,7 +182,7 @@ func getFpsInfo(avgFrameRate string) (string, string) {
 		if fps < 30 {
 			return avgFrameRate, ""
 		}
-		if fps >= 30 {
+		if fps >= 60 {
 			return "30000/1001", "60000/1001"
 		}
 	}
@@ -198,7 +198,7 @@ func getTranscodingTarget(videoInfo *dto.TranscodingInfo) []TranscodingTarget {
 	switch maxRresolution {
 	case 1080:
 		if viper.GetBool("transcoding.1080p60") && videoInfo.FPS60 != "" {
-			targets = append(targets, TranscodingTarget{Resolution: "1920x1080", BitrateRate: "3000k", FPS: videoInfo.FPS60, FpsName: "60"})
+			targets = append(targets, TranscodingTarget{Resolution: "1920x1080", BitrateRate: "6000k", FPS: videoInfo.FPS60, FpsName: "60"})
 		}
 		targets = append(targets, TranscodingTarget{Resolution: "1920x1080", BitrateRate: "3000k", FPS: videoInfo.FPS30, FpsName: "30"})
 		fallthrough
