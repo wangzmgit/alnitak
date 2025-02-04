@@ -4,6 +4,8 @@ import (
 	"regexp"
 )
 
+const MB = 1024 * 1024
+
 // 是否不为空
 func VerifyNotEmpty(val interface{}) bool {
 	switch v := val.(type) {
@@ -53,9 +55,8 @@ func IsVideoType(suffix string) bool {
 	return reg.MatchString(suffix)
 }
 
-func FileSize(contentLength string, count int, targetSize int) bool {
-	//'限制整体大小为 目标大小 + 1 MB
-	if (StringToInt(contentLength) * count) > (targetSize+1)*1024*1024 {
+func FileSize(fileSize int64, count int64, targetSize int64) bool {
+	if (fileSize * count) > (targetSize * MB) {
 		return false
 	}
 	return true

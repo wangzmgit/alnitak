@@ -10,8 +10,8 @@ type EmailConfigReq struct {
 }
 
 type StorageConfigReq struct {
-	MaxImgSize   int
-	MaxVideoSize int
+	MaxImgSize   int64
+	MaxVideoSize int64
 
 	Type      string
 	KeyID     string

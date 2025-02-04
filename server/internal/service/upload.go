@@ -29,7 +29,7 @@ func UploadImg(ctx *gin.Context, file *multipart.FileHeader) (string, error) {
 	}
 
 	//文件大小限制
-	if !utils.FileSize(ctx.GetHeader("Content-Length"), 1, global.Config.File.MaxImgSize) {
+	if !utils.FileSize(file.Size, 1, global.Config.File.MaxImgSize) {
 		return "", errors.New("文件大小超出限制")
 	}
 
@@ -123,7 +123,7 @@ func UploadVideoChunk(ctx *gin.Context, file *multipart.FileHeader) error {
 		return errors.New("视频上传失败")
 	}
 
-	if !utils.FileSize(ctx.GetHeader("Content-Length"), totalChunks, global.Config.File.MaxVideoSize) {
+	if !utils.FileSize(file.Size, int64(totalChunks), global.Config.File.MaxVideoSize) {
 		return errors.New("文件大小超出限制")
 	}
 

@@ -10,8 +10,8 @@ type EmailConfigResp struct {
 }
 
 type StorageConfigResp struct {
-	MaxImgSize   int `json:"maxImgSize"`
-	MaxVideoSize int `json:"maxVideoSize"`
+	MaxImgSize   int64 `json:"maxImgSize"`
+	MaxVideoSize int64 `json:"maxVideoSize"`
 
 	Type     string `json:"type"`
 	KeyID    string `json:"keyId"`
