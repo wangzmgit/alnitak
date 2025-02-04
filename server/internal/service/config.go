@@ -126,14 +126,17 @@ func SetStorageConfig(storageConfigReq dto.StorageConfigReq) error {
 
 func GetOtherConfig() vo.OtherConfigResp {
 	return vo.OtherConfigResp{
-		AllowOrigin: viper.GetString("cors.allow_origin"),
-		Prefix:      viper.GetString("user.prefix"),
+		AllowOrigin:     global.Config.Cors.AllowOrigin,
+		Prefix:          global.Config.User.Prefix,
+		Generate1080p60: global.Config.Transcoding.Generate1080p60,
+		UseGpu:          global.Config.Transcoding.UseGpu,
 	}
 }
 
 func SetOtherConfig(otherConfigReq dto.OtherConfigReq) error {
 	oldCorsConfig := global.Config.Cors
 	oldUserConfig := global.Config.User
+	oldTranscodingConfig := global.Config.Transcoding
 
 	global.Config.Cors = config.Cors{
 		AllowOrigin: otherConfigReq.AllowOrigin,
@@ -141,13 +144,20 @@ func SetOtherConfig(otherConfigReq dto.OtherConfigReq) error {
 	global.Config.User = config.User{
 		Prefix: otherConfigReq.Prefix,
 	}
+	global.Config.Transcoding = config.Transcoding{
+		Generate1080p60: otherConfigReq.Generate1080p60,
+		UseGpu:          otherConfigReq.UseGpu,
+	}
 
 	viper.Set("cors.allow_origin", otherConfigReq.AllowOrigin)
 	viper.Set("user.prefix", otherConfigReq.Prefix)
+	viper.Set("transcoding.use_gpu", otherConfigReq.UseGpu)
+	viper.Set("transcoding.generate_1080p60", otherConfigReq.Generate1080p60)
 
 	if err := viper.WriteConfig(); err != nil {
 		global.Config.Cors = oldCorsConfig
 		global.Config.User = oldUserConfig
+		global.Config.Transcoding = oldTranscodingConfig
 		utils.ErrorLog("写入存其他置失败", "config", err.Error())
 		return errors.New("更新失败")
 	}

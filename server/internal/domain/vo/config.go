@@ -26,6 +26,8 @@ type StorageConfigResp struct {
 }
 
 type OtherConfigResp struct {
-	AllowOrigin string `json:"allowOrigin"`
-	Prefix      string `json:"prefix"`
+	AllowOrigin     string `json:"allowOrigin"`
+	Prefix          string `json:"prefix"`
+	Generate1080p60 bool   `json:"generate1080p60"`
+	UseGpu          bool   `json:"useGpu"`
 }
