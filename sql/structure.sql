@@ -412,6 +412,7 @@ CREATE TABLE `resource`  (
   `title` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '分P使用的标题',
   `duration` double NULL DEFAULT 0 COMMENT '视频时长',
   `status` bigint NOT NULL COMMENT '审核状态',
+  `codec_name` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '视频编码名称',
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_resource_vid`(`vid`) USING BTREE,
   INDEX `idx_resource_uid`(`uid`) USING BTREE,
@@ -538,5 +539,25 @@ CREATE TABLE `video_index_file`  (
   INDEX `idx_video_index_file_deleted_at`(`deleted_at`) USING BTREE,
   INDEX `idx_video_index_file_resource_id`(`resource_id`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Table structure for video_file
+-- ----------------------------
+DROP TABLE IF EXISTS `video_file`;
+CREATE TABLE `video_file`  (
+  `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+  `created_at` datetime(3) NULL DEFAULT NULL,
+  `updated_at` datetime(3) NULL DEFAULT NULL,
+  `deleted_at` datetime(3) NULL DEFAULT NULL,
+  `uid` bigint UNSIGNED NOT NULL COMMENT '用户ID',
+  `original_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '原始文件名',
+  `dir_name` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '目录名称',
+  `hash` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '文件hash',
+  `chunks_count` bigint NULL DEFAULT NULL COMMENT '分片数量',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_video_file_deleted_at`(`deleted_at` ASC) USING BTREE,
+  INDEX `idx_video_file_uid`(`uid` ASC) USING BTREE,
+  INDEX `idx_video_file_dir_name`(`dir_name` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
 
 SET FOREIGN_KEY_CHECKS = 1;
