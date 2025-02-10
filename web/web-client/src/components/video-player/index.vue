@@ -88,6 +88,7 @@ const resourceNameMap = {
   "1080x720_2000k_30": "720p",// 兼容之前的错误
   "1280x720_2000k_30": "720p",
   "1920x1080_3000k_30": "1080p",
+  "1920x1080_6000k_60": "1080p60",
 }
 
 const loadResource = async (part: number) => {

@@ -170,13 +170,13 @@ onBeforeUnmount(() => {
 
 .video-main {
   padding-top: 80px;
-  margin: 0 auto 0;
-  min-width: 1200px;
+  margin: 0 auto;
+  min-width: 1200px;  // 保持最小宽度为1200px
 
   .mian-content {
     display: flex;
-    width: calc(100% - 100px);
-    margin: auto 50px;
+    width: calc(100% - 100px);  // 根据父容器计算宽度
+    margin: auto 50px;  // 确保子元素也水平居中
     position: relative;
   }
 }

@@ -12,7 +12,7 @@
               <p class="title">
                 <nuxt-link class="user-name" :to="`/user/${item.user.uid}`">{{ item.user.name }}</nuxt-link>
                 <span> 赞了我的{{ item.type === 0 ? "视频" : "文章" }}</span>
-              </p>
+              </p>      
               <span class="msg-time"> {{ formatTime(item.createdAt) }}</span>
             </div>
             <div class="item-right">
@@ -141,6 +141,7 @@ onBeforeMount(() => {
         .user-name {
           cursor: pointer;
           font-weight: 600;
+          color: var(--primary-color);
 
           &:visited {
             color: #222;
