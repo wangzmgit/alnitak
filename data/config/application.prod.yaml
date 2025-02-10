@@ -3,12 +3,12 @@ cors:
   allow_origin: "*"
 file:
   max_img_size: 5
-  max_video_size: 500
+  max_video_size: 1024
 log: # 日志相关配置，不建议改动
   filename: ./logs/app.log
-  max-age: 60
-  max-backups: 10
-  max-size: 20
+  max_age: 60
+  max_backups: 10
+  max_size: 20
   mode: prod
 mail:
   # 邮箱发送者
@@ -42,6 +42,7 @@ redis:
   password: AlnitakRedis@123
   port: 6379
 security:
+  close_record_user_operation: false
   access_jwt_secret: 
   refresh_jwt_secret: 
   user_id_salt: 
@@ -58,6 +59,11 @@ storage:
   oss_type: local
   # 是否将视频的原始mp4上传到oss
   upload_mp4_file: false
+transcoding:
+  # 是否生成1080p60帧的视频
+  generate_1080p60: true
+  # 是否使用GPU加速转码
+  use_gpu: false
 user:
   # 用户注册时生成用户名的默认前缀
   prefix: user_
