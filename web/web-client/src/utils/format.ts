@@ -5,7 +5,7 @@ export const formatDate = (time: string | Date) => {
 }
 
 export const formatTime = (time: string | Date) => {
-  return moment(time).format("YYYY-MM-DD hh:mm:ss")
+  return moment(time).format("YYYY-MM-DD HH:mm:ss")
 }
 
 export const formatRelativeTime = (timeStr: string | Date) => {
