@@ -14,6 +14,7 @@ func InitTables() {
 	global.Mysql.AutoMigrate(&model.Operate{})        // 操作日志表
 	global.Mysql.AutoMigrate(&model.Partition{})      // 分区表
 	global.Mysql.AutoMigrate(&model.Video{})          // 视频表
+	global.Mysql.AutoMigrate(&model.VideoFile{})      // 视频文件表
 	global.Mysql.AutoMigrate(&model.Resource{})       // 视频资源表
 	global.Mysql.AutoMigrate(&model.VideoIndexFile{}) // 视频播放索引文件表
 	global.Mysql.AutoMigrate(&model.Review{})         // 视频审核表

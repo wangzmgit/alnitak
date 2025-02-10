@@ -5,6 +5,10 @@ type VideoListReq struct {
 	PageSize int
 }
 
+type VideoFileReq struct {
+	Hash string
+}
+
 type ReviewListReq struct {
 	Page     int
 	PageSize int

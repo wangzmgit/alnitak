@@ -10,8 +10,8 @@ type EmailConfigReq struct {
 }
 
 type StorageConfigReq struct {
-	MaxImgSize   int
-	MaxVideoSize int
+	MaxImgSize   int64
+	MaxVideoSize int64
 
 	Type      string
 	KeyID     string
@@ -27,6 +27,8 @@ type StorageConfigReq struct {
 }
 
 type OtherConfigReq struct {
-	AllowOrigin string
-	Prefix      string
+	AllowOrigin     string
+	Prefix          string
+	Generate1080p60 bool
+	UseGpu          bool
 }

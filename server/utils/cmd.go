@@ -11,7 +11,6 @@ func RunCmd(cmd *exec.Cmd) (bytes.Buffer, error) {
 	var stderr bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr
-
 	if err := cmd.Run(); err != nil {
 		return out, errors.New(stderr.String())
 	}

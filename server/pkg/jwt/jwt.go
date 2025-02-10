@@ -4,8 +4,8 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/spf13/viper"
 	"interastral-peace.com/alnitak/internal/cache"
+	"interastral-peace.com/alnitak/internal/global"
 	"interastral-peace.com/alnitak/utils"
 )
 
@@ -21,7 +21,7 @@ type Claims struct {
  * return: token字符串、错误信息
  */
 func GenerateAccessToken(id uint) (string, error) {
-	accessJwtKey := []byte(viper.GetString("security.access_jwt_secret"))
+	accessJwtKey := []byte(global.Config.Security.AccessJwtSecret)
 	// token过期时间
 	expirationTime := time.Now().Add(cache.ACCESS_TOKEN_EXPRIRATION_TIME) // 10分钟有效
 	accessClaims := &Claims{
@@ -43,7 +43,7 @@ func GenerateAccessToken(id uint) (string, error) {
  * return: token字符串、错误信息
  */
 func GenerateRefreshToken(id uint) (string, error) {
-	refreshJwtKey := []byte(viper.GetString("security.refresh_jwt_secret"))
+	refreshJwtKey := []byte(global.Config.Security.RefreshJwtSecret)
 	// token过期时间
 	expirationTime := time.Now().Add(cache.REFRESH_TOKEN_EXPRIRATION_TIME) // 14天有效
 
@@ -88,9 +88,9 @@ func ParseToken(tokenString string) (*jwt.Token, *Claims, error) {
 	// 判断类型 选择不同的密钥
 	var secret []byte
 	if claims.TokenType == 0 { // accessToken
-		secret = []byte(viper.GetString("security.access_jwt_secret"))
+		secret = []byte(global.Config.Security.AccessJwtSecret)
 	} else if claims.TokenType == 1 { // refreshToken
-		secret = []byte(viper.GetString("security.refresh_jwt_secret"))
+		secret = []byte(global.Config.Security.RefreshJwtSecret)
 	}
 
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (i interface{}, e error) {

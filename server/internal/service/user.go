@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/spf13/viper"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 	"interastral-peace.com/alnitak/internal/cache"
@@ -138,14 +137,16 @@ func UpdateToken(ctx *gin.Context, tokenReq dto.TokenReq) (accessToken, refreshT
 		return "", "", errors.New("无效Token")
 	}
 
-	// 移除refreshToken
-	cache.DelRefreshToken(claims.UserId, tokenReq.RefreshToken)
-
-	// 重新生成refreshToken
-	refreshToken, err = jwt.GenerateRefreshToken(claims.UserId)
-	if err != nil {
-		utils.ErrorLog("Token生成失败", "user", err.Error())
-		return "", "", errors.New("Token生成失败")
+	// refreshToken过期时间小于缓冲时间
+	if claims.ExpiresAt.Before(time.Now().Add(cache.REFRESH_TOKEN_BUFFER_TIME)) {
+		// 移除refreshToken
+		cache.DelRefreshToken(claims.UserId, tokenReq.RefreshToken)
+		// 重新生成refreshToken
+		refreshToken, err = jwt.GenerateRefreshToken(claims.UserId)
+		if err != nil {
+			utils.ErrorLog("Token生成失败", "user", err.Error())
+			return "", "", errors.New("Token生成失败")
+		}
 	}
 
 	// 刷新accessToken
@@ -157,11 +158,11 @@ func UpdateToken(ctx *gin.Context, tokenReq dto.TokenReq) (accessToken, refreshT
 
 	// 用户ID写入Cookie
 	SetUserIdCookie(ctx, claims.UserId)
-	// token写入Cookie
-	// SetTokenCookie(ctx, accessToken)
 
 	// 存入缓存
-	cache.SetRefreshToken(claims.UserId, refreshToken)
+	if refreshToken != "" {
+		cache.SetRefreshToken(claims.UserId, refreshToken)
+	}
 
 	return accessToken, refreshToken, nil
 }
@@ -177,7 +178,7 @@ func Logout(ctx *gin.Context, tokenReq dto.TokenReq) {
 
 // 生成用户Id和md5并写入Cookie
 func SetUserIdCookie(ctx *gin.Context, userId uint) {
-	salt := viper.GetString("security.user_id_salt")
+	salt := global.Config.Security.UserIdSalt
 	ckMd5 := utils.GenerateSaltedMD5(strconv.Itoa(int(userId)), salt)
 
 	ctx.SetCookie("user_id", strconv.Itoa(int(userId)), math.MaxInt32, "/", "", false, true)
@@ -410,5 +411,5 @@ func generateUniqueUsername() string {
 	id := global.SnowflakeNode.Generate()
 
 	// 前缀 + snowflake ID(36进制)
-	return viper.GetString("user.prefix") + strconv.FormatInt(id.Int64(), 36)
+	return global.Config.User.Prefix + strconv.FormatInt(id.Int64(), 36)
 }

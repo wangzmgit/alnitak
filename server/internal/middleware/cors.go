@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/spf13/viper"
+	"interastral-peace.com/alnitak/internal/global"
 )
 
 func CORS() gin.HandlerFunc {
@@ -26,12 +26,11 @@ func CORS() gin.HandlerFunc {
 }
 
 func getAllowOrigin(origin string) string {
-	allowOrigin := viper.GetString("cors.allow_origin")
-	if allowOrigin == "*" {
+	if global.Config.Cors.AllowOrigin == "*" {
 		return origin
 	}
 
-	for _, v := range strings.Split(allowOrigin, ",") {
+	for _, v := range strings.Split(global.Config.Cors.AllowOrigin, ",") {
 		if v == origin {
 			return v
 		}

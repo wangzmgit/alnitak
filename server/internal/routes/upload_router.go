@@ -14,5 +14,8 @@ func CollectUploadRoutes(r *gin.RouterGroup) {
 		uploadGroup.POST("image", api.UploadImg)
 		uploadGroup.POST("video/:vid", api.UploadVideoAdd)
 		uploadGroup.POST("video", api.UploadVideoCreate)
+		uploadGroup.POST("checkVideo", api.UploadVideoCheck)
+		uploadGroup.POST("chunkVideo", api.UploadVideoChunk) // 分片上传视频
+		uploadGroup.POST("mergeVideo", api.UploadVideoMerge) // 合并视频分片
 	}
 }

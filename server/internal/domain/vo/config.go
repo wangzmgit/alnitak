@@ -10,8 +10,8 @@ type EmailConfigResp struct {
 }
 
 type StorageConfigResp struct {
-	MaxImgSize   int `json:"maxImgSize"`
-	MaxVideoSize int `json:"maxVideoSize"`
+	MaxImgSize   int64 `json:"maxImgSize"`
+	MaxVideoSize int64 `json:"maxVideoSize"`
 
 	Type     string `json:"type"`
 	KeyID    string `json:"keyId"`
@@ -26,6 +26,8 @@ type StorageConfigResp struct {
 }
 
 type OtherConfigResp struct {
-	AllowOrigin string `json:"allowOrigin"`
-	Prefix      string `json:"prefix"`
+	AllowOrigin     string `json:"allowOrigin"`
+	Prefix          string `json:"prefix"`
+	Generate1080p60 bool   `json:"generate1080p60"`
+	UseGpu          bool   `json:"useGpu"`
 }

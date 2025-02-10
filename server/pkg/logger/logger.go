@@ -4,9 +4,9 @@ import (
 	"os"
 
 	"github.com/natefinch/lumberjack"
-	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"interastral-peace.com/alnitak/internal/global"
 )
 
 // 1 定义一下logger使用的常量
@@ -22,13 +22,12 @@ var (
 // 2 初始化Logger对象
 func InitLogger() (err error) {
 	// 读取配置
-	mode = viper.GetString("log.mode")         //开发模式
-	filename = viper.GetString("log.filename") // 日志存放路径
-	//level    = viper.GetString("log.level")    // 日志级别
-	level = zapcore.DebugLevel                   // 日志级别
-	maxSize = viper.GetInt("log.max-size")       //最大存储大小
-	maxAge = viper.GetInt("log.max-age")         //最大存储时间
-	maxBackups = viper.GetInt("log.max-backups") //#备份数量
+	mode = global.Config.Log.Mode             //开发模式
+	filename = global.Config.Log.FileName     // 日志存放路径
+	level = zapcore.DebugLevel                // 日志级别
+	maxSize = global.Config.Log.MaxSize       //最大存储大小
+	maxAge = global.Config.Log.MaxAge         //最大存储时间
+	maxBackups = global.Config.Log.MaxBackups //#备份数量
 
 	// 创建Core三大件，进行初始化
 	writeSyncer := getLogWriter(filename, maxSize, maxAge, maxBackups)

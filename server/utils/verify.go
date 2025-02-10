@@ -2,10 +2,9 @@ package utils
 
 import (
 	"regexp"
-	"strconv"
-
-	"go.uber.org/zap"
 )
+
+const MB = 1024 * 1024
 
 // 是否不为空
 func VerifyNotEmpty(val interface{}) bool {
@@ -56,14 +55,8 @@ func IsVideoType(suffix string) bool {
 	return reg.MatchString(suffix)
 }
 
-func FileSize(contentLength string, targetSize int64) bool {
-	contentSize, err := strconv.ParseInt(contentLength, 10, 64)
-	if err != nil {
-		zap.L().Info("请求大小转换int失败", zap.String("module", "utils"))
-		return false
-	}
-	//'限制整体大小为 目标大小 + 1 MB
-	if contentSize > (targetSize+1)*1024*1024 {
+func FileSize(fileSize int64, count int64, targetSize int64) bool {
+	if (fileSize * count) > (targetSize * MB) {
 		return false
 	}
 	return true
