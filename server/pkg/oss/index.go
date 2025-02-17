@@ -10,6 +10,7 @@ import (
 
 const (
 	ALIYUN = "aliyun"
+	MINIO  = "minio"
 )
 
 type Storage interface {
