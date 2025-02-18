@@ -3,6 +3,7 @@ package oss
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"time"
@@ -140,10 +141,11 @@ func (m *MinIO) IsExists(objectKey string) (bool, error) {
 
 // 获取访问URL
 func (m *MinIO) GetObjectUrl(objectKey string) string {
-	// Generating a presigned URL for the object
-	presignedURL, err := m.client.PresignedGetObject(context.Background(), m.config.Bucket, objectKey, time.Hour, nil)
+	// Generating a presigned URL for the object, with a longer expiry time (e.g., 2 hours).
+	presignedURL, err := m.client.PresignedGetObject(context.Background(), m.config.Bucket, objectKey, time.Hour*2, nil)
 	if err != nil {
-		utils.ErrorLog("MinIO生成文件URL失败", "transcoding", err.Error())
+		// Log error with more details
+		utils.ErrorLog("MinIO生成文件URL失败", "transcoding", fmt.Sprintf("Error: %v, ObjectKey: %s", err, objectKey))
 		return ""
 	}
 	return presignedURL.String()
