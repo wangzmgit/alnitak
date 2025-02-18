@@ -82,59 +82,30 @@ const loadPart = async (part: number) => {
   }
 }
 
-const resourceNameMap: {
-  "640x360_1000k_30": string;
-  "854x480_1500k_30": string;
-  "1080x720_3000k_30": string;
-  "1280x720_3000k_30": string;
-  "1920x1080_6000k_30": string;
-  "1920x1080_8000k_60": string;
-} = {
-  "640x360_1000k_30": "360p",
-  "854x480_1500k_30": "480p",
-  "1080x720_3000k_30": "720p",
-  "1280x720_3000k_30": "720p",
-  "1920x1080_6000k_30": "1080p",
-  "1920x1080_8000k_60": "1080p60",
-};
+const resourceNameMap = {
+  "640x360_500k_30": "360p",
+  "854x480_900k_30": "480p",
+  "1080x720_2000k_30": "720p",// 兼容之前的错误
+  "1280x720_2000k_30": "720p",
+  "1920x1080_3000k_30": "1080p",
+  "1920x1080_6000k_60": "1080p60",
+}
 
-// 清晰度优先级定义，数值越大优先级越高
-const qualityPriority = {
-  "1080p60": 6,
-  "1080p": 5,
-  "720p": 4,
-  "480p": 3,
-  "360p": 2,
-};
-
-// 修改 loadResource 函数，按照优先级对资源进行排序
 const loadResource = async (part: number) => {
   const resource = props.videoInfo.resources[part - 1];
   const res = await getResourceQualityApi(resource.id);
   if (res.data.code === statusCode.OK) {
-    // 获取所有清晰度资源，并根据优先级排序
-    const sortedQualities = res.data.data.quality
-      .map((item: keyof typeof resourceNameMap) => {
-        const qualityName = resourceNameMap[item];
-        return {
-          name: qualityName,
-          url: getVideoFileUrl(resource.id, item),
-          priority: qualityPriority[qualityName as keyof typeof qualityPriority] || 0, // 如果没有优先级，默认给 0
-        };
-      })
-      .sort((a: { priority: number; }, b: { priority: number; }) => b.priority - a.priority);  // 按优先级降序排序
-
-    // 更新质量列表
-    options.video.quality = sortedQualities;
-
-    // 设置默认清晰度：优先选择第一个清晰度作为默认
-    const defaultQualityName = sortedQualities[0].name; // 获取最高优先级的清晰度名称
-    options.video.defaultQuality = sortedQualities.findIndex(
-      (item: { name: any; }) => item.name === defaultQualityName
-    );
+    options.video.quality = res.data.data.quality.map((item: keyof typeof resourceNameMap, index: number) => {
+      if (resourceNameMap[item] === defaultQuality.value) {
+        options.video.defaultQuality = index;
+      }
+      return {
+        name: resourceNameMap[item],
+        url: getVideoFileUrl(resource.id, item),
+      }
+    })
   }
-};
-
+}
 
 let originalDanmaku: DanmakuType[] = [];
 const getDanmaku = async (part: number) => {
@@ -237,42 +208,8 @@ onMounted(async () => {
 
   timer = window.setInterval(() => {
     uploadHistory();
-  }, 10000);
-
-  // 自动播放视频，确保视频是静音的
-  if (player) {
-    player.video.muted = true; // 设置静音
-    player.video.play().then(() => {
-      console.log("Video started playing");
-    }).catch((error: any) => {
-      console.error("Error starting video:", error);
-    });
-  }
-
-  // 模拟用户点击事件解除静音
-  simulateUserClickToUnmute();
-});
-
-// 模拟用户点击事件解除静音
-const simulateUserClickToUnmute = () => {
-  if (player) {
-    // 创建一个鼠标点击事件
-    const clickEvent = new MouseEvent('click', {
-      bubbles: true, // 事件是否能冒泡
-      cancelable: true, // 事件是否可以取消
-    });
-
-    // 模拟点击播放器区域或其他元素
-    const playerElement = document.getElementById('dplayer');
-    if (playerElement) {
-      playerElement.dispatchEvent(clickEvent); // 触发点击事件
-    }
-
-    // 在点击后解除静音
-    player.video.muted = false;
-    console.log("Sound unmuted by simulated user click");
-  }
-};
+  }, 10000)
+})
 
 onBeforeUnmount(() => {
   if (timer) clearInterval(timer);
