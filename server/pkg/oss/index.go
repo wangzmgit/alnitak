@@ -10,6 +10,7 @@ import (
 
 const (
 	ALIYUN = "aliyun"
+	MINIO  = "minio"
 )
 
 type Storage interface {
@@ -46,6 +47,8 @@ func initOss(ossName string, config Config) (Storage, error) {
 	switch ossName {
 	case ALIYUN:
 		return newAliyun(config)
+	case MINIO:
+		return newMinio(config)
 	default:
 		return nil, errors.New("driver not exists")
 	}
