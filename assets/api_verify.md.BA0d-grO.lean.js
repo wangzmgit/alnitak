@@ -1,0 +1,1 @@
+import{_ as a,c as t,o as s,a2 as i}from"./chunks/framework.CmeiYqq3.js";const E=JSON.parse('{"title":"验证相关接口","description":"","frontmatter":{},"headers":[],"relativePath":"api/verify.md","filePath":"api/verify.md"}'),l={name:"api/verify.md"},e=i("",38),n=[e];function h(d,r,p,o,k,c){return s(),t("div",null,n)}const g=a(l,[["render",h]]);export{E as __pageData,g as default};
