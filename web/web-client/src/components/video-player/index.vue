@@ -7,7 +7,7 @@
     </div>
   </div>
 </template>
-    
+
 <script setup lang="ts">
 import Hls from "hls.js";
 import Wplayer from 'wplayer-next';
@@ -55,7 +55,7 @@ let disableType: number[] = [];
 const initFilterConfig = () => {
   const disableTypeConfig = localStorage.getItem('danmaku-disable-type');
   if (disableTypeConfig) {
-    disableType = JSON.parse(disableTypeConfig);
+    disableType = disableTypeConfig.split(',').map((item) => parseInt(item));
   }
 
   const disableLeaveConfig = localStorage.getItem('danmaku-disable-leave');
@@ -150,7 +150,8 @@ const filterDanmaku = (filter: FilterDanmakuType) => {
 
   const data = originalDanmaku.filter((item) => {
     return !isDisableType(item, filter.disableType) && (Math.floor(Math.random() * 10) + 1) > filter.disableLeave;
-  });
+  }).map((d) => { return { ...d } });
+
   player.danmaku.update(data);
 
   player.on('danmaku_loaded', () => {
@@ -178,8 +179,8 @@ const uploadHistory = async () => {
 
 // 获取历史记录
 const getHistoryProgress = async () => {
-  const res = await getHistoryProgressAPI(props.videoInfo.vid,props.part);
-  if(res.data.code === statusCode.OK){
+  const res = await getHistoryProgressAPI(props.videoInfo.vid, props.part);
+  if (res.data.code === statusCode.OK) {
     player.seek(res.data.data.progress)
   } else {
     uploadHistory();
@@ -215,7 +216,7 @@ onBeforeUnmount(() => {
   if (timer) clearInterval(timer);
 })
 </script>
-    
+
 <style lang="scss" scoped>
 .player-container {
   height: 0;
