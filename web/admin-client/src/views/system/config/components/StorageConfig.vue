@@ -72,7 +72,11 @@ const ossOptions = [
   //   label: '七牛云',
   //   value: 'qiniu'
   // },
-]
+  {
+    label: 'MinIO',
+    value: 'minio'
+  },
+];
 
 const storageForm = reactive({
   maxImgSize: 5,
@@ -109,7 +113,7 @@ const getStorageConfig = async () => {
   } else {
     message.error("读取配置失败");
   }
-}
+};
 
 const setStorageConfig = async () => {
   // 校验配置
@@ -121,6 +125,7 @@ const setStorageConfig = async () => {
   // 使用不同OSS
   switch (storageForm.type) {
     case "aliyun":
+      // 注释掉了与 endpoint 相关的校验
       msg.push(...checkConfig({ 'endpoint': storageForm.endpoint }));
       break;
     case "tencent":
@@ -128,6 +133,10 @@ const setStorageConfig = async () => {
       break;
     case "qiniu":
       msg.push(...checkConfig({ 'domain': storageForm.domain }));
+      break;
+    case "minio":
+      // 注释掉了与 endpoint 相关的校验
+       msg.push(...checkConfig({ 'endpoint': storageForm.endpoint, 'bucket': storageForm.bucket, 'keyId': storageForm.keyId }));
       break;
   }
 
@@ -142,7 +151,7 @@ const setStorageConfig = async () => {
   } else {
     message.error(res.data.msg || "修改失败");
   }
-}
+};
 
 const checkConfig = (config: { [key: string]: string }) => {
   const res = [];
@@ -151,13 +160,12 @@ const checkConfig = (config: { [key: string]: string }) => {
       res.push(key);
     }
   }
-
   return res;
-}
+};
 
 onBeforeMount(() => {
   getStorageConfig();
-})
+});
 </script>
 
 <style lang="scss" scoped>

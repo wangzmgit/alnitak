@@ -70,7 +70,7 @@
   </div>
 </template>
 
-<script  setup lang="ts">
+<script setup lang="ts">
 import { ref, reactive } from "vue";
 import BaseSlider from "@/components/base-slider/index.vue";
 import TextIcon from "@/components/icons/TextIcon.vue";
@@ -181,6 +181,11 @@ defineExpose({
 })
 
 onBeforeMount(() => {
+  const disableTypeConfig = localStorage.getItem('danmaku-disable-type');
+  if (disableTypeConfig) {
+    filterSetting.disableType = disableTypeConfig.split(',').map((item) => parseInt(item));
+  }
+
   showDanmaku.value = localStorage.getItem("wplayer-danmaku-show") === '1';
   danmakuOpacity.value = parseFloat(localStorage.getItem("wplayer-danmaku-opacity") || '1');
 })
