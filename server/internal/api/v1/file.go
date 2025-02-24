@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"interastral-peace.com/alnitak/internal/global"
@@ -68,12 +69,22 @@ func GetImgFile(ctx *gin.Context) {
 
 	// 使用本地存储
 	if global.Config.Storage.OssType == "local" {
+		// 设置缓存头部，控制浏览器缓存策略
+		ctx.Header("Cache-Control", "max-age=86400, public")                        // 缓存1天
+		ctx.Header("Expires", time.Now().Add(24*time.Hour).Format(http.TimeFormat)) // 24小时后过期
+
+		// 返回本地图片
 		ctx.File("./upload/image/" + file)
 		return
 	}
 
-	// 不使用oss
+	// 不使用OSS，获取预签名的URL
 	redirect := global.Storage.GetObjectUrl("image/" + file)
 
+	// 重定向到OSS文件的URL，设置缓存控制
+	ctx.Header("Cache-Control", "max-age=86400, public")                        // 缓存1天
+	ctx.Header("Expires", time.Now().Add(24*time.Hour).Format(http.TimeFormat)) // 24小时后过期
+
+	// 重定向到OSS存储的图片资源
 	ctx.Redirect(http.StatusMovedPermanently, redirect)
 }

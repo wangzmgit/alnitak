@@ -63,7 +63,7 @@ func (m *MinIO) init(config Config) error {
 }
 
 func (m *MinIO) initMinIOClient(config Config) (*minio.Client, error) {
-	// Use the endpoint and access/secret key to initialize the MinIO client
+	// 使用端点和访问/密钥初始化 MinIO 客户端
 	options := minio.Options{
 		Creds:  credentials.NewStaticV4(config.KeyID, config.KeySecret, ""),
 		Secure: config.Private,
@@ -84,14 +84,14 @@ func (m *MinIO) GetObjectToFile(objectKey, filePath string) error {
 	}
 	defer object.Close()
 
-	// Create the file to write to
+	// 创建要写入的文件
 	file, err := os.Create(filePath)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 
-	// Copy the object to the file
+	// 将对象复制到文件
 	_, err = io.Copy(file, object)
 	if err != nil {
 		return err
@@ -141,10 +141,10 @@ func (m *MinIO) IsExists(objectKey string) (bool, error) {
 
 // 获取访问URL
 func (m *MinIO) GetObjectUrl(objectKey string) string {
-	// Generating a presigned URL for the object, with a longer expiry time (e.g., 2 hours).
-	presignedURL, err := m.client.PresignedGetObject(context.Background(), m.config.Bucket, objectKey, time.Hour*2, nil)
+	// 为对象生成一个预签名的 URL，具有更长的有效期（例如 2 小时）
+	presignedURL, err := m.client.PresignedGetObject(context.Background(), m.config.Bucket, objectKey, time.Hour*24, nil)
 	if err != nil {
-		// Log error with more details
+		// 记录错误并显示更多详细信息
 		utils.ErrorLog("MinIO生成文件URL失败", "transcoding", fmt.Sprintf("Error: %v, ObjectKey: %s", err, objectKey))
 		return ""
 	}
