@@ -64,10 +64,10 @@ const ossOptions = [
     label: '阿里云',
     value: 'aliyun'
   },
-  // {
-  //   label: '腾讯云',
-  //   value: 'tencent'
-  // },
+  {
+    label: '腾讯云',
+    value: 'tencent'
+  },
   // {
   //   label: '七牛云',
   //   value: 'qiniu'
