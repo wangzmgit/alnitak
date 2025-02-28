@@ -29,16 +29,8 @@
         <n-form-item v-show="storageForm.type !== 'local'" label="域名">
           <n-input placeholder="域名" v-model:value="storageForm.domain" />
         </n-form-item>
-        <n-form-item v-show="storageForm.type === 'qiniu'" label="是否私有">
-          <n-switch v-model:value="storageForm.private"></n-switch>
-        </n-form-item>
-        <n-form-item v-show="storageForm.type === 'minio'" label="是否私有">
-          <n-switch v-model:value="storageForm.private"></n-switch>
-        </n-form-item>
-        <n-form-item v-show="storageForm.type === 'tencent'" label="是否私有">
-          <n-switch v-model:value="storageForm.private"></n-switch>
-        </n-form-item>
-        <n-form-item v-show="storageForm.type === 'aliyun'" label="是否私有">
+        <!-- 显示"是否私有"开关 -->
+        <n-form-item label="是否私有">
           <n-switch v-model:value="storageForm.private"></n-switch>
         </n-form-item>
         <!-- 新增的区域填写项 -->
