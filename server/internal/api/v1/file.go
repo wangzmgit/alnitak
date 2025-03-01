@@ -1,10 +1,18 @@
 package api
 
 import (
+	//"crypto/md5"
+	//"fmt"
+	//"io"
+	//"log"
+	"fmt"
 	"net/http"
-	"time"
+
+	//"os"
+	//"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/viper"
 	"interastral-peace.com/alnitak/internal/global"
 	"interastral-peace.com/alnitak/internal/resp"
 	"interastral-peace.com/alnitak/internal/service"
@@ -68,23 +76,18 @@ func GetImgFile(ctx *gin.Context) {
 	file := ctx.Param("file")
 
 	// 使用本地存储
-	if global.Config.Storage.OssType == "local" {
-		// 设置缓存头部，控制浏览器缓存策略
-		ctx.Header("Cache-Control", "max-age=86400, public")                        // 缓存1天
-		ctx.Header("Expires", time.Now().Add(24*time.Hour).Format(http.TimeFormat)) // 24小时后过期
-
-		// 返回本地图片
+	if viper.GetString("storage.oss_type") == "local" {
+		// 设置缓存头，告知浏览器缓存一天
+		ctx.Header("Cache-Control", "public, max-age=86400, must-revalidate")
 		ctx.File("./upload/image/" + file)
 		return
 	}
 
-	// 不使用OSS，获取预签名的URL
+	// 不使用oss
 	redirect := global.Storage.GetObjectUrl("image/" + file)
+	fmt.Println("redirect", redirect, "image/"+file)
 
-	// 重定向到OSS文件的URL，设置缓存控制
-	ctx.Header("Cache-Control", "max-age=86400, public")                        // 缓存1天
-	ctx.Header("Expires", time.Now().Add(24*time.Hour).Format(http.TimeFormat)) // 24小时后过期
-
-	// 重定向到OSS存储的图片资源
+	// 设置缓存头，告知浏览器缓存一天
+	ctx.Header("Cache-Control", "public, max-age=86400, must-revalidate")
 	ctx.Redirect(http.StatusMovedPermanently, redirect)
 }
