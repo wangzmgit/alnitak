@@ -29,8 +29,13 @@
         <n-form-item v-show="storageForm.type !== 'local'" label="域名">
           <n-input placeholder="域名" v-model:value="storageForm.domain" />
         </n-form-item>
-        <n-form-item v-show="storageForm.type === 'qiniu'" label="是否私有">
+        <!-- 显示"是否私有"开关 -->
+        <n-form-item label="是否私有">
           <n-switch v-model:value="storageForm.private"></n-switch>
+        </n-form-item>
+        <!-- 新增的区域填写项 -->
+        <n-form-item v-show="storageForm.type === 'qiniu'" label="七牛云存储桶地区">
+          <n-input placeholder="填写存储桶地区" v-model:value="storageForm.region" />
         </n-form-item>
         <n-form-item v-show="storageForm.type !== 'local'" label="keyId">
           <n-input placeholder="keyId" v-model:value="storageForm.keyId" />
@@ -68,10 +73,10 @@ const ossOptions = [
     label: '腾讯云',
     value: 'tencent'
   },
-  // {
-  //   label: '七牛云',
-  //   value: 'qiniu'
-  // },
+  //{
+    //label: '七牛云',
+    //value: 'qiniu'
+  //},
   {
     label: 'MinIO',
     value: 'minio'
