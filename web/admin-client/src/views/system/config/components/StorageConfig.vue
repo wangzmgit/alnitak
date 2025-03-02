@@ -29,8 +29,8 @@
         <n-form-item v-show="storageForm.type !== 'local'" label="域名">
           <n-input placeholder="域名" v-model:value="storageForm.domain" />
         </n-form-item>
-        <!-- 显示"是否私有"开关 -->
-        <n-form-item label="是否私有">
+        <!-- 显示"是否私有"开关，只在存储策略不为本地时展示 -->
+        <n-form-item v-show="storageForm.type !== 'local'" label="是否私有">
           <n-switch v-model:value="storageForm.private"></n-switch>
         </n-form-item>
         <!-- 新增的区域填写项 -->
