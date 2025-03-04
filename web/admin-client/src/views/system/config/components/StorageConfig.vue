@@ -20,7 +20,13 @@
         <n-form-item v-show="storageForm.type === 'aliyun'" label="OSS存储区域(Endpoint)">
           <n-input placeholder="存储区域(Endpoint)" v-model:value="storageForm.endpoint" />
         </n-form-item>
-        <n-form-item v-show="storageForm.type === 'minio'" label="Endpoint">
+        <!--<n-form-item v-show="storageForm.type === 'minio'" label="Endpoint">
+          <n-input placeholder="请把域名中的http(s)://去掉填写到这里" v-model:value="storageForm.endpoint" />
+        </n-form-item> -->
+        <n-form-item v-show="storageForm.type === 'cloudflare'" label="Account ID">
+          <n-input placeholder="Cloudflare Account ID" v-model:value="storageForm.accountId" />
+        </n-form-item>
+        <n-form-item v-show="storageForm.type === 'cloudflare'" label="Endpoint">
           <n-input placeholder="API 端点" v-model:value="storageForm.endpoint" />
         </n-form-item>
         <n-form-item v-show="storageForm.type === 'tencent'" label="存储桶AppID">
@@ -32,17 +38,11 @@
         <n-form-item v-show="storageForm.type !== 'local'" label="域名">
           <n-input placeholder="域名" v-model:value="storageForm.domain" />
         </n-form-item>
+
         <!-- 显示"是否私有"开关，只在存储策略不为本地时展示 -->
         <n-form-item v-show="storageForm.type !== 'local'" label="是否私有">
           <n-switch v-model:value="storageForm.private"></n-switch>
         </n-form-item>
-        <n-form-item v-show="storageForm.type === 'cloudflare'" label="Account ID">
-          <n-input placeholder="Cloudflare Account ID" v-model:value="storageForm.accountId" />
-        </n-form-item>
-        <n-form-item v-show="storageForm.type === 'cloudflare'" label="Endpoint">
-          <n-input placeholder="API 端点" v-model:value="storageForm.endpoint" />
-        </n-form-item>
-
         <!-- 新增的区域填写项 -->
         <n-form-item v-show="storageForm.type === 'qiniu'" label="七牛云存储桶地区">
           <n-input placeholder="填写存储桶地区" v-model:value="storageForm.region" />
