@@ -50,6 +50,36 @@
         <div class="right-column">
           <!-- 作者信息 -->
           <author-card v-if="videoInfo" :info="videoInfo.author"></author-card>
+          <!-- 添加弹幕列表 -->
+          <div class="danmaku-list-container">
+            <div class="danmaku-header" @click="toggleDanmakuList">
+              <div class="header-left">
+                <span class="title">弹幕列表</span>
+                <span class="count">({{ danmakuList.length }})</span>
+              </div>
+              <div class="header-right">
+                <el-icon :class="{ 'is-fold': !showDanmakuList }">
+                  <arrow-down />
+                </el-icon>
+              </div>
+            </div>
+            
+            <div class="danmaku-content" v-show="showDanmakuList">
+              <!-- 表头 -->
+              <div class="danmaku-header-row">
+                <div class="time">时间</div>
+                <div class="text">弹幕内容</div>
+                <div class="send-time">发送时间</div>
+              </div>
+              
+              <!-- 弹幕列表 -->
+              <div class="danmaku-item" v-for="item in danmakuList" :key="`${item.time}-${item.text}`">
+                <div class="time">{{ formatDanmakuTime(item.time) }}</div>
+                <div class="text">{{ item.text }}</div>
+                <div class="send-time">{{ dayjs(item.createdAt).format('MM-DD HH:mm') }}</div>
+              </div>
+            </div>
+          </div>
           <!-- 视频分集 -->
           <div v-if="videoInfo && videoInfo.resources.length > 1">
             <part-list :resources="videoInfo.resources" :active="currentPart" @change="changePart"></part-list>
@@ -63,9 +93,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from "vue";
+import { ref, onMounted, onBeforeUnmount, watch } from "vue";
 import { ElIcon } from "element-plus";
-import { Forbid as ForbidIcon } from "@icon-park/vue-next";
+import { Forbid as ForbidIcon, ArrowDown } from "@icon-park/vue-next";
 import { formatTime } from "@/utils/format";
 import PartList from "./components/PartList.vue";
 import AuthorCard from './components/AuthorCard.vue';
@@ -76,6 +106,8 @@ import VideoPlayer from "@/components/video-player/index.vue";
 import RecommendList from "./components/RecommendList.vue";
 import { asyncGetVideoInfoAPI } from "@/api/video";
 import { createUUID } from "@/utils/uuid";
+import { getDanmakuAPI } from "@/api/danmaku";
+import dayjs from "dayjs";
 
 const route = useRoute();
 const router = useRouter();
@@ -161,6 +193,44 @@ onBeforeMount(()=>{
 onBeforeUnmount(() => {
   window.removeEventListener("resize", handelResize);
 })
+
+// 添加弹幕列表相关的代码
+const showDanmakuList = ref(false);
+const danmakuList = ref<DanmakuType[]>([]);
+
+// 格式化弹幕时间
+const formatDanmakuTime = (seconds: number) => {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.floor(seconds % 60);
+  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+};
+
+// 切换弹幕列表显示状态
+const toggleDanmakuList = () => {
+  showDanmakuList.value = !showDanmakuList.value;
+};
+
+// 获取弹幕列表
+const getDanmakuList = async (vid: number, part: number) => {
+  const res = await getDanmakuAPI(vid, part);
+  if (res.data.code === statusCode.OK) {
+    danmakuList.value = res.data.data.danmaku || [];
+  }
+};
+
+// 监听分P变化
+watch(() => currentPart.value, (newPart) => {
+  if (videoInfo.value) {
+    getDanmakuList(videoInfo.value.vid, newPart);
+  }
+});
+
+// 组件挂载时获取弹幕
+onMounted(() => {
+  if (videoInfo.value) {
+    getDanmakuList(videoInfo.value.vid, currentPart.value);
+  }
+});
 </script>
 
 <style lang="scss" scoped>
@@ -171,14 +241,19 @@ onBeforeUnmount(() => {
 .video-main {
   padding-top: 80px;
   margin: 0 auto;
-  min-width: 1200px;  // 保持最小宽度为1200px
+  width: 90%; /* 宽度占满 90% */
+  min-width: 1200px; /* 保持最小宽度为 1200px */
+  display: flex;
+  justify-content: center; /* 确保子元素水平居中 */
+  align-items: center; /* 确保子元素垂直居中 */
+}
 
-  .mian-content {
-    display: flex;
-    width: calc(100% - 100px);  // 根据父容器计算宽度
-    margin: auto 50px;  // 确保子元素也水平居中
-    position: relative;
-  }
+.mian-content {
+  display: flex;
+  width: 100%; /* 让子元素宽度占满父容器 */
+  max-width: calc(100% - 100px); /* 根据父容器计算宽度 */
+  margin: auto 50px; /* 确保子元素水平居中，并有50px的左右边距 */
+  position: relative;
 }
 
 .left-column {
@@ -310,5 +385,131 @@ onBeforeUnmount(() => {
   width: 340px;
   margin-left: 30px;
   z-index: 1;
+}
+
+.danmaku-list-container {
+  margin: 20px 0;
+  background: #fff;
+  border: 1px solid #e3e5e7;
+  border-radius: 8px;
+  
+  .danmaku-header {
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    
+    &:hover {
+      background-color: #f6f7f8;
+    }
+    
+    .header-left {
+      display: flex;
+      align-items: center;
+      
+      .title {
+        font-size: 14px;
+        font-weight: 500;
+        color: #18191c;
+      }
+      
+      .count {
+        margin-left: 8px;
+        color: #9499a0;
+        font-size: 12px;
+      }
+    }
+
+    .header-right {
+      .el-icon {
+        transition: transform 0.3s;
+        
+        &.is-fold {
+          transform: rotate(-180deg);
+        }
+      }
+    }
+  }
+  
+  .danmaku-content {
+    max-height: 300px;
+    overflow-y: auto;
+    
+    .danmaku-header-row {
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      background-color: #f6f7f8;
+      border-top: 1px solid #f1f2f3;
+      font-size: 12px;
+      color: #9499a0;
+      font-weight: 500;
+
+      .time {
+        width: 45px;
+      }
+      
+      .text {
+        flex: 1;
+        margin: 0 12px;
+      }
+      
+      .send-time {
+        width: 85px;
+        text-align: right;
+      }
+    }
+    
+    .danmaku-item {
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      border-top: 1px solid #f1f2f3;
+      
+      .time {
+        width: 45px;
+        color: #9499a0;
+        font-size: 12px;
+        flex-shrink: 0;
+      }
+      
+      .text {
+        flex: 1;
+        margin: 0 12px;
+        color: #18191c;
+        font-size: 13px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      
+      .send-time {
+        width: 85px;
+        flex-shrink: 0;
+        text-align: right;
+        color: #9499a0;
+        font-size: 12px;
+      }
+
+      &:hover {
+        background-color: #f6f7f8;
+      }
+    }
+    
+    &::-webkit-scrollbar {
+      width: 4px;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background-color: #c9ccd0;
+      border-radius: 2px;
+    }
+    
+    &::-webkit-scrollbar-track {
+      background-color: #f1f2f3;
+    }
+  }
 }
 </style>
