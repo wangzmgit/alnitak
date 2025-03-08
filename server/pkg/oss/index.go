@@ -12,6 +12,8 @@ const (
 	ALIYUN  = "aliyun"
 	MINIO   = "minio"
 	TENCENT = "tencent"
+	//QINIU    = "qiniu"
+	R2TORAGE = "cloudflare"
 )
 
 type Storage interface {
@@ -52,6 +54,10 @@ func initOss(ossName string, config Config) (Storage, error) {
 		return newMinio(config)
 	case TENCENT:
 		return newTencentCOS(config)
+	//case QINIU:
+	//	return newQiniuOSS(config)
+	case R2TORAGE:
+		return newR2Storage(config)
 	default:
 		return nil, errors.New("driver not exists")
 	}
