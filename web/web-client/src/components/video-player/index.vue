@@ -7,7 +7,7 @@
     </div>
   </div>
 </template>
-    
+
 <script setup lang="ts">
 import Hls from "hls.js";
 import Wplayer from 'wplayer-next';
@@ -33,7 +33,7 @@ const options: PlayerOptionsType = {
   video: {
     quality: [],
     defaultQuality: 0,
-    pic: props.videoInfo ? getResourceUrl(props.videoInfo.cover) : '',
+    pic: '',
     type: 'customHls',
     customType: {
       // TODO: 处理IOS系统中的hls视频播放
@@ -55,7 +55,7 @@ let disableType: number[] = [];
 const initFilterConfig = () => {
   const disableTypeConfig = localStorage.getItem('danmaku-disable-type');
   if (disableTypeConfig) {
-    disableType = JSON.parse(disableTypeConfig);
+    disableType = disableTypeConfig.split(',').map((item) => parseInt(item));
   }
 
   const disableLeaveConfig = localStorage.getItem('danmaku-disable-leave');
@@ -68,7 +68,7 @@ const loadPart = async (part: number) => {
   const el = document.getElementById('dplayer');
   if (el) {
     await loadResource(part);
-    await getDanmaku(part);
+    // await getDanmaku(part);
 
     if (player) player.destroy();
 
@@ -78,7 +78,6 @@ const loadPart = async (part: number) => {
       localStorage.setItem('default-video-quality', quality.name);
     })
     filterDanmaku({ disableLeave, disableType });
-
   }
 }
 
@@ -108,15 +107,9 @@ const loadResource = async (part: number) => {
 }
 
 let originalDanmaku: DanmakuType[] = [];
-const getDanmaku = async (part: number) => {
-  const res = await getDanmakuAPI(props.videoInfo.vid, part);
-  if (res.data.code === statusCode.OK) {
-    if (res.data.data.danmaku) {
-      originalDanmaku = res.data.data.danmaku;
-    }
-  }
+const setDanmaku = (data: DanmakuType[]) => {
+  originalDanmaku = data;
 }
-
 // 弹幕显示改变
 const changeShow = (val: boolean) => {
   if (val) {
@@ -150,7 +143,8 @@ const filterDanmaku = (filter: FilterDanmakuType) => {
 
   const data = originalDanmaku.filter((item) => {
     return !isDisableType(item, filter.disableType) && (Math.floor(Math.random() * 10) + 1) > filter.disableLeave;
-  });
+  }).map((d) => { return { ...d } });
+
   player.danmaku.update(data);
 
   player.on('danmaku_loaded', () => {
@@ -178,8 +172,8 @@ const uploadHistory = async () => {
 
 // 获取历史记录
 const getHistoryProgress = async () => {
-  const res = await getHistoryProgressAPI(props.videoInfo.vid,props.part);
-  if(res.data.code === statusCode.OK){
+  const res = await getHistoryProgressAPI(props.videoInfo.vid, props.part);
+  if (res.data.code === statusCode.OK) {
     player.seek(res.data.data.progress)
   } else {
     uploadHistory();
@@ -214,8 +208,12 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   if (timer) clearInterval(timer);
 })
+
+defineExpose({
+  setDanmaku
+})
 </script>
-    
+
 <style lang="scss" scoped>
 .player-container {
   height: 0;
