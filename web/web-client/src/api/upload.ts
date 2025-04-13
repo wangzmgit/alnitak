@@ -81,12 +81,12 @@ export const uploadFileChunkAPI = async ({ name, file, action, onProgress, onFin
     }
   };
 
-  const uploadChunk = async (i: number) => {
+  const uploadChunk = async (i: number, retries = 3) => {
     const start = i * CHUNK_SIZE;
     const end = Math.min(start + CHUNK_SIZE, file.size);
     const chunk = file.slice(start, end);
     const formData = formDataGenerator(chunk, i.toString());
-
+  
     try {
       const res = await uploadChunkAPI(formData);
       if (res.data.code === statusCode.OK) {
@@ -102,7 +102,12 @@ export const uploadFileChunkAPI = async ({ name, file, action, onProgress, onFin
         onError(res.data);
       }
     } catch (error) {
-      onError(error);
+      if (retries > 0) {
+        console.log(`重试上传第 ${i} 个分片，剩余重试次数: ${retries}`);
+        await uploadChunk(i, retries - 1);  // 递归调用上传函数，减少重试次数
+      } else {
+        onError(error);  // 如果重试次数用完，调用错误处理
+      }
     } finally {
       currentUploads--;
       processQueue(); // 尝试处理下一个任务
