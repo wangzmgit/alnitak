@@ -34,89 +34,96 @@ const CHUNK_SIZE = 5 * 1024 * 1024; // 每个分片大小为5MB
 const MAX_CONCURRENT_UPLOADS = 5; // 最大并发上传数量
 export const uploadFileChunkAPI = async ({ name, file, action, onProgress, onFinish, onError }: UploadOptionsType) => {
   onProgress(0);
-  const hash = await getFileMD5(file)
-
+  const hash = await getFileMD5(file);
   const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
   const formDataGenerator = createFormDataGenerator(hash, name, file.name, totalChunks.toString());
 
-
-  const tasks: number[] = []
-  const uploadedChunks = await getUploadedChunksAPI(hash)
+  // 构造待上传的分片索引队列
+  const uploadedChunks = await getUploadedChunksAPI(hash);
+  const tasks: number[] = [];
   for (let i = 0; i < totalChunks; i++) {
-    if (!uploadedChunks.includes(i)) {
-      tasks.push(i)
-    }
+    if (!uploadedChunks.includes(i)) tasks.push(i);
   }
 
+  // 全部已上传，直接完成
   if (tasks.length === 0) {
-    finishUploadAPI({ hash, action, onFinish, onError })
+    finishUploadAPI({ hash, action, onFinish, onError });
     return;
   }
 
-  // 如果服务器不存在数据则手动上传第一个分片
+  // 如果一次都没上传过，先上传第一个分片
   if (tasks.length === totalChunks) {
     const chunk = file.slice(0, Math.min(CHUNK_SIZE, file.size));
-    const formData = formDataGenerator(chunk, "0");
-    const firstChunkRes = await uploadChunkAPI(formData)
-    if (firstChunkRes.data.code === statusCode.OK) {
+    const firstRes = await uploadChunkAPI(formDataGenerator(chunk, '0'));
+    if (firstRes.data.code === statusCode.OK) {
       uploadedChunks.push(0);
-      tasks.splice(tasks.indexOf(0), 1);
+      tasks.shift(); // 移除 0
     } else {
-      onError(firstChunkRes.data)
+      onError(firstRes.data);
       return;
     }
   }
 
-  // 上传进度
- let taskQueue = [...tasks]
- let currentUploads = 0;
- let uploadedChunksCount = uploadedChunks.length;
+  // 并发上传控制
+  let taskQueue = [...tasks];
+  let currentUploads = 0;
+  let uploadedCount = uploadedChunks.length;
 
   const processQueue = () => {
-    while (currentUploads < MAX_CONCURRENT_UPLOADS && taskQueue.length > 0) {
-      const nextTaskIndex = taskQueue.shift(); // 从队列中取出下一个任务
-      if (!nextTaskIndex) break;
+    while (currentUploads < MAX_CONCURRENT_UPLOADS && taskQueue.length) {
+      const idx = taskQueue.shift()!;
       currentUploads++;
-      uploadChunk(nextTaskIndex); // 上传该块
+      uploadChunk(idx);
     }
   };
 
-  const uploadChunk = async (i: number, retries = 3) => {
-    const start = i * CHUNK_SIZE;
-    const end = Math.min(start + CHUNK_SIZE, file.size);
-    const chunk = file.slice(start, end);
-    const formData = formDataGenerator(chunk, i.toString());
-  
-    try {
-      const res = await uploadChunkAPI(formData);
-      if (res.data.code === statusCode.OK) {
-        uploadedChunksCount++;
-        // 更新进度
-        const progress = Math.floor((uploadedChunksCount / totalChunks) * 100);
-        if (uploadedChunksCount === totalChunks) {
-          finishUploadAPI({ hash, action, onFinish, onError });
+  // 单分片上传 + 重试 + 收尾
+  const uploadChunk = async (i: number) => {
+    const MAX_RETRIES = 3;
+    let success = false;
+
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      const start = i * CHUNK_SIZE;
+      const end = Math.min(start + CHUNK_SIZE, file.size);
+      const chunk = file.slice(start, end);
+      const formData = formDataGenerator(chunk, i.toString());
+
+      try {
+        const res = await uploadChunkAPI(formData);
+        if (res.data.code === statusCode.OK) {
+          // 上传成功
+          success = true;
+          uploadedCount++;
+          const progress = Math.floor((uploadedCount / totalChunks) * 100);
+          if (uploadedCount === totalChunks) {
+            finishUploadAPI({ hash, action, onFinish, onError });
+          } else {
+            onProgress(progress);
+          }
+          break; // 跳出重试循环
         } else {
-          onProgress(progress);
+          // 业务层面失败，不再重试
+          onError(res.data);
+          break;
         }
-      } else {
-        onError(res.data);
+      } catch (err) {
+        if (attempt < MAX_RETRIES) {
+          console.warn(`分片 ${i} 上传失败，第 ${attempt} 次重试...`);
+        } else {
+          // 重试耗尽
+          onError(err);
+        }
       }
-    } catch (error) {
-      if (retries > 0) {
-        console.log(`重试上传第 ${i} 个分片，剩余重试次数: ${retries}`);
-        await uploadChunk(i, retries - 1);  // 递归调用上传函数，减少重试次数
-      } else {
-        onError(error);  // 如果重试次数用完，调用错误处理
-      }
-    } finally {
-      currentUploads--;
-      processQueue(); // 尝试处理下一个任务
     }
+
+    // 重试循环结束后（不论成功或失败）才执行收尾
+    currentUploads--;
+    processQueue();
   };
 
-  // 开始处理队列
+  // 启动队列
   processQueue();
-}
+};
 
 const createFormDataGenerator = (hash: string, name: string, fileName: string, totalChunks: string) => {
   const savedHash = hash;
