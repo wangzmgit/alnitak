@@ -54,6 +54,9 @@ services:
     ports:
       # 映射端口
       - "9000:9000"
+    networks:
+      - backend        # can talk to mysql & redis
+      - frontend 
     depends_on:
       - mysql
       - redis
