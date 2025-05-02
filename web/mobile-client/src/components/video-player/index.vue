@@ -34,7 +34,7 @@ const options: PlayerOptionsType = {
   video: {
     quality: [],
     defaultQuality: 0,
-    pic: 'demo.png',
+    pic: '',
     type: 'customHls',
     customType: {
       // TODO: 处理IOS系统中的hls视频播放

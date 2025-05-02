@@ -3,10 +3,10 @@
     <header-bar class="header"></header-bar>
     <div class="video-main">
       <div class="mian-content">
-        <div class="left-column" :style="{ width: `${videoMainWidth}px` }">
-          <div class="video-player">
+        <div class="left-column">
+          <div class="video-player" ref="playerContainerRef">
             <client-only>
-              <video-player v-if="videoInfo" :video-info="videoInfo" :part="currentPart"></video-player>
+              <video-player v-if="videoInfo" ref="playerRef" :video-info="videoInfo" :part="currentPart"></video-player>
             </client-only>
             <div v-if="!showPlayer" class="skeleton"></div>
           </div>
@@ -50,6 +50,8 @@
         <div class="right-column">
           <!-- 作者信息 -->
           <author-card v-if="videoInfo" :info="videoInfo.author"></author-card>
+          <!-- 添加弹幕列表 -->
+          <danmaku-list ref="danmakuListRef" :height="danmakuListHeight"></danmaku-list>
           <!-- 视频分集 -->
           <div v-if="videoInfo && videoInfo.resources.length > 1">
             <part-list :resources="videoInfo.resources" :active="currentPart" @change="changePart"></part-list>
@@ -71,11 +73,13 @@ import PartList from "./components/PartList.vue";
 import AuthorCard from './components/AuthorCard.vue';
 import ArchiveInfo from './components/ArchiveInfo.vue';
 import CommentList from "./components/CommentList.vue";
+import DanmakuList from "./components/DanmakuList.vue";
 import HeaderBar from "@/components/header-bar/index.vue";
 import VideoPlayer from "@/components/video-player/index.vue";
 import RecommendList from "./components/RecommendList.vue";
 import { asyncGetVideoInfoAPI } from "@/api/video";
 import { createUUID } from "@/utils/uuid";
+import { getDanmakuAPI } from "@/api/danmaku";
 
 const route = useRoute();
 const router = useRouter();
@@ -91,10 +95,13 @@ if ((data.value as any).code === statusCode.OK) {
   navigateTo('/404');
 }
 
-const videoMainWidth = ref(0);
+
+const playerContainerRef = ref<HTMLElement | null>(null)
+const danmakuListHeight = ref(300);
 const handelResize = () => {
-  // w = (16 / 9) *  (屏幕高度 - marginTop - 96px - headerBar高度)
-  videoMainWidth.value = (16 / 9) * (window.innerHeight - 170);
+  nextTick(() => {
+    danmakuListHeight.value = ((playerContainerRef.value?.clientWidth || 730) * 0.5625) + 40 - 104;
+  })
 }
 
 // 视频分集
@@ -104,7 +111,26 @@ const changePart = (target: number) => {
     currentPart.value = target;
   }
   router.replace({ query: { p: currentPart.value } });
+
+  if (videoInfo.value) {
+    getDanmakuList(videoInfo.value.vid, target);
+  }
 }
+
+// 获取弹幕列表
+const playerRef = ref<InstanceType<typeof VideoPlayer> | null>(null);
+const danmakuListRef = ref<InstanceType<typeof DanmakuList> | null>(null);
+
+const getDanmakuList = async (vid: number, part: number) => {
+  const res = await getDanmakuAPI(vid, part);
+  if (res.data.code === statusCode.OK) {
+    const danmakus = res.data.data.danmaku || [];
+    nextTick(() => {
+      playerRef.value?.setDanmaku(danmakus)
+      danmakuListRef.value?.setDanmaku(danmakus)
+    })
+  }
+};
 
 // 简介部分
 const foldDesc = ref(true); // 是否折叠简介
@@ -119,6 +145,10 @@ onMounted(() => {
   } else {
     showFoldBtn.value = false;
     foldDescHeight.value = 'auto';
+  }
+
+  if (videoInfo.value) {
+    getDanmakuList(videoInfo.value.vid, currentPart.value);
   }
 
   handelResize();
@@ -154,7 +184,7 @@ const websocketOnmessage = (e: any) => {
   onlineCount.value = res.number;
 }
 
-onBeforeMount(()=>{
+onBeforeMount(() => {
   initWebSocket();
 })
 
@@ -171,14 +201,19 @@ onBeforeUnmount(() => {
 .video-main {
   padding-top: 80px;
   margin: 0 auto;
-  min-width: 1200px;  // 保持最小宽度为1200px
+  min-width: 1200px;
+  /* 保持最小宽度为 1200px */
+}
 
-  .mian-content {
-    display: flex;
-    width: calc(100% - 100px);  // 根据父容器计算宽度
-    margin: auto 50px;  // 确保子元素也水平居中
-    position: relative;
-  }
+.mian-content {
+  display: flex;
+  width: 100%;
+  /* 让子元素宽度占满父容器 */
+  max-width: calc(100% - 100px);
+  /* 根据父容器计算宽度 */
+  margin: auto 50px;
+  /* 确保子元素水平居中，并有50px的左右边距 */
+  position: relative;
 }
 
 .left-column {

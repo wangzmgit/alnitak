@@ -33,7 +33,7 @@ const options: PlayerOptionsType = {
   video: {
     quality: [],
     defaultQuality: 0,
-    pic: 'demo.png',
+    pic: '',
     type: 'customHls',
     customType: {
       // TODO: 处理IOS系统中的hls视频播放
@@ -68,7 +68,7 @@ const loadPart = async (part: number) => {
   const el = document.getElementById('dplayer');
   if (el) {
     await loadResource(part);
-    await getDanmaku(part);
+    // await getDanmaku(part);
 
     if (player) player.destroy();
 
@@ -78,7 +78,6 @@ const loadPart = async (part: number) => {
       localStorage.setItem('default-video-quality', quality.name);
     })
     filterDanmaku({ disableLeave, disableType });
-
   }
 }
 
@@ -108,15 +107,9 @@ const loadResource = async (part: number) => {
 }
 
 let originalDanmaku: DanmakuType[] = [];
-const getDanmaku = async (part: number) => {
-  const res = await getDanmakuAPI(props.videoInfo.vid, part);
-  if (res.data.code === statusCode.OK) {
-    if (res.data.data.danmaku) {
-      originalDanmaku = res.data.data.danmaku;
-    }
-  }
+const setDanmaku = (data: DanmakuType[]) => {
+  originalDanmaku = data;
 }
-
 // 弹幕显示改变
 const changeShow = (val: boolean) => {
   if (val) {
@@ -214,6 +207,10 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   if (timer) clearInterval(timer);
+})
+
+defineExpose({
+  setDanmaku
 })
 </script>
 

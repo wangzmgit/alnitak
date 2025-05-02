@@ -13,6 +13,7 @@ interface DanmakuType {
   color: string,
   type: number,
   text: string,
+  createdAt?: number;
 }
 
 interface DrawDanmakuType {
