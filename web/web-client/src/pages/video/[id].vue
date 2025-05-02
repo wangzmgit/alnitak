@@ -3,8 +3,8 @@
     <header-bar class="header"></header-bar>
     <div class="video-main">
       <div class="mian-content">
-        <div class="left-column" :style="{ width: `${videoMainWidth}px` }">
-          <div class="video-player">
+        <div class="left-column">
+          <div class="video-player" ref="playerContainerRef">
             <client-only>
               <video-player v-if="videoInfo" ref="playerRef" :video-info="videoInfo" :part="currentPart"></video-player>
             </client-only>
@@ -51,7 +51,7 @@
           <!-- 作者信息 -->
           <author-card v-if="videoInfo" :info="videoInfo.author"></author-card>
           <!-- 添加弹幕列表 -->
-          <!-- <danmaku-list ref="danmakuListRef"></danmaku-list> -->
+          <danmaku-list ref="danmakuListRef" :height="danmakuListHeight"></danmaku-list>
           <!-- 视频分集 -->
           <div v-if="videoInfo && videoInfo.resources.length > 1">
             <part-list :resources="videoInfo.resources" :active="currentPart" @change="changePart"></part-list>
@@ -95,10 +95,13 @@ if ((data.value as any).code === statusCode.OK) {
   navigateTo('/404');
 }
 
-const videoMainWidth = ref(0);
+
+const playerContainerRef = ref<HTMLElement | null>(null)
+const danmakuListHeight = ref(300);
 const handelResize = () => {
-  // w = (16 / 9) *  (屏幕高度 - marginTop - 96px - headerBar高度)
-  videoMainWidth.value = (16 / 9) * (window.innerHeight - 170);
+  nextTick(() => {
+    danmakuListHeight.value = ((playerContainerRef.value?.clientWidth || 730) * 0.5625) + 40 - 104;
+  })
 }
 
 // 视频分集

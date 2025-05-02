@@ -1,5 +1,5 @@
 <template>
-  <div class="danmaku-list-container">
+  <div class="danmaku-list-container" :style="showDanmakuList ? `height: ${props.height}px` : 'height: 44px'">
     <div class="danmaku-header" @click="toggleDanmakuList">
       <div class="header-left">
         <span class="title">弹幕列表</span>
@@ -11,20 +11,18 @@
         </el-icon>
       </div>
     </div>
-
-    <el-scrollbar v-show="showDanmakuList" height="300px">
-      <!-- 表头 -->
-      <div class="danmaku-header-row">
-        <div class="time">时间</div>
-        <div class="text">弹幕内容</div>
-        <div class="send-time">发送时间</div>
-      </div>
-
-      <!-- 弹幕列表 -->
+    <!-- 表头 -->
+    <div class="danmaku-header-row">
+      <div class="time">时间</div>
+      <div class="text">弹幕内容</div>
+      <div class="send-time">发送时间</div>
+    </div>
+    <!-- 弹幕列表 -->
+    <el-scrollbar :height="props.height - 76">
       <div class="danmaku-item" v-for="item in danmakuList" :key="`${item.time}-${item.text}`">
         <div class="time">{{ formatDanmakuTime(item.time) }}</div>
         <div class="text">{{ item.text }}</div>
-        <!-- <div class="send-time">{{ dayjs(item.createdAt).format('MM-DD HH:mm') }}</div> -->
+        <div class="send-time">{{ moment(item.createdAt).format('MM-DD HH:mm') }}</div>
       </div>
     </el-scrollbar>
   </div>
@@ -34,7 +32,13 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { Down as DownIcon } from "@icon-park/vue-next";
+import moment from 'moment';
 
+const props = withDefaults(defineProps<{
+  height: number;
+}>(), {
+  height: 300,
+})
 
 // 添加弹幕列表相关的代码
 const showDanmakuList = ref(false);
@@ -62,13 +66,15 @@ defineExpose({
 
 <style lang="scss" scoped>
 .danmaku-list-container {
-  margin: 20px 0;
-  background: #fff;
-  border: 1px solid #e3e5e7;
-  border-radius: 8px;
+  overflow: hidden;
+  transition: height 0.3s;
+
 
   .danmaku-header {
-    padding: 12px 16px;
+    height: 44px;
+    border-radius: 6px;
+    background-color: #f1f2f3;
+    padding: 0 10px 0 16px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -101,6 +107,7 @@ defineExpose({
         transition: transform 0.3s;
 
         &.is-fold {
+          color: #61666d;
           transform: rotate(-180deg);
         }
       }
@@ -111,10 +118,9 @@ defineExpose({
     padding: 8px 16px;
     display: flex;
     align-items: center;
-    background-color: #f6f7f8;
-    border-top: 1px solid #f1f2f3;
+    background-color: #fff;
     font-size: 12px;
-    color: #9499a0;
+    color: #61666d;
     font-weight: 500;
 
     .time {
@@ -133,15 +139,16 @@ defineExpose({
   }
 
   .danmaku-item {
-    padding: 8px 16px;
+    padding: 0 8px 0 16px;
     display: flex;
+    font-size: 12px;
     align-items: center;
-    border-top: 1px solid #f1f2f3;
+    height: 24px;
+    color: #61666d;
+    cursor: pointer;
 
     .time {
       width: 45px;
-      color: #9499a0;
-      font-size: 12px;
       flex-shrink: 0;
     }
 
@@ -149,7 +156,6 @@ defineExpose({
       flex: 1;
       margin: 0 12px;
       color: #18191c;
-      font-size: 13px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -159,8 +165,6 @@ defineExpose({
       width: 85px;
       flex-shrink: 0;
       text-align: right;
-      color: #9499a0;
-      font-size: 12px;
     }
 
     &:hover {
