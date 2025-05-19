@@ -7448,10 +7448,10 @@ wildcard@^1.1.0:
   resolved "https://registry.npmjs.org/wildcard/-/wildcard-1.1.2.tgz"
   integrity sha512-DXukZJxpHA8LuotRwL0pP1+rS6CS7FF2qStDDE1C7DDg2rLud2PXRMuEDYIPhgEezwnlHNL4c+N6MfMTjCGTng==
 
-wplayer-next@1.0.5:
-  version "1.0.5"
-  resolved "https://registry.yarnpkg.com/wplayer-next/-/wplayer-next-1.0.5.tgz#817284ec4ae2a41f98148a6ad1ec06a8ee0b1d62"
-  integrity sha512-+jlBNTOUcgFyUwNKamzTB0WHQTGFndVkvlKLuoX7GUB2P2SM77wvYjRMXX7f32/NG7pK5r8kRQDOUaVf5ccSvw==
+wplayer-next@1.0.6:
+  version "1.0.6"
+  resolved "https://registry.yarnpkg.com/wplayer-next/-/wplayer-next-1.0.6.tgz#15da552d1f608560c654e43f6db5b377cb2f58e0"
+  integrity sha512-mTLx+k9+8P35Qad9EQ8PvGhhFr9nq79bhI/3r+9cguKHDzbnlLkbpVNgpiJKb+zzALyqP9iDcbf+QG2lLEEk0A==
   dependencies:
     "@commitlint/config-conventional" "^19.1.0"
     balloon-css "^1.0.3"
