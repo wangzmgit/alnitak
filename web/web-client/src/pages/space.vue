@@ -21,7 +21,7 @@
           <div class="user-data">
             <div>
               <p class="data-title">稿件</p>
-              <p class="data-content">{{ videoCount }}</p>
+              <p class="data-content">{{ userInfo?.total || videoCount || 0 }}</p>
             </div>
             <div>
               <p class="data-title">关注</p>
@@ -176,15 +176,18 @@ const getUserInfo = async () => {
 }
 
 onMounted(async () => {
-  // 处理跳转页面回来用户信息为空的问题
-  if (!userInfo.value || userInfo.value.uid === 0) {
-    await getUserInfo();
+  // 总是调用 getUserInfo() 来获取包含 total 的最新数据
+  // 这兼容了初次加载 userInfo 为空或旧数据的情况
+  await getUserInfo();
 
-    document.title = `${userInfo.value?.name}的个人中心`;
-  }
-
-  if (userInfo.value) {
-    getFollowData(userInfo.value.uid);
+  // 确保只有在 userInfo 存在且 uid 不为 0 时才设置文档标题和获取关注数据
+  // (保留了原先对 userInfo 存在性的检查)
+  if (userInfo.value && userInfo.value.uid !== 0) {
+     document.title = `${userInfo.value?.name}的个人中心`;
+     getFollowData(userInfo.value.uid);
+  } else if (!userInfo.value || userInfo.value.uid === 0) {
+      // 如果获取失败或 uid 为 0，可以在这里处理，比如重定向到登录页或显示错误
+      // navigateTo('/login') // 示例，根据需要处理
   }
 })
 
