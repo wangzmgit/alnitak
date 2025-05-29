@@ -46,15 +46,15 @@ func UserRegister(ctx *gin.Context, registerReq dto.RegisterReq) error {
 	return nil
 }
 
-func UserLogin(ctx *gin.Context, loginReq dto.LoginReq) (accessToken, refreshToken string, err error) {
+func UserLogin(ctx *gin.Context, loginReq dto.LoginReq) (userId uint, accessToken, refreshToken string, err error) {
 	// 读取数据库
 	user, err := FindUserByEmail(loginReq.Email)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			cache.IncrLoginTryCount(loginReq.Email) // 记录登录尝试次数
-			return "", "", errors.New("用户名密码不匹配")
+			return 0, "", "", errors.New("用户名密码不匹配")
 		} else {
-			return "", "", errors.New("获取用户信息失败")
+			return 0, "", "", errors.New("获取用户信息失败")
 		}
 	}
 
@@ -62,16 +62,16 @@ func UserLogin(ctx *gin.Context, loginReq dto.LoginReq) (accessToken, refreshTok
 	passwordError := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(loginReq.Password))
 	if passwordError != nil {
 		cache.IncrLoginTryCount(loginReq.Email) // 记录登录尝试次数
-		return "", "", errors.New("用户名密码不匹配")
+		return 0, "", "", errors.New("用户名密码不匹配")
 	}
 
 	// 生成验证token
 	if accessToken, err = jwt.GenerateAccessToken(user.ID); err != nil {
-		return "", "", errors.New("验证token生成失败")
+		return 0, "", "", errors.New("验证token生成失败")
 	}
 	// 生成刷新token
 	if refreshToken, err = jwt.GenerateRefreshToken(user.ID); err != nil {
-		return "", "", errors.New("刷新token生成失败")
+		return 0, "", "", errors.New("刷新token生成失败")
 	}
 
 	// 用户ID写入Cookie
@@ -82,7 +82,7 @@ func UserLogin(ctx *gin.Context, loginReq dto.LoginReq) (accessToken, refreshTok
 	// 存入缓存
 	cache.SetRefreshToken(user.ID, refreshToken)
 
-	return accessToken, refreshToken, nil
+	return user.ID, accessToken, refreshToken, nil
 }
 
 func EmailLogin(ctx *gin.Context, loginReq dto.EmailLoginReq) (accessToken, refreshToken string, err error) {
@@ -412,4 +412,18 @@ func generateUniqueUsername() string {
 
 	// 前缀 + snowflake ID(36进制)
 	return global.Config.User.Prefix + strconv.FormatInt(id.Int64(), 36)
+}
+
+// 统计用户文章数量
+func CountUserArticle(userId uint) int64 {
+	var count int64
+	global.Mysql.Model(&model.Article{}).Where("uid = ?", userId).Count(&count)
+	return count
+}
+
+// 统计用户视频数量
+func CountUserVideo(userId uint) int64 {
+	var count int64
+	global.Mysql.Model(&model.Video{}).Where("uid = ?", userId).Count(&count)
+	return count
 }
