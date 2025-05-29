@@ -184,7 +184,9 @@ const handelLoginRes = async (res: AxiosResponse<any, any>) => {
     case statusCode.OK:
       storageData.set("token", res.data.data.token, 60);
       storageData.set("refreshToken", res.data.data.refreshToken, 7 * 24 * 60);
-
+      if (res.data.data.userId) {
+        document.cookie = `user_id=${res.data.data.userId}; path=/; max-age=604800`;
+      }
       emit("success");
       break;
     default:
