@@ -12,7 +12,26 @@ func GetUserInfo(ctx *gin.Context) {
 	userId := ctx.GetUint("userId")
 	user := service.GetUserInfo(userId)
 
-	resp.OkWithData(ctx, gin.H{"userInfo": user})
+	// 统计稿件总数
+	articleCount := service.CountUserArticle(userId)
+	videoCount := service.CountUserVideo(userId)
+	total := articleCount + videoCount
+
+	userInfo := gin.H{
+		"uid":        user.ID,
+		"name":       user.Username,
+		"sign":       user.Sign,
+		"email":      user.Email,
+		"phone":      user.Phone,
+		"avatar":     user.Avatar,
+		"gender":     user.Gender,
+		"spaceCover": user.SpaceCover,
+		"birthday":   user.Birthday,
+		"createdAt":  user.CreatedAt,
+		"total":      total,
+	}
+
+	resp.OkWithData(ctx, gin.H{"userInfo": userInfo})
 }
 
 func EditUserInfo(ctx *gin.Context) {

@@ -82,14 +82,14 @@ func Login(ctx *gin.Context) {
 		return
 	}
 
-	accessToken, refreshToken, err := service.UserLogin(ctx, loginReq)
+	userId, accessToken, refreshToken, err := service.UserLogin(ctx, loginReq)
 	if err != nil {
 		resp.FailWithMessage(ctx, err.Error())
 		return
 	}
 
 	// 返回给前端
-	resp.OkWithData(ctx, gin.H{"token": accessToken, "refreshToken": refreshToken})
+	resp.OkWithData(ctx, gin.H{"userId": userId, "token": accessToken, "refreshToken": refreshToken})
 }
 
 // 邮箱登录
