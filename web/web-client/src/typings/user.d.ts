@@ -9,6 +9,7 @@ interface UserInfoType {
   birthday?: string
   createdAt?: string
   role?: number
+  total?: number
 }
 
 interface EditUserInfoType {
