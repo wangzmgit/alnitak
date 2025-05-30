@@ -69,6 +69,7 @@ import UploadIcon from "@/components/icons/UploadIcon.vue";
 import ImageCropper from "@/components/image-cropper/index.vue";
 import SpaceCoverCropper from "@/components/image-cropper/components/SpaceCoverCropper.vue";
 import { Male, Female, VideoTwo, FolderFocus, History as HistoryIcon, Message as MessageIcon, Config } from '@icon-park/vue-next';
+import { getUploadVideoAPI } from '@/api/video';
 
 definePageMeta({
   middleware: ['auth', (to) => {
@@ -185,6 +186,9 @@ onMounted(async () => {
 
   if (userInfo.value) {
     getFollowData(userInfo.value.uid);
+    if (route.name !== "space-manuscript") {
+      getUploadVideo()
+    }
   }
 })
 
@@ -203,6 +207,14 @@ const getFollowData = async (id: number | string) => {
   }
 
   userData.loading = false;
+}
+
+// 获取稿件数量
+const getUploadVideo = async () => {
+  const res = await getUploadVideoAPI(1, 1);
+  if (res.data.code === statusCode.OK) {
+    videoCountStore.setVideoCountState(res.data.data.total);
+  }
 }
 </script>
 
