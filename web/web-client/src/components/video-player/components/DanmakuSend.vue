@@ -153,7 +153,7 @@ const setDisableLeave = (val: number) => {
 const setColor = (e: Event) => {
   const eElement = e.target as HTMLElement;
   const color = eElement.getAttribute('name');
-  if (color) danmakuForm.color = color;
+  if (color) danmakuForm.color = `#${color}`;
 }
 
 //开启或关闭弹幕
@@ -165,6 +165,10 @@ const changeShow = (val: boolean | string | number) => {
 
 //发送弹幕
 const sendDanmaku = () => {
+  // 保证颜色有 # 前缀
+  if (!danmakuForm.color.startsWith('#')) {
+    danmakuForm.color = `#${danmakuForm.color}`;
+  }
   emit('send', danmakuForm);
   danmakuForm.text = "";
   danmakuCount.value++;
@@ -186,7 +190,8 @@ onBeforeMount(() => {
     filterSetting.disableType = disableTypeConfig.split(',').map((item) => parseInt(item));
   }
 
-  showDanmaku.value = localStorage.getItem("wplayer-danmaku-show") === '1';
+  const local = localStorage.getItem("wplayer-danmaku-show");
+  showDanmaku.value = local === null ? true : local === '1';
   danmakuOpacity.value = parseFloat(localStorage.getItem("wplayer-danmaku-opacity") || '1');
 })
 </script>
