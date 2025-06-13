@@ -20,10 +20,14 @@ const loginSuccess = () => {
 <style lang="scss" scoped>
 .login-bg {
   top: 0;
+  left: 0;
   z-index: 999;
   position: fixed;
   width: 100%;
   height: 100%;
   background-color: rgba(0, 0, 0, 0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 </style>
