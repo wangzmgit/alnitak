@@ -82,14 +82,14 @@ func Login(ctx *gin.Context) {
 		return
 	}
 
-	accessToken, refreshToken, err := service.UserLogin(ctx, loginReq)
+	accessToken, refreshToken, userId, err := service.UserLogin(ctx, loginReq)
 	if err != nil {
 		resp.FailWithMessage(ctx, err.Error())
 		return
 	}
 
 	// 返回给前端
-	resp.OkWithData(ctx, gin.H{"token": accessToken, "refreshToken": refreshToken})
+	resp.OkWithData(ctx, gin.H{"token": accessToken, "refreshToken": refreshToken, "userId": userId})
 }
 
 // 邮箱登录
@@ -126,14 +126,14 @@ func EmailLogin(ctx *gin.Context) {
 		return
 	}
 
-	accessToken, refreshToken, err := service.EmailLogin(ctx, loginReq)
+	accessToken, refreshToken, userId, err := service.EmailLogin(ctx, loginReq)
 	if err != nil {
 		resp.FailWithMessage(ctx, err.Error())
 		return
 	}
 
 	// 返回给前端
-	resp.OkWithData(ctx, gin.H{"token": accessToken, "refreshToken": refreshToken})
+	resp.OkWithData(ctx, gin.H{"token": accessToken, "refreshToken": refreshToken, "userId": userId})
 }
 
 // 刷新token
@@ -143,14 +143,14 @@ func UpdateToken(ctx *gin.Context) {
 		return
 	}
 
-	accessToken, refreshToken, err := service.UpdateToken(ctx, tokenReq)
+	accessToken, refreshToken, userId, err := service.UpdateToken(ctx, tokenReq)
 	if err != nil {
 		resp.Result(ctx, 2000, nil, err.Error())
 		return
 	}
 
 	// 返回给前端
-	resp.OkWithData(ctx, gin.H{"token": accessToken, "refreshToken": refreshToken})
+	resp.OkWithData(ctx, gin.H{"token": accessToken, "refreshToken": refreshToken, "userId": userId})
 }
 
 // 退出登录
@@ -161,15 +161,6 @@ func Logout(ctx *gin.Context) {
 	}
 
 	service.Logout(ctx, tokenReq)
-
-	// 返回给前端
-	resp.Ok(ctx)
-}
-
-// 清除Cookie
-func ClearCookie(ctx *gin.Context) {
-	ctx.SetCookie("user_id", "", -1, "/", "", false, true)
-	ctx.SetCookie("user_id_md5", "", -1, "/", "", false, true)
 
 	// 返回给前端
 	resp.Ok(ctx)

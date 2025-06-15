@@ -2,7 +2,6 @@ package service
 
 import (
 	"errors"
-	"math"
 	"strconv"
 	"time"
 
@@ -46,15 +45,15 @@ func UserRegister(ctx *gin.Context, registerReq dto.RegisterReq) error {
 	return nil
 }
 
-func UserLogin(ctx *gin.Context, loginReq dto.LoginReq) (accessToken, refreshToken string, err error) {
+func UserLogin(ctx *gin.Context, loginReq dto.LoginReq) (accessToken, refreshToken string, userId uint, err error) {
 	// 读取数据库
 	user, err := FindUserByEmail(loginReq.Email)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			cache.IncrLoginTryCount(loginReq.Email) // 记录登录尝试次数
-			return "", "", errors.New("用户名密码不匹配")
+			return "", "", 0, errors.New("用户名密码不匹配")
 		} else {
-			return "", "", errors.New("获取用户信息失败")
+			return "", "", 0, errors.New("获取用户信息失败")
 		}
 	}
 
@@ -62,79 +61,69 @@ func UserLogin(ctx *gin.Context, loginReq dto.LoginReq) (accessToken, refreshTok
 	passwordError := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(loginReq.Password))
 	if passwordError != nil {
 		cache.IncrLoginTryCount(loginReq.Email) // 记录登录尝试次数
-		return "", "", errors.New("用户名密码不匹配")
+		return "", "", 0, errors.New("用户名密码不匹配")
 	}
 
 	// 生成验证token
 	if accessToken, err = jwt.GenerateAccessToken(user.ID); err != nil {
-		return "", "", errors.New("验证token生成失败")
+		return "", "", 0, errors.New("验证token生成失败")
 	}
 	// 生成刷新token
 	if refreshToken, err = jwt.GenerateRefreshToken(user.ID); err != nil {
-		return "", "", errors.New("刷新token生成失败")
+		return "", "", 0, errors.New("刷新token生成失败")
 	}
-
-	// 用户ID写入Cookie
-	SetUserIdCookie(ctx, user.ID)
-	// token写入Cookie
-	// SetTokenCookie(ctx, accessToken)
 
 	// 存入缓存
 	cache.SetRefreshToken(user.ID, refreshToken)
 
-	return accessToken, refreshToken, nil
+	return accessToken, refreshToken, user.ID, nil
 }
 
-func EmailLogin(ctx *gin.Context, loginReq dto.EmailLoginReq) (accessToken, refreshToken string, err error) {
+func EmailLogin(ctx *gin.Context, loginReq dto.EmailLoginReq) (accessToken, refreshToken string, userId uint, err error) {
 	// 读取数据库
 	user, err := FindUserByEmail(loginReq.Email)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			cache.IncrLoginTryCount(loginReq.Email) // 记录登录尝试次数
-			return "", "", errors.New("用户名密码不匹配")
+			return "", "", 0, errors.New("用户名密码不匹配")
 		} else {
-			return "", "", errors.New("获取用户信息失败")
+			return "", "", 0, errors.New("获取用户信息失败")
 		}
 	}
 
 	// 验证邮箱验证码
 	if cache.GetEmailCode(loginReq.Email) != loginReq.Code {
 		cache.IncrLoginTryCount(loginReq.Email) // 记录登录尝试次数
-		return "", "", errors.New("邮箱验证错误")
+		return "", "", 0, errors.New("邮箱验证错误")
 	}
 
 	// 生成验证token
 	if accessToken, err = jwt.GenerateAccessToken(user.ID); err != nil {
-		return "", "", errors.New("验证token生成失败")
+		return "", "", 0, errors.New("验证token生成失败")
 	}
 	// 生成刷新token
 	if refreshToken, err = jwt.GenerateRefreshToken(user.ID); err != nil {
-		return "", "", errors.New("刷新token生成失败")
+		return "", "", 0, errors.New("刷新token生成失败")
 	}
-
-	// 用户ID写入Cookie
-	SetUserIdCookie(ctx, user.ID)
-	// token写入Cookie
-	// SetTokenCookie(ctx, accessToken)
 
 	// 存入缓存
 	cache.SetRefreshToken(user.ID, refreshToken)
 
-	return accessToken, refreshToken, nil
+	return accessToken, refreshToken, user.ID, nil
 }
 
-func UpdateToken(ctx *gin.Context, tokenReq dto.TokenReq) (accessToken, refreshToken string, err error) {
+func UpdateToken(ctx *gin.Context, tokenReq dto.TokenReq) (accessToken, refreshToken string, userId uint, err error) {
 	// 验证并解析token
 	_, claims, err := jwt.ParseToken(tokenReq.RefreshToken)
 	if err != nil {
 		utils.ErrorLog("token验证失败", "user", err.Error())
-		return "", "", errors.New("token验证失败")
+		return "", "", 0, errors.New("token验证失败")
 	}
 
 	// 读取缓存
 	if !cache.IsRefreshTokenExist(claims.UserId, tokenReq.RefreshToken) { // refreshToken 存在
 		utils.ErrorLog("无效Token", "user", "token不存在")
-		return "", "", errors.New("无效Token")
+		return "", "", 0, errors.New("无效Token")
 	}
 
 	// refreshToken过期时间小于缓冲时间
@@ -145,7 +134,7 @@ func UpdateToken(ctx *gin.Context, tokenReq dto.TokenReq) (accessToken, refreshT
 		refreshToken, err = jwt.GenerateRefreshToken(claims.UserId)
 		if err != nil {
 			utils.ErrorLog("Token生成失败", "user", err.Error())
-			return "", "", errors.New("Token生成失败")
+			return "", "", 0, errors.New("Token生成失败")
 		}
 	}
 
@@ -153,41 +142,21 @@ func UpdateToken(ctx *gin.Context, tokenReq dto.TokenReq) (accessToken, refreshT
 	accessToken, err = jwt.GenerateAccessToken(claims.UserId)
 	if err != nil {
 		utils.ErrorLog("AccessToken生成失败", "user", err.Error())
-		return "", "", errors.New("Token生成失败")
+		return "", "", 0, errors.New("Token生成失败")
 	}
-
-	// 用户ID写入Cookie
-	SetUserIdCookie(ctx, claims.UserId)
 
 	// 存入缓存
 	if refreshToken != "" {
 		cache.SetRefreshToken(claims.UserId, refreshToken)
 	}
 
-	return accessToken, refreshToken, nil
+	return accessToken, refreshToken, claims.UserId, nil
 }
 
 func Logout(ctx *gin.Context, tokenReq dto.TokenReq) {
 	userId := ctx.GetUint("userId")
 	// 删除token
 	cache.DelRefreshToken(userId, tokenReq.RefreshToken)
-	// 移除用户cookie
-	ctx.SetCookie("user_id", "", -1, "/", "", false, true)
-	ctx.SetCookie("user_id_md5", "", -1, "/", "", false, true)
-}
-
-// 生成用户Id和md5并写入Cookie
-func SetUserIdCookie(ctx *gin.Context, userId uint) {
-	salt := global.Config.Security.UserIdSalt
-	ckMd5 := utils.GenerateSaltedMD5(strconv.Itoa(int(userId)), salt)
-
-	ctx.SetCookie("user_id", strconv.Itoa(int(userId)), math.MaxInt32, "/", "", false, true)
-	ctx.SetCookie("user_id_md5", ckMd5, math.MaxInt32, "/", "", false, true)
-}
-
-// 用户Token写入Cookie
-func SetTokenCookie(ctx *gin.Context, token string) {
-	ctx.SetCookie("token", token, math.MaxInt32, "/", "", false, true)
 }
 
 // 编辑用户信息

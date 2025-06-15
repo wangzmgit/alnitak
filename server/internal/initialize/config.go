@@ -40,9 +40,6 @@ func initDefaultConfigItems() {
 	if viper.GetString("security.refresh_jwt_secret") == "" {
 		viper.Set("security.refresh_jwt_secret", utils.GenerateNumberCode(16))
 	}
-	if viper.GetString("security.user_id_salt") == "" {
-		viper.Set("security.user_id_salt", utils.GenerateNumberCode(16))
-	}
 
 	viper.WriteConfig()
 }
