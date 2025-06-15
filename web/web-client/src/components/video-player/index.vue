@@ -227,6 +227,15 @@ defineExpose({
     height: 100%;
     position: absolute;
     background-color: black;
+
+    &.wplayer-fulled {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 9999;
+    }
   }
 
 
@@ -234,6 +243,10 @@ defineExpose({
     position: absolute;
     width: 100%;
     bottom: -40px;
+
+    .player-container.wplayer-fulled & {
+      display: none;
+    }
   }
 }
 </style>
