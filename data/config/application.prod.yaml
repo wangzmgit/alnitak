@@ -45,7 +45,6 @@ security:
   close_record_user_operation: false
   access_jwt_secret: 
   refresh_jwt_secret: 
-  user_id_salt: 
 storage:
   # oss的bucket，非local类型必填
   bucket: 
