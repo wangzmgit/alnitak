@@ -25,11 +25,6 @@ export function logoutAPI(refreshToken: string) {
   return request.post('v1/auth/logout', { refreshToken });
 }
 
-// 清除Cookie
-export function clearCookieAPI() {
-  return request.post('v1/auth/clearCookie',);
-}
-
 // 重置密码验证
 export const resetpwdCheckAPI = (data: ModifyPwdCheckType) => {
   return request.post('v1/auth/resetpwdCheck', data);

@@ -74,6 +74,7 @@
 
 <script setup lang="ts">
 import { onBeforeMount, ref } from 'vue';
+import Cookies from "js-cookie";
 import { logoutAPI } from '@/api/auth';
 import { getUserInfoAPI } from '@/api/user';
 import LoginDialog from "@/components/login-dialog/index.vue";
@@ -112,6 +113,8 @@ const logout = async () => {
 
   storageData.remove("token");
   storageData.remove('refreshToken');
+  Cookies.remove('user_id');
+
   isLoggedIn.value = false;
 }
 
