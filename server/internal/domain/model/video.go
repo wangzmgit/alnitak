@@ -11,7 +11,7 @@ type Video struct {
 	Copyright   bool    `gorm:"comment:是否为原创;not null"`
 	Clicks      int64   `gorm:"comment:点击量;default:0"`
 	Status      int     `gorm:"comment:审核状态;not null"`
-	PartitionId uint    `gorm:"comment:分区ID;deult:0"`
+	PartitionId uint    `gorm:"comment:分区ID"`
 	Tags        string  `gorm:"type:varchar(100);comment:标签;"`
 	Duration    float64 `gorm:"comment:视频时长;default:0"`
 
