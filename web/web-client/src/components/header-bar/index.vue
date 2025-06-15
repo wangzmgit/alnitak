@@ -78,6 +78,7 @@ import {
   User as UserIcon, Logout as LogoutIcon,
   Right as RightIcon, FolderFocusOne as CollectIcon
 } from '@icon-park/vue-next';
+import Cookies from "js-cookie";
 import { logoutAPI } from '@/api/auth';
 import { getUserInfoAPI } from '@/api/user';
 import CommonAvatar from '@/components/common-avatar/index.vue';
@@ -116,6 +117,8 @@ const logout = async () => {
 
   storageData.remove("token");
   storageData.remove('refreshToken');
+  Cookies.remove('user_id');
+
   isLoggedIn.value = false;
 }
 

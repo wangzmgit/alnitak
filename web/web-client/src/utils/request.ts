@@ -1,4 +1,5 @@
 import axios from "axios";
+import Cookies from "js-cookie";
 import type { AxiosInstance } from "axios";
 import { updateTokenAPI } from "@/api/auth";
 import { statusCode } from "./status-code";
@@ -37,6 +38,7 @@ service.interceptors.request.use(async (config) => {
             const refreshToken = tokenRes.data.data.refreshToken;
 
             storage.set("token", token, 60);
+            Cookies.set('user_id', tokenRes.data.data.userId)
             if (refreshToken && refreshToken !== localRefreshToken) {
               storage.set("refreshToken", refreshToken, 7 * 24 * 60);
             }
@@ -89,6 +91,8 @@ service.interceptors.response.use(async (res) => {
 
               storage.set("token", token, 60);
               storage.set("refreshToken", refreshToken, 7 * 24 * 60);
+              Cookies.set('user_id', tokenRes.data.data.userId)
+
               res.config.headers.Authorization = token;
 
               //token刷新前的401请求队列重试
@@ -117,8 +121,9 @@ service.interceptors.response.use(async (res) => {
         break;
       case statusCode.LOGIN_AGAIN:
         // 清理缓存信息
-        storageData.remove("token");
-        storageData.remove('refreshToken');
+        storage.remove("token");
+        storage.remove('refreshToken');
+        Cookies.remove('user_id')
         navigateTo({ name: 'login' })
         break;
     }

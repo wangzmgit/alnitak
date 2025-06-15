@@ -24,8 +24,3 @@ export function updateTokenAPI(refreshToken: string) {
 export function logoutAPI(refreshToken: string) {
   return request.post('v1/auth/logout', { refreshToken });
 }
-
-// 清除Cookie
-export function clearCookieAPI() {
-  return request.post('v1/auth/clearCookie',);
-}
