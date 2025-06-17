@@ -42,7 +42,7 @@ type RegisterReq struct {
 type EditUserInfoReq struct {
 	Avatar     string
 	Name       string
-	Gender     string
+	Gender     int
 	Birthday   string
 	Sign       string
 	SpaceCover string
