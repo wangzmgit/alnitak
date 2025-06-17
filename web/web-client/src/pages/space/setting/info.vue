@@ -11,8 +11,8 @@
       <el-form-item label="昵称:">
         <el-input class="form-input name" v-model="userInfo.name" placeholder="请输入昵称" maxlength="20" show-count />
       </el-form-item>
-      <el-form-item label="性别:">
-        <el-radio-group class="form-item" v-model="userInfo.gender">
+      <el-form-item label="性别:" label-for="gender-radio-group">
+        <el-radio-group id="gender-radio-group" class="form-item" v-model="userInfo.gender">
           <el-radio-button label="0">保密</el-radio-button>
           <el-radio-button label="1">男</el-radio-button>
           <el-radio-button label="2">女</el-radio-button>
@@ -92,7 +92,7 @@ const editUserInfo = async () => {
     avatar: userInfo.value.avatar,
     name: userInfo.value.name,
     sign: userInfo.value.sign || "",
-    gender: userInfo.value.gender || 0,
+    gender: Number(userInfo.value.gender) || 0,
     birthday: userInfo.value.birthday || '1970-1-1',
     spaceCover: userInfo.value.spaceCover,
   }
