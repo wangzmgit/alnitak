@@ -326,10 +326,11 @@ onBeforeMount(async () => {
 .carousel-title-link {
   color: inherit;
   text-decoration: none;
-  transition: color 0.2s;
+  transition: color 0.2s, text-shadow 0.2s;
 }
 .carousel-title-link:hover {
-  color: var(--primary-color);
+  color: #fff;
+  text-shadow: 0 0 8px #fff, 0 0 16px #fff;
 }
   
 </style>
