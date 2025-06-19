@@ -4,22 +4,37 @@
       :style="`width: ${data.containerWidth}%;transition: ${data.transition};transform: ${data.transform}`"
       @mouseover="manualSwitching(null, false)" @mouseleave="manualSwitching(null, true)">
       <div class="carousel-item" :style="`width: ${data.itemWidth}% `" v-for="item in data.playList">
+        <template v-if="item.url">
+          <a :href="item.url" target="_blank" class="carousel-link">
         <img class="carousel-img" :src="getResourceUrl(item.img)" :alt="item.title" />
         <div class="carousel-mask" :style="`background-color: ${item.color}`"></div>
+          </a>
+        </template>
+        <template v-else>
+          <img class="carousel-img" :src="getResourceUrl(item.img)" :alt="item.title" />
+          <div class="carousel-mask" :style="`background-color: ${item.color}`"></div>
+        </template>
       </div>
     </div>
     <div class="carousel-footer">
       <div class="tool">
         <p class="title" v-if="carouselList[data.currentIndex]">
-          {{ carouselList[data.currentIndex].title || "" }}
+          <template v-if="carouselList[data.currentIndex].url">
+            <a :href="carouselList[data.currentIndex].url" target="_blank" class="carousel-title-link">
+              {{ carouselList[data.currentIndex].title || "" }}
+            </a>
+          </template>
+          <template v-else>
+            {{ carouselList[data.currentIndex].title || "" }}
+          </template>
         </p>
-        <div class="dots">
+        <div class="dots" v-if="data.carouselCount > 1">
           <div class="dot" v-for="index of data.carouselCount" :key="index"
             :class="data.currentIndex === index - 1 ? 'dot-active' : ''" @click="changeCurrentIndex(index - 1)">
           </div>
         </div>
       </div>
-      <div class="arrow">
+      <div class="arrow" v-if="data.carouselCount > 1">
         <button @click="arrowClick(false)">
           <arrow-left></arrow-left>
         </button>
@@ -70,6 +85,14 @@ const carouselContainer = ref<HTMLElement | null>(null);
 //初始化轮播图
 const initCarousel = () => {
   data.carouselCount = carouselList.value.length;
+  if (data.carouselCount <= 1) {
+    data.itemWidth = 100;
+    data.containerWidth = 100;
+    data.playList = carouselList.value.slice();
+    data.transition = "";
+    data.transform = "none";
+    return;
+  }
   data.itemWidth = 100 / data.carouselCount;
   data.containerWidth = 100 * data.carouselCount;
 
@@ -87,6 +110,7 @@ const initCarousel = () => {
 
 // 开启定期切换
 const startInterval = () => {
+  if (data.carouselCount <= 1) return; // 只有多于一张图才自动切换
   data.carouselTimer = window.setInterval(() => {
     changeCurrentImg(true);
   }, 3000)
@@ -197,6 +221,12 @@ onBeforeMount(async () => {
   position: relative;
   height: 100%;
 
+  .carousel-link {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  
   .carousel-img {
     width: 100%;
     height: 320px;
@@ -291,4 +321,16 @@ onBeforeMount(async () => {
     }
   }
 }
+
+//标题高亮交互！
+.carousel-title-link {
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.2s, text-shadow 0.2s;
+}
+.carousel-title-link:hover {
+  color: #fff;
+  text-shadow: 0 0 8px #fff, 0 0 16px #fff;
+}
+  
 </style>
