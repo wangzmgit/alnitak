@@ -105,6 +105,10 @@ const handelResize = () => {
 }
 
 // 视频分集
+// 校验 p 参数有效性，无效则重定向到 p1
+if (route.query.p && Number(route.query.p) > videoInfo.value!.resources.length) {
+  router.replace({ path: `/video/${videoId}`, query: { p: 1 } });
+}
 const currentPart = ref(Number(route.query.p) || 1);
 const changePart = (target: number) => {
   if (videoInfo.value?.resources[target - 1]) {
@@ -123,6 +127,8 @@ watch(() => route.query.p, (newP) => {
   if (videoInfo.value?.resources[partNum - 1]) {
     currentPart.value = partNum;
     getDanmakuList(videoInfo.value.vid, partNum);
+  } else {
+    router.replace({ path: `/video/${videoId}`, query: { p: 1 } });
   }
 });
 
