@@ -40,6 +40,7 @@
 </template>
 
 <script setup lang="ts">
+import Cookies from "js-cookie";
 import { isEmail } from "@/utils/verify";
 import { loginAPI, emailLoginAPI } from "@/api/auth";
 import type { AxiosResponse } from "axios";
@@ -184,6 +185,7 @@ const handelLoginRes = async (res: AxiosResponse<any, any>) => {
     case statusCode.OK:
       storageData.set("token", res.data.data.token, 60);
       storageData.set("refreshToken", res.data.data.refreshToken, 7 * 24 * 60);
+      Cookies.set('user_id', res.data.data.userId)
 
       emit("success");
       break;
