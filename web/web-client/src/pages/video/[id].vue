@@ -65,7 +65,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from "vue";
+import { ref, onMounted, onBeforeUnmount, watch } from "vue";
 import { ElIcon } from "element-plus";
 import { Forbid as ForbidIcon } from "@icon-park/vue-next";
 import { formatTime } from "@/utils/format";
@@ -105,7 +105,7 @@ const handelResize = () => {
 }
 
 // 视频分集
-const currentPart = ref(1);
+const currentPart = ref(Number(route.query.p) || 1);
 const changePart = (target: number) => {
   if (videoInfo.value?.resources[target - 1]) {
     currentPart.value = target;
@@ -117,6 +117,16 @@ const changePart = (target: number) => {
   }
 }
 
+// 监听路由参数 p，自动切换分P和弹幕
+watch(() => route.query.p, (newP) => {
+  const partNum = Number(newP) || 1;
+  if (videoInfo.value?.resources[partNum - 1]) {
+    currentPart.value = partNum;
+    getDanmakuList(videoInfo.value.vid, partNum);
+  }
+});
+
+  
 // 获取弹幕列表
 const playerRef = ref<InstanceType<typeof VideoPlayer> | null>(null);
 const danmakuListRef = ref<InstanceType<typeof DanmakuList> | null>(null);
