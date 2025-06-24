@@ -48,12 +48,27 @@ func AddHistory(ctx *gin.Context, historyReq dto.HistoryReq) error {
 
 func GetHistoryList(ctx *gin.Context, page, pageSize int) (videos []vo.HistoryVideoResp, err error) {
 	userId := ctx.GetUint("userId")
-	if err := global.Mysql.Model(&model.History{}).Select(vo.HISTORY_VIDEO_FIELD).
-		Joins("LEFT JOIN `video` ON `video`.id = `history`.vid").Where("`history`.uid = ?", userId).
+	if err := global.Mysql.Model(&model.History{}).
+		Select("video.id as id, video.uid, video.title, video.cover, video.desc, history.updated_at, history.time, history.part").
+		Joins("LEFT JOIN `video` ON `video`.id = `history`.vid").
+		Where("`history`.uid = ?", userId).
 		Order("`history`.`updated_at` desc").Limit(pageSize).Offset((page - 1) * pageSize).
 		Find(&videos).Error; err != nil {
 		utils.ErrorLog("获取历史记录视频失败", "history", err.Error())
 		return videos, errors.New("获取失败")
+	}
+	// 批量查分P标题
+	vidPartMap := make(map[uint][]model.Resource)
+	for i := range videos {
+		if _, ok := vidPartMap[videos[i].ID]; !ok {
+			var resources []model.Resource
+			global.Mysql.Where("vid = ?", videos[i].ID).Order("id asc").Find(&resources)
+			vidPartMap[videos[i].ID] = resources
+		}
+		resources := vidPartMap[videos[i].ID]
+		if int(videos[i].Part) > 0 && int(videos[i].Part) <= len(resources) {
+			videos[i].PartTitle = resources[videos[i].Part-1].Title
+		}
 	}
 
 	return
