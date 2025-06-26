@@ -15,5 +15,6 @@ type HistoryVideoResp struct {
 	Time      float64   `json:"time"`
 	UpdatedAt time.Time `json:"updatedAt"`
 	Part      uint      `json:"part"`      // 分P序号
-	PartTitle string    `json:"partTitle"` // 分P标题
+	//可能不用了
+	//PartTitle string    `json:"partTitle"` // 分P标题
 }
