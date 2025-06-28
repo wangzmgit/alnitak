@@ -2,8 +2,6 @@ package service
 
 import (
 	"errors"
-	"fmt"
-	"sort"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -50,63 +48,37 @@ func AddHistory(ctx *gin.Context, historyReq dto.HistoryReq) error {
 
 func GetHistoryList(ctx *gin.Context, page, pageSize int) (videos []vo.HistoryVideoResp, err error) {
 	userId := ctx.GetUint("userId")
-	var all []vo.HistoryVideoResp
+	subQuery := global.Mysql.Model(&model.History{}).Where("uid = ?", userId).Select(vo.HISTORY_SUBQUERY_FIELD).Group("vid")
 	if err := global.Mysql.Model(&model.History{}).Select(vo.HISTORY_VIDEO_FIELD).
-		Joins("LEFT JOIN `video` ON `video`.id = `history`.vid").Where("`history`.uid = ?", userId).
-		Order("`history`.`updated_at` desc").Find(&all).Error; err != nil {
+		Joins("LEFT JOIN `video` ON `video`.id = `history`.vid").
+		Joins("INNER JOIN (?) latest on `history`.vid = latest.vid and `history`.updated_at = latest.latest_updated_at", subQuery).
+		Where("`history`.uid = ? and video.deleted_at is null and video.`status` = ?", userId, global.AUDIT_APPROVED).
+		Order("`history`.`updated_at` desc").Limit(pageSize).Offset((page - 1) * pageSize).
+		Find(&videos).Error; err != nil {
 		utils.ErrorLog("获取历史记录视频失败", "history", err.Error())
 		return videos, errors.New("获取失败")
 	}
-	// 只保留每个视频id下分集中updated_at最大的那条
-	vidMap := make(map[uint]vo.HistoryVideoResp)
-	for _, v := range all {
-		if old, ok := vidMap[v.ID]; !ok || v.UpdatedAt.After(old.UpdatedAt) {
-			vidMap[v.ID] = v
-		}
-	}
-	// 分页
-	var result []vo.HistoryVideoResp
-	for _, v := range vidMap {
-		result = append(result, v)
-	}
-	// 按updated_at倒序
-	sort.Slice(result, func(i, j int) bool {
-		return result[i].UpdatedAt.After(result[j].UpdatedAt)
-	})
-	start := (page - 1) * pageSize
-	end := start + pageSize
-	if start > len(result) {
-		return []vo.HistoryVideoResp{}, nil
-	}
-	if end > len(result) {
-		end = len(result)
-	}
-	return result[start:end], nil
+
+	return
 }
 
 func GetHistoryProgress(ctx *gin.Context, videoId, part uint) (progress float64, realPart uint, err error) {
 	userId := ctx.GetUint("userId")
 	var history model.History
 	if part == 0 {
-		err = global.Mysql.Where("vid = ? and uid= ?", videoId, userId).Order("updated_at desc").First(&history).Error
-		if err != nil {
-			detail := err.Error() + " | videoId=" + fmt.Sprint(videoId) + ", userId=" + fmt.Sprint(userId) + ", part=" + fmt.Sprint(part)
-			utils.ErrorLog("获取历史记录进度失败", "history", detail)
-			return 0, 0, errors.New("获取失败")
-		}
+		history, err = FindLatestHistory(videoId, userId)
 	} else {
 		history, err = FindHistoryByPart(videoId, userId, part)
-		if err != nil {
-			detail := err.Error() + " | videoId=" + fmt.Sprint(videoId) + ", userId=" + fmt.Sprint(userId) + ", part=" + fmt.Sprint(part)
-			utils.ErrorLog("获取历史记录进度失败", "history", detail)
-			return 0, 0, errors.New("获取失败")
-		}
+	}
+	if err != nil {
+		utils.ErrorLog("获取历史记录进度失败", "history", err.Error())
+		return 0, 0, errors.New("获取失败")
 	}
 	return history.Time, history.Part, nil
 }
 
-func FindHistory(videoId, userId uint) (history model.History, err error) {
-	if err = global.Mysql.Where("vid = ? and uid= ?", videoId, userId).First(&history).Error; err != nil {
+func FindLatestHistory(videoId, userId uint) (history model.History, err error) {
+	if err = global.Mysql.Where("vid = ? and uid= ?", videoId, userId).Order("updated_at desc").First(&history).Error; err != nil {
 		return
 	}
 
@@ -114,8 +86,7 @@ func FindHistory(videoId, userId uint) (history model.History, err error) {
 }
 
 func FindHistoryByPart(videoId, userId, part uint) (history model.History, err error) {
-	if err = global.Mysql.Where("vid = ? and uid= ? and part = ?", videoId, userId, part).
-		First(&history).Error; err != nil {
+	if err = global.Mysql.Where("vid = ? and uid= ? and part = ?", videoId, userId, part).First(&history).Error; err != nil {
 		return
 	}
 
