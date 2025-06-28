@@ -19,7 +19,7 @@
             <div class="title" v-if="modifyIndex !== index" @click="titleClick(item, index)">
               <span>{{ item.title || "未命名视频" }}</span>
             </div>
-            <el-input v-else ref="titleInput" v-model="modifyForm.title" maxlength="50" show-word-limit
+            <el-input v-else ref="titleInput" v-model="modifyForm.title" maxlength="100" show-word-limit
               @blur="modifyTitle(item)" />
           </div>
           <client-only>

@@ -15,13 +15,15 @@ import { ref, onBeforeMount, watch, onMounted } from 'vue';
 import { getDanmakuAPI, sendDanmakuAPI } from "@/api/danmaku";
 import DanmakuSend from "./components/DanmakuSend.vue";
 import { getResourceQualityApi, getVideoFileUrl } from "@/api/video";
-import { addHistoryAPI, getHistoryProgressAPI } from "@/api/history";
+import { addHistoryAPI } from "@/api/history";
 
 const props = withDefaults(defineProps<{
   videoInfo: VideoType;
-  part: number
+  part: number;
+  progress: number | null;
 }>(), {
-  part: 1
+  part: 1,
+  progress: null
 })
 
 let player: any = null;
@@ -64,12 +66,22 @@ const initFilterConfig = () => {
   }
 }
 
+let pendingSeek: number | null = null;
+
+watch(() => props.progress, (val) => {
+  console.log('[video-player] 父组件传递的progress变化:', val, player);
+  if (val != null && player) {
+    player.seek(val);
+    pendingSeek = null;
+  } else if (val != null) {
+    pendingSeek = val;
+  }
+});
+
 const loadPart = async (part: number) => {
   const el = document.getElementById('dplayer');
   if (el) {
     await loadResource(part);
-    // await getDanmaku(part);
-
     if (player) player.destroy();
 
     options.container = el;
@@ -78,6 +90,13 @@ const loadPart = async (part: number) => {
       localStorage.setItem('default-video-quality', quality.name);
     })
     filterDanmaku({ disableLeave, disableType });
+    // 初始化后补一次 seek
+    if (pendingSeek != null) {
+      player.seek(pendingSeek);
+      pendingSeek = null;
+    } else if (props.progress != null) {
+      player.seek(props.progress);
+    }
   }
 }
 
@@ -91,15 +110,32 @@ const resourceNameMap = {
 }
 
 const loadResource = async (part: number) => {
-  const resource = props.videoInfo.resources[part - 1];
-  const res = await getResourceQualityApi(resource.id);
+  const resource = props.videoInfo.resources[part - 1]
+  const res = await getResourceQualityApi(resource.id)
   if (res.data.code === statusCode.OK) {
-    options.video.quality = res.data.data.quality.map((item: keyof typeof resourceNameMap, index: number) => {
-      if (resourceNameMap[item] === defaultQuality.value) {
-        options.video.defaultQuality = index;
+    // 复制并根据分辨率宽度 & 帧率从高到低排序
+    const qualities = [...res.data.data.quality] as (keyof typeof resourceNameMap)[]
+    qualities.sort((a, b) => {
+      // 解析宽度
+      const wa = parseInt(a.split('x')[0], 10)
+      const wb = parseInt(b.split('x')[0], 10)
+      if (wb !== wa) {
+        return wb - wa
+      }
+      // 宽度相同时，解析帧率
+      const fpsA = parseInt(a.split('_').pop() || '0', 10)
+      const fpsB = parseInt(b.split('_').pop() || '0', 10)
+      return fpsB - fpsA
+    })
+
+    // 映射并设置默认质量索引
+    options.video.quality = qualities.map((item, index) => {
+      const name = resourceNameMap[item]
+      if (name === defaultQuality.value) {
+        options.video.defaultQuality = index
       }
       return {
-        name: resourceNameMap[item],
+        name,
         url: getVideoFileUrl(resource.id, item),
       }
     })
@@ -170,21 +206,16 @@ const uploadHistory = async () => {
   await addHistoryAPI({ vid: props.videoInfo.vid, part: props.part, time: player.video.currentTime });
 }
 
-// 获取历史记录
-const getHistoryProgress = async () => {
-  const res = await getHistoryProgressAPI(props.videoInfo.vid, props.part);
-  if (res.data.code === statusCode.OK) {
-    player.seek(res.data.data.progress)
-  } else {
-    uploadHistory();
-  }
-}
-
 watch(() => props.part, (val) => {
   loadPart(val);
 });
 
 let timer: number | null = null;
+const onReadyCallbacks: Array<() => void> = [];
+const setOnReady = (cb: () => void) => {
+  onReadyCallbacks.push(cb);
+};
+
 onMounted(async () => {
   const quality = localStorage.getItem('default-video-quality');
   if (quality) {
@@ -197,8 +228,12 @@ onMounted(async () => {
   initFilterConfig();
   await loadPart(props.part);
 
-  // 获取当前播放进度（如果没有就保存历史记录）
-  await getHistoryProgress();
+  if (player) {
+    player.on('loadedmetadata', () => {
+      onReadyCallbacks.forEach(cb => cb());
+      onReadyCallbacks.length = 0;
+    });
+  }
 
   timer = window.setInterval(() => {
     uploadHistory();
@@ -210,6 +245,8 @@ onBeforeUnmount(() => {
 })
 
 defineExpose({
+  setOnReady,
+  uploadHistory,
   setDanmaku
 })
 </script>

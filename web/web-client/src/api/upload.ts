@@ -50,32 +50,33 @@ export const uploadFileChunkAPI = async ({ name, file, action, onProgress, onFin
 
   if (tasks.length === 0) {
     finishUploadAPI({ hash, action, onFinish, onError })
-    return;
+    return { controllers: [] };
   }
 
   // 如果服务器不存在数据则手动上传第一个分片
   if (tasks.length === totalChunks) {
     const chunk = file.slice(0, Math.min(CHUNK_SIZE, file.size));
     const formData = formDataGenerator(chunk, "0");
-    const firstChunkRes = await uploadChunkAPI(formData)
+    const controller = new AbortController();
+    const firstChunkRes = await uploadChunkAPI(formData, controller)
     if (firstChunkRes.data.code === statusCode.OK) {
       uploadedChunks.push(0);
       tasks.splice(tasks.indexOf(0), 1);
     } else {
       onError(firstChunkRes.data)
-      return;
+      return { controllers: [controller] };
     }
   }
-
   // 上传进度
  let taskQueue = [...tasks]
  let currentUploads = 0;
  let uploadedChunksCount = uploadedChunks.length;
+ const controllers: AbortController[] = [];
 
   const processQueue = () => {
     while (currentUploads < MAX_CONCURRENT_UPLOADS && taskQueue.length > 0) {
-      const nextTaskIndex = taskQueue.shift(); // 从队列中取出下一个任务
-      if (!nextTaskIndex) break;
+      const nextTaskIndex = taskQueue.shift();// 从队列中取出下一个任务
+      if (nextTaskIndex === undefined) break;
       currentUploads++;
       uploadChunk(nextTaskIndex); // 上传该块
     }
@@ -86,9 +87,10 @@ export const uploadFileChunkAPI = async ({ name, file, action, onProgress, onFin
     const end = Math.min(start + CHUNK_SIZE, file.size);
     const chunk = file.slice(start, end);
     const formData = formDataGenerator(chunk, i.toString());
-
+    const controller = new AbortController();
+    controllers.push(controller);
     try {
-      const res = await uploadChunkAPI(formData);
+      const res = await uploadChunkAPI(formData, controller);
       if (res.data.code === statusCode.OK) {
         uploadedChunksCount++;
         // 更新进度
@@ -102,7 +104,11 @@ export const uploadFileChunkAPI = async ({ name, file, action, onProgress, onFin
         onError(res.data);
       }
     } catch (error) {
-      onError(error);
+      if (typeof error === 'object' && error !== null && 'name' in error && (error as any).name === 'CanceledError') {
+        // 被取消
+      } else {
+        onError(error);
+      }
     } finally {
       currentUploads--;
       processQueue(); // 尝试处理下一个任务
@@ -111,6 +117,7 @@ export const uploadFileChunkAPI = async ({ name, file, action, onProgress, onFin
 
   // 开始处理队列
   processQueue();
+  return { controllers };
 }
 
 const createFormDataGenerator = (hash: string, name: string, fileName: string, totalChunks: string) => {
@@ -144,8 +151,8 @@ const getUploadedChunksAPI = async (hash: string) => {
   return []
 }
 
-const uploadChunkAPI = (formData: FormData) => {
-  return request.post("v1/upload/chunkVideo", formData)
+const uploadChunkAPI = (formData: FormData, controller?: AbortController) => {
+  return request.post("v1/upload/chunkVideo", formData, controller ? { signal: controller.signal } : undefined)
 }
 
 const mergeUploadedChunksAPI = async (hash: string) => {

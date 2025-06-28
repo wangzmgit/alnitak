@@ -15,7 +15,7 @@
     <!-- 视频信息表单 -->
     <el-form class="info-form" :model="videoForm" label-position="left" label-width="80px">
       <el-form-item label="标题" class="required">
-        <el-input v-if="!loadingForm" v-model="videoForm.title" placeholder="请输入标题" maxlength="50" show-word-limit />
+        <el-input v-if="!loadingForm" v-model="videoForm.title" placeholder="请输入标题" maxlength="100" show-word-limit />
         <form-skeleton v-else></form-skeleton>
       </el-form-item>
       <el-form-item label="视频简介">
