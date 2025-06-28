@@ -68,15 +68,18 @@ const initFilterConfig = () => {
 
 let pendingSeek: number | null = null;
 
-watch(() => props.progress, (val) => {
-  console.log('[video-player] 父组件传递的progress变化:', val, player);
-  if (val != null && player) {
-    player.seek(val);
-    pendingSeek = null;
-  } else if (val != null) {
-    pendingSeek = val;
-  }
-});
+watch(
+  () => props.progress,
+  (val) => {
+    if (val != null && player) {
+      player.seek(val);
+      pendingSeek = null;
+    } else if (val != null) {
+      pendingSeek = val;
+    }
+  },
+  { immediate: true }
+);
 
 const loadPart = async (part: number) => {
   const el = document.getElementById('dplayer');
@@ -95,12 +98,11 @@ const loadPart = async (part: number) => {
 }
 
 const resourceNameMap = {
-  "640x360_500k_30": "360p",
-  "854x480_900k_30": "480p",
-  "1080x720_2000k_30": "720p",// 兼容之前的错误
-  "1280x720_2000k_30": "720p",
-  "1920x1080_3000k_30": "1080p",
-  "1920x1080_6000k_60": "1080p60",
+  "640x360_1000k_30": "360p",
+  "854x480_1500k_30": "480p",
+  "1280x720_3000k_30": "720p",
+  "1920x1080_6000k_30": "1080p",
+  "1920x1080_8000k_60": "1080p60",
 }
 
 const loadResource = async (part: number) => {
@@ -226,10 +228,12 @@ onMounted(async () => {
     player.on('loadedmetadata', () => {
       onReadyCallbacks.forEach(cb => cb());
       onReadyCallbacks.length = 0;
+      // loadedmetadata 兜底 seek
+      if (pendingSeek != null) {
+        player.seek(pendingSeek);
+        pendingSeek = null;
+      }
     });
-    if (props.progress != null) {
-      player.seek(props.progress);
-    }
   }
 
   timer = window.setInterval(() => {
