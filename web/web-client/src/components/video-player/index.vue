@@ -90,13 +90,7 @@ const loadPart = async (part: number) => {
       localStorage.setItem('default-video-quality', quality.name);
     })
     filterDanmaku({ disableLeave, disableType });
-    // 初始化后补一次 seek
-    if (pendingSeek != null) {
-      player.seek(pendingSeek);
-      pendingSeek = null;
-    } else if (props.progress != null) {
-      player.seek(props.progress);
-    }
+
   }
 }
 
@@ -233,6 +227,9 @@ onMounted(async () => {
       onReadyCallbacks.forEach(cb => cb());
       onReadyCallbacks.length = 0;
     });
+    if (props.progress != null) {
+      player.seek(props.progress);
+    }
   }
 
   timer = window.setInterval(() => {
