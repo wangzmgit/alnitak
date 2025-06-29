@@ -1,0 +1,1 @@
+import{_ as t,c as a,o as s,a2 as i}from"./chunks/framework.CmeiYqq3.js";const u=JSON.parse('{"title":"API管理相关接口","description":"","frontmatter":{},"headers":[],"relativePath":"api/api.md","filePath":"api/api.md"}'),l={name:"api/api.md"},e=i("",98),n=[e];function h(d,p,r,k,o,E){return s(),a("div",null,n)}const y=t(l,[["render",h]]);export{u as __pageData,y as default};

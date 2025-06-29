@@ -1,0 +1,1 @@
+import{_ as t,c as a,o as s,a2 as i}from"./chunks/framework.CmeiYqq3.js";const g=JSON.parse('{"title":"角色管理相关接口","description":"","frontmatter":{},"headers":[],"relativePath":"api/role.md","filePath":"api/role.md"}'),l={name:"api/role.md"},e=i("",94),n=[e];function h(d,r,k,o,p,E){return s(),a("div",null,n)}const c=t(l,[["render",h]]);export{g as __pageData,c as default};
