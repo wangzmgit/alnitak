@@ -15,13 +15,15 @@ import { ref, onBeforeMount, watch, onMounted } from 'vue';
 import { getDanmakuAPI, sendDanmakuAPI } from "@/api/danmaku";
 import DanmakuSend from "./components/DanmakuSend.vue";
 import { getResourceQualityApi, getVideoFileUrl } from "@/api/video";
-import { addHistoryAPI, getHistoryProgressAPI } from "@/api/history";
+import { addHistoryAPI } from "@/api/history";
 
 const props = withDefaults(defineProps<{
   videoInfo: VideoType;
-  part: number
+  part: number;
+  progress: number | null;
 }>(), {
-  part: 1
+  part: 1,
+  progress: null
 })
 
 let player: any = null;
@@ -64,12 +66,25 @@ const initFilterConfig = () => {
   }
 }
 
+let pendingSeek: number | null = null;
+
+watch(
+  () => props.progress,
+  (val) => {
+    if (val != null && player) {
+      player.seek(val);
+      pendingSeek = null;
+    } else if (val != null) {
+      pendingSeek = val;
+    }
+  },
+  { immediate: true }
+);
+
 const loadPart = async (part: number) => {
   const el = document.getElementById('dplayer');
   if (el) {
     await loadResource(part);
-    // await getDanmaku(part);
-
     if (player) player.destroy();
 
     options.container = el;
@@ -78,28 +93,46 @@ const loadPart = async (part: number) => {
       localStorage.setItem('default-video-quality', quality.name);
     })
     filterDanmaku({ disableLeave, disableType });
+
   }
 }
 
 const resourceNameMap = {
   "640x360_500k_30": "360p",
   "854x480_900k_30": "480p",
-  "1080x720_2000k_30": "720p",// 兼容之前的错误
+  "1080x720_2000k_30": "720p",// 兼容之前的错误Add commentMore actions
   "1280x720_2000k_30": "720p",
   "1920x1080_3000k_30": "1080p",
   "1920x1080_6000k_60": "1080p60",
 }
 
 const loadResource = async (part: number) => {
-  const resource = props.videoInfo.resources[part - 1];
-  const res = await getResourceQualityApi(resource.id);
+  const resource = props.videoInfo.resources[part - 1]
+  const res = await getResourceQualityApi(resource.id)
   if (res.data.code === statusCode.OK) {
-    options.video.quality = res.data.data.quality.map((item: keyof typeof resourceNameMap, index: number) => {
-      if (resourceNameMap[item] === defaultQuality.value) {
-        options.video.defaultQuality = index;
+    // 复制并根据分辨率宽度 & 帧率从高到低排序
+    const qualities = [...res.data.data.quality] as (keyof typeof resourceNameMap)[]
+    qualities.sort((a, b) => {
+      // 解析宽度
+      const wa = parseInt(a.split('x')[0], 10)
+      const wb = parseInt(b.split('x')[0], 10)
+      if (wb !== wa) {
+        return wb - wa
+      }
+      // 宽度相同时，解析帧率
+      const fpsA = parseInt(a.split('_').pop() || '0', 10)
+      const fpsB = parseInt(b.split('_').pop() || '0', 10)
+      return fpsB - fpsA
+    })
+
+    // 映射并设置默认质量索引
+    options.video.quality = qualities.map((item, index) => {
+      const name = resourceNameMap[item]
+      if (name === defaultQuality.value) {
+        options.video.defaultQuality = index
       }
       return {
-        name: resourceNameMap[item],
+        name,
         url: getVideoFileUrl(resource.id, item),
       }
     })
@@ -170,21 +203,16 @@ const uploadHistory = async () => {
   await addHistoryAPI({ vid: props.videoInfo.vid, part: props.part, time: player.video.currentTime });
 }
 
-// 获取历史记录
-const getHistoryProgress = async () => {
-  const res = await getHistoryProgressAPI(props.videoInfo.vid, props.part);
-  if (res.data.code === statusCode.OK) {
-    player.seek(res.data.data.progress)
-  } else {
-    uploadHistory();
-  }
-}
-
 watch(() => props.part, (val) => {
   loadPart(val);
 });
 
 let timer: number | null = null;
+const onReadyCallbacks: Array<() => void> = [];
+const setOnReady = (cb: () => void) => {
+  onReadyCallbacks.push(cb);
+};
+
 onMounted(async () => {
   const quality = localStorage.getItem('default-video-quality');
   if (quality) {
@@ -197,8 +225,17 @@ onMounted(async () => {
   initFilterConfig();
   await loadPart(props.part);
 
-  // 获取当前播放进度（如果没有就保存历史记录）
-  await getHistoryProgress();
+  if (player) {
+    player.on('loadedmetadata', () => {
+      onReadyCallbacks.forEach(cb => cb());
+      onReadyCallbacks.length = 0;
+      // loadedmetadata 兜底 seek
+      if (pendingSeek != null) {
+        player.seek(pendingSeek);
+        pendingSeek = null;
+      }
+    });
+  }
 
   timer = window.setInterval(() => {
     uploadHistory();
@@ -210,6 +247,8 @@ onBeforeUnmount(() => {
 })
 
 defineExpose({
+  setOnReady,
+  uploadHistory,
   setDanmaku
 })
 </script>

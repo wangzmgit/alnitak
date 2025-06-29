@@ -2,11 +2,11 @@
   <div class="part-list">
     <div class="part-head">
       <span class="title">分段列表</span>
-      <span class="part">({{ current }}/{{ resources?.length }})</span>
+      <span class="part">({{ props.active }}/{{ resources?.length }})</span>
     </div>
     <el-scrollbar max-height="340px">
       <ul class="list-box">
-        <li :class="['list-item', current - 1 === index ? 'active-part' : '']" v-for="(item, index) in resources"
+        <li :class="['list-item', props.active - 1 === index ? 'active-part' : '']" v-for="(item, index) in resources"
           @click="changePart(index)">
           <div class="item-content">
             <span class="part-num">P{{ index + 1 }}</span>
@@ -31,10 +31,7 @@ const props = withDefaults(defineProps<{
   active: 1
 })
 
-const current = ref(props.active);
-
 const changePart = (part: number) => {
-  current.value = part + 1;
   emits('change', part + 1)
 }
 </script>

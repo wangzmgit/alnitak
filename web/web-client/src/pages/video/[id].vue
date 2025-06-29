@@ -6,7 +6,7 @@
         <div class="left-column">
           <div class="video-player" ref="playerContainerRef">
             <client-only>
-              <video-player v-if="videoInfo" ref="playerRef" :video-info="videoInfo" :part="currentPart"></video-player>
+              <video-player v-if="videoInfo && playerReady" ref="playerRef" :video-info="videoInfo" :part="currentPart" :progress="pendingProgress" :key="currentPart"></video-player>
             </client-only>
             <div v-if="!showPlayer" class="skeleton"></div>
           </div>
@@ -65,7 +65,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch } from "vue";
+import { ref, onMounted, onBeforeUnmount, watch, type ComponentPublicInstance } from "vue";
 import { ElIcon } from "element-plus";
 import { Forbid as ForbidIcon } from "@icon-park/vue-next";
 import { formatTime } from "@/utils/format";
@@ -80,6 +80,7 @@ import RecommendList from "./components/RecommendList.vue";
 import { asyncGetVideoInfoAPI } from "@/api/video";
 import { createUUID } from "@/utils/uuid";
 import { getDanmakuAPI } from "@/api/danmaku";
+import { getHistoryProgressAPI, addHistoryAPI } from "@/api/history";
 
 const route = useRoute();
 const router = useRouter();
@@ -98,6 +99,8 @@ if ((data.value as any).code === statusCode.OK) {
 
 const playerContainerRef = ref<HTMLElement | null>(null)
 const danmakuListHeight = ref(300);
+const playerRef = ref<ComponentPublicInstance<{ seek: (time: number) => void; uploadHistory: () => void; setDanmaku: (data: any[]) => void; setOnReady: (cb: () => void) => void; }> | null>(null);
+
 const handelResize = () => {
   nextTick(() => {
     danmakuListHeight.value = ((playerContainerRef.value?.clientWidth || 730) * 0.5625) + 40 - 104;
@@ -110,20 +113,49 @@ if (route.query.p && Number(route.query.p) > videoInfo.value!.resources.length) 
   router.replace({ path: `/video/${videoId}`, query: { p: 1 } });
 }
 const currentPart = ref(Number(route.query.p) || 1);
-const changePart = (target: number) => {
+const pendingProgress = ref<number | null>(null);
+
+const onPlayerReady = () => {
+  if (pendingProgress.value !== null && playerRef.value && playerRef.value.seek) {
+    playerRef.value.seek(pendingProgress.value);
+    pendingProgress.value = null;
+  }
+};
+
+watch(playerRef, (val) => {
+  if (val && val.setOnReady) {
+    val.setOnReady(onPlayerReady);
+  }
+});
+
+let needReportAfterSwitch = false;
+
+const changePart = async (target: number) => {
+  // 切换分集前先上报历史
+  if (playerRef.value && playerRef.value.uploadHistory) {
+    await playerRef.value.uploadHistory();
+  }
   if (videoInfo.value?.resources[target - 1]) {
     currentPart.value = target;
   }
   router.replace({ query: { p: currentPart.value } });
+  needReportAfterSwitch = true;
 
+  // 主动请求新分集进度
   if (videoInfo.value) {
-    getDanmakuList(videoInfo.value.vid, target);
+    const res = await getHistoryProgressAPI(videoInfo.value.vid, currentPart.value);
+    if (res.data.code === 200 && res.data.data && typeof res.data.data.progress === 'number' && res.data.data.progress > 0) {
+      pendingProgress.value = res.data.data.progress;
+    } else {
+      pendingProgress.value = null;
+    }
   }
 }
 
 // 监听路由参数 p，自动切换分P和弹幕
 watch(() => route.query.p, (newP) => {
   const partNum = Number(newP) || 1;
+  // 如果分P有效，则切换；否则重定向到 p1
   if (videoInfo.value?.resources[partNum - 1]) {
     currentPart.value = partNum;
     getDanmakuList(videoInfo.value.vid, partNum);
@@ -132,9 +164,7 @@ watch(() => route.query.p, (newP) => {
   }
 });
 
-  
 // 获取弹幕列表
-const playerRef = ref<InstanceType<typeof VideoPlayer> | null>(null);
 const danmakuListRef = ref<InstanceType<typeof DanmakuList> | null>(null);
 
 const getDanmakuList = async (vid: number, part: number) => {
@@ -154,7 +184,8 @@ const descRef = ref<HTMLElement>();
 const showPlayer = ref(false);
 const showFoldBtn = ref(false); // 是否显示展开和折叠按钮
 const foldDescHeight = ref('auto'); // 折叠状态下简介的最大高度
-onMounted(() => {
+const playerReady = ref(false);
+onMounted(async () => {
   if (descRef.value!.clientHeight >= 80) {
     showFoldBtn.value = true;
     foldDescHeight.value = '80px';
@@ -164,7 +195,37 @@ onMounted(() => {
   }
 
   if (videoInfo.value) {
-    getDanmakuList(videoInfo.value.vid, currentPart.value);
+    try {
+      // 带 p 参数时也请求 getProgress?vid=xx&part=xx
+      let res;
+      if (!route.query.p) {
+        res = await getHistoryProgressAPI(videoInfo.value.vid);
+      } else {
+        res = await getHistoryProgressAPI(videoInfo.value.vid, Number(route.query.p));
+      }
+      if (res && res.data.code === 200 && res.data.data) {
+        const { part, progress } = res.data.data;
+        if (part && part !== currentPart.value && videoInfo.value.resources[part - 1]) {
+          currentPart.value = part;
+          router.replace({ query: { p: part } });
+          await nextTick();
+        }
+        getDanmakuList(videoInfo.value.vid, part || currentPart.value);
+        if (typeof progress === 'number' && progress > 0) {
+          console.log('[id.vue] pendingProgress赋值:', progress);
+          pendingProgress.value = progress;
+        } else {
+          console.log('[id.vue] pendingProgress赋值: null');
+          pendingProgress.value = null;
+        }
+      } else {
+        getDanmakuList(videoInfo.value.vid, currentPart.value);
+        console.log('[id.vue] pendingProgress赋值: null');
+        pendingProgress.value = null;
+      }
+    } catch (e) {
+      getDanmakuList(videoInfo.value.vid, currentPart.value);
+    }
   }
 
   handelResize();
@@ -172,6 +233,7 @@ onMounted(() => {
 
   nextTick(() => {
     showPlayer.value = true;
+    playerReady.value = true;
   })
 })
 
@@ -206,7 +268,23 @@ onBeforeMount(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener("resize", handelResize);
+  if (websocket) {
+    websocket.close();
+    websocket = null;
+  }
 })
+
+watch(pendingProgress, (val) => {
+  console.log('[id.vue] pendingProgress变化:', val);
+  console.log('[id.vue] 实时传递给video-player的progress:', pendingProgress.value);
+  if (needReportAfterSwitch && typeof val === 'number' && val > 0) {
+    needReportAfterSwitch = false;
+    if (videoInfo.value) {
+      addHistoryAPI({ vid: videoInfo.value.vid, part: currentPart.value, time: val });
+      console.log('[id.vue] 上报切换分集后的历史记录:', { vid: videoInfo.value.vid, part: currentPart.value, time: val });
+    }
+  }
+});
 </script>
 
 <style lang="scss" scoped>
@@ -223,12 +301,9 @@ onBeforeUnmount(() => {
 
 .mian-content {
   display: flex;
-  width: 100%;
-  /* 让子元素宽度占满父容器 */
+  width: 85%;
   max-width: calc(100% - 100px);
-  /* 根据父容器计算宽度 */
-  margin: auto 50px;
-  /* 确保子元素水平居中，并有50px的左右边距 */
+  margin: 0 auto;
   position: relative;
 }
 
