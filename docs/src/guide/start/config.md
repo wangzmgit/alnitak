@@ -62,6 +62,8 @@ security:
   access_jwt_secret: 
   # RefreshJwt秘钥，可不填写会自动生成
   refresh_jwt_secret: 
+  # 是否关闭用户API调用记录
+  close_record_user_operation: true
 storage:
   # oss的bucket，非local类型必填
   bucket: 
