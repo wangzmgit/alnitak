@@ -2,12 +2,6 @@
   <div class="video-item">
     <nuxt-link class="img" :to="`/video/${info.vid}`" target="_blank">
       <img :src="getResourceUrl(info.cover)" alt="封面" />
-      <span class="play-count">
-        <svg width="14" height="14" viewBox="0 0 14 14" style="margin-right:2px;">
-          <polygon points="3,2 12,7 3,12" fill="#fff" fill-opacity="0.7"/>
-        </svg>
-        {{ info.clicks || 0 }}
-      </span>
       <span class="duration">{{ toDuration(info.duration) }}</span>
     </nuxt-link>
     <div class="video-info">
@@ -40,8 +34,10 @@ const props = defineProps<{
   .img {
     position: relative;
     display: block;
-    height: auto; /* 让高度自动调整以保持比例 */
-    max-height: 160px; /* 最大高度限制 */
+    height: auto;
+    /* 让高度自动调整以保持比例 */
+    max-height: 160px;
+    /* 最大高度限制 */
     border-radius: 10px;
     overflow: hidden;
     cursor: pointer;
@@ -50,22 +46,8 @@ const props = defineProps<{
     img {
       width: 100%;
       height: 100%;
-	  object-fit: cover; /* 保持图片比例，裁剪超出的部分 */
-    }
-    .play-count {
-      position: absolute;
-      left: 12px;
-      bottom: 10px;
-      color: #fff;
-      font-size: 13px;
-      background-color: rgba(0, 0, 0, 0.4);
-      border-radius: 2px;
-      padding: 0 6px;
-      display: flex;
-      align-items: center;
-      z-index: 5;
-      height: 20px;
-      line-height: 20px;
+      object-fit: cover;
+      /* 保持图片比例，裁剪超出的部分 */
     }
 
     .duration {
