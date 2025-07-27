@@ -34,4 +34,6 @@ func InitTables() {
 	global.Mysql.AutoMigrate(&model.Whisper{})        // 私信消息表
 	global.Mysql.AutoMigrate(&model.Carousel{})       // 轮播图表
 	global.Mysql.AutoMigrate(&model.Article{})        // 文章表
+
+	// GORM会根据模型标签自动创建索引，无需手动维护
 }

@@ -2,6 +2,7 @@ package mysql
 
 import (
 	"fmt"
+	"time"
 
 	"go.uber.org/zap"
 	"gorm.io/driver/mysql"
@@ -25,6 +26,18 @@ func Init(c config.Mysql) *gorm.DB {
 		utils.ErrorLog("mysql连接失败", "db", err.Error())
 		panic(err)
 	} else {
+		// 配置数据库连接池
+		sqlDB, err := mysqlClient.DB()
+		if err != nil {
+			utils.ErrorLog("获取数据库连接失败", "db", err.Error())
+			panic(err)
+		}
+
+		// 设置连接池参数
+		sqlDB.SetMaxIdleConns(10)           // 设置空闲连接池中连接的最大数量
+		sqlDB.SetMaxOpenConns(100)          // 设置打开数据库连接的最大数量
+		sqlDB.SetConnMaxLifetime(time.Hour) // 设置了连接可复用的最大时间
+
 		zap.L().Info("mysql连接成功", zap.String("module", "db"))
 		db = mysqlClient
 		return mysqlClient

@@ -94,6 +94,11 @@ func OperationRecord() gin.HandlerFunc {
 			record.Msg = match[1]
 		}
 
+		// 过滤不需要记录的操作日志
+		if shouldSkipOperationLog(&record) {
+			return
+		}
+
 		if err := service.AddOperate(&record); err != nil {
 			utils.ErrorLog("添加操作记录失败", "middleware", err.Error())
 		}
@@ -108,4 +113,28 @@ type responseBodyWriter struct {
 func (r responseBodyWriter) Write(b []byte) (int, error) {
 	r.body.Write(b)
 	return r.ResponseWriter.Write(b)
+}
+
+// 判断是否应该跳过记录操作日志
+func shouldSkipOperationLog(record *model.Operate) bool {
+	// 跳过TOKEN相关的错误请求
+	if record.Msg == "TOKEN无效" || record.Msg == "TOKEN过期" || record.Msg == "token验证失败" {
+		return true
+	}
+
+	// 跳过权限不足的请求
+	if record.Msg == "权限不足" {
+		return true
+	}
+
+	// 跳过静态资源请求
+	if strings.HasPrefix(record.Path, "/static/") ||
+		strings.HasPrefix(record.Path, "/assets/") ||
+		strings.HasSuffix(record.Path, ".css") ||
+		strings.HasSuffix(record.Path, ".js") ||
+		strings.HasSuffix(record.Path, ".ico") {
+		return true
+	}
+
+	return false
 }

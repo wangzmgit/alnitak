@@ -18,29 +18,28 @@ func AddHistory(ctx *gin.Context, historyReq dto.HistoryReq) error {
 		historyReq.Part = 1
 	}
 
-	history, err := FindHistoryByPart(historyReq.Vid, userId, historyReq.Part)
-	if err != nil && err != gorm.ErrRecordNotFound {
-		utils.ErrorLog("保存历史记录失败", "history", err.Error())
-		return errors.New("保存失败")
+	// 先检查是否需要更新（避免重复更新相同数据）
+	var existingHistory model.History
+	err := global.Mysql.Where("uid = ? AND vid = ? AND part = ?",
+		userId, historyReq.Vid, historyReq.Part).First(&existingHistory).Error
+
+	// 如果记录存在且时间相同，则跳过更新
+	if err == nil && existingHistory.Time == historyReq.Time {
+		return nil // 数据没有变化，无需更新
 	}
 
-	if history.ID == 0 {
-		if err := global.Mysql.Create(&model.History{
-			Uid:  userId,
-			Vid:  historyReq.Vid,
-			Time: historyReq.Time,
-			Part: historyReq.Part,
-		}).Error; err != nil {
-			utils.ErrorLog("保存历史记录失败", "history", err.Error())
-			return errors.New("保存失败")
-		}
-	} else {
-		history.Time = historyReq.Time
-		history.Part = historyReq.Part
-		if err := global.Mysql.Save(&history).Error; err != nil {
-			utils.ErrorLog("保存历史记录失败", "history", err.Error())
-			return errors.New("保存失败")
-		}
+	// 使用 ON DUPLICATE KEY UPDATE 优化插入/更新操作
+	err = global.Mysql.Exec(`
+		INSERT INTO history (uid, vid, part, time, created_at, updated_at)
+		VALUES (?, ?, ?, ?, NOW(), NOW())
+		ON DUPLICATE KEY UPDATE
+		time = VALUES(time),
+		updated_at = NOW()`,
+		userId, historyReq.Vid, historyReq.Part, historyReq.Time).Error
+
+	if err != nil {
+		utils.ErrorLog("保存历史记录失败", "history", err.Error())
+		return errors.New("保存失败")
 	}
 
 	return nil
@@ -70,7 +69,7 @@ func GetHistoryProgress(ctx *gin.Context, videoId, part uint) (progress float64,
 	} else {
 		history, err = FindHistoryByPart(videoId, userId, part)
 	}
-	if err != nil {
+	if err != nil && err != gorm.ErrRecordNotFound {
 		utils.ErrorLog("获取历史记录进度失败", "history", err.Error())
 		return 0, 0, errors.New("获取失败")
 	}
