@@ -53,20 +53,11 @@ definePageMeta({
   middleware: ['article']
 })
 
-const menuFold = ref(false);
+const menuFoldCookie = useCookie<boolean>('menu-fold-state', { default: () => false });
+const menuFold = ref(menuFoldCookie.value);
 const changeMenuFold = (val: boolean) => {
   menuFold.value = val;
 }
-
-// 客户端挂载后同步折叠状态
-onMounted(() => {
-  try {
-    const saved = localStorage.getItem('menu-fold-state');
-    if (saved === 'true') {
-      menuFold.value = true;
-    }
-  } catch {}
-});
 
 // 获取分区
 const size = 10;

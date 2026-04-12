@@ -61,20 +61,12 @@ useHead({
   title: globalConfig.title
 });
 
-const menuFold = ref(false);
+// 用 cookie 在 SSR 阶段即可获取折叠状态，避免首屏闪烁
+const menuFoldCookie = useCookie<boolean>('menu-fold-state', { default: () => false });
+const menuFold = ref(menuFoldCookie.value);
 const changeMenuFold = (val: boolean) => {
   menuFold.value = val;
 }
-
-// 客户端挂载后同步折叠状态
-onMounted(() => {
-  try {
-    const saved = localStorage.getItem('menu-fold-state');
-    if (saved === 'true') {
-      menuFold.value = true;
-    }
-  } catch {}
-});
 
 // 当前选项卡
 const activeTab = ref<'hot' | 'latest'>('hot');
