@@ -276,11 +276,11 @@ const onVideoEnded = () => {
           navigateTo(`/watch?ep=${Math.floor(nextEp)}&mode=pgc`);
           return;
         }
-        const nextV = (nextVideo as any).shortId || String((nextVideo as any).vid);
+const nextV = (nextVideo as any).shortId || String((nextVideo as any).vid);
         const pgcMode = isPGCPage.value ? '&mode=pgc' : '';
-        if (nextVideo.resourceId) {
-          const rid = (nextVideo as any).resourceShortId || String(nextVideo.resourceId);
-          navigateTo(`/watch?v=${nextV}&resourceId=${rid}${pgcMode}`)
+        const partNum = (nextVideo as any).p;
+        if (partNum) {
+          navigateTo(`/watch?v=${nextV}&p=${partNum}${pgcMode}`)
         } else {
           navigateTo(`/watch?v=${nextV}${pgcMode}`)
         }
@@ -311,7 +311,12 @@ const checkRecommendAutoplay = () => {
         }
         const nextV = nextVideo.shortId || String(nextVideo.vid);
         const pgcMode = isPGCPage.value ? '&mode=pgc' : '';
-        navigateTo(`/watch?v=${nextV}${pgcMode}`);
+        const partNum = (nextVideo as any).p;
+        if (partNum) {
+          navigateTo(`/watch?v=${nextV}&p=${partNum}${pgcMode}`)
+        } else {
+          navigateTo(`/watch?v=${nextV}${pgcMode}`)
+        }
       }, 3000);
     } else {
       console.log('没有更多推荐视频了');
