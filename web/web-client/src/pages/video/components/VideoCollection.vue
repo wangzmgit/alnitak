@@ -27,9 +27,9 @@
     </div>
     <el-scrollbar max-height="340px">
       <ul v-if="!isNumberMode" class="list-box">
-        <li
+<li
           v-for="(item, index) in mergedList"
-          :key="item.vid + '-' + item.resourceId"
+          :key="item.vid + '-' + (item.p || index)"
           :class="['list-item', isActiveItem(item, index) ? 'active-item' : '']"
           @click="goVideo(item)"
         >
@@ -41,9 +41,9 @@
         </li>
       </ul>
       <div v-else class="number-grid">
-        <div
+<div
           v-for="(item, index) in mergedList"
-          :key="item.vid + '-' + item.resourceId"
+          :key="item.vid + '-' + (item.p || index)"
           :class="['number-item', isActiveItem(item, index) ? 'active-number' : '']"
           @click="goVideo(item)"
         >
@@ -73,8 +73,7 @@ interface VideoItem {
   duration: number
   clicks: number
   desc: string
-  resourceId?: number  // 分P的资源ID，用于播放
-  resourceShortId?: string  // 分P的资源ShortID，用于URL
+  p?: number  // 分P序号
   partTitle?: string  // 分P的标题
 }
 
@@ -139,21 +138,18 @@ const currentIndex = computed(() => {
     return currentPart
   }
   
-  // 合集类型：精确匹配 vid + resourceId
-  const matchIdx = mergedList.value.findIndex((item) => {
-    if (item.vid === props.vid && item.resourceId) {
-      // 找到当前视频的所有分P项
-      const currentPartItems = mergedList.value.filter(v => v.vid === props.vid)
-      if (currentPartItems.length > 1) {
-        // 多分P视频，精确匹配resourceId
-        const currentPartIdx = currentPartItems.findIndex(v => v.resourceId === item.resourceId)
-        return (currentPartIdx + 1) === currentPart
-      }
-      return true
+  // 合集类型：用p字段匹配
+  const currentVideoParts = mergedList.value.filter(v => v.vid === props.vid)
+  if (currentVideoParts.length > 1) {
+    const idx = currentVideoParts.findIndex(v => (v.p || 1) === currentPart)
+    if (idx >= 0) {
+      const firstIndex = mergedList.value.indexOf(currentVideoParts[0])
+      return firstIndex + idx + 1
     }
-    return item.vid === props.vid
-  })
-  return matchIdx >= 0 ? matchIdx + 1 : 0
+  }
+  // 单分P或找不到，返回第一个
+  const firstIdx = mergedList.value.findIndex(v => v.vid === props.vid)
+  return firstIdx >= 0 ? firstIdx + 1 : 0
 })
 
 const formatDuration = (seconds: number) => {
@@ -254,7 +250,7 @@ const getNextVideo = () => {
 // 处理分P列表
 const loadPartList = () => {
   // 优先使用API返回的当前视频分P列表
-  if (props.resources && props.resources.length > 0) {
+if (props.resources && props.resources.length > 0) {
     partList.value = props.resources.map((resource, index) => ({
       vid: props.vid,
       title: '',
@@ -262,8 +258,7 @@ const loadPartList = () => {
       duration: resource.duration || 0,
       clicks: 0,
       desc: '',
-      resourceId: resource.id,
-      resourceShortId: resource.shortId,
+      p: index + 1,
       partTitle: resource.title || `P${index + 1}`
     }))
   } else {
@@ -279,15 +274,14 @@ const loadPlaylist = async (vid: number) => {
 
   // 优先使用 props.resources 设置分P列表（页面已有数据）
   if (props.resources && props.resources.length > 0) {
-    partList.value = props.resources.map((resource, index) => ({
+partList.value = props.resources.map((resource, index) => ({
       vid: vid,
       title: '',
       cover: '',
       duration: resource.duration || 0,
       clicks: 0,
       desc: '',
-      resourceId: resource.id,
-      resourceShortId: resource.shortId,
+      p: index + 1,
       partTitle: resource.title || `P${index + 1}`
     }))
   }
