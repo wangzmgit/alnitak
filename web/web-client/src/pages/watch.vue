@@ -246,7 +246,11 @@ const hasCollection = computed(() => !!collectionRef.value?.hasPlaylist);
 
 // 视频播放结束时的自动连播逻辑
 const onVideoEnded = () => {
-  console.log('视频播放结束，检查自动连播状态');
+  // PGC模式不执行自动连播
+  if (isPGCPage.value) return;
+  
+  // 检查用户是否开启了自动连播
+  if (localStorage.getItem('video-autonext') !== 'true') return;
 
   // 优先检查当前视频是否有分P
   const hasParts = (videoInfo.value?.resources?.length || 0) > 1
@@ -265,10 +269,8 @@ const onVideoEnded = () => {
   
   // 没有分P或已是最后一个分P，检查合集自动连播
   const collectionRefVal = collectionRef.value
-  console.log('合集自动连播状态:', collectionRefVal?.autonext)
   if (collectionRefVal?.autonext) {
     const nextVideo = collectionRefVal.getNextVideo?.()
-    console.log('合集下一个视频:', nextVideo)
     if (nextVideo) {
       setTimeout(() => {
         const nextEp = Number((nextVideo as any).epId || 0);
@@ -276,7 +278,7 @@ const onVideoEnded = () => {
           navigateTo(`/watch?ep=${Math.floor(nextEp)}&mode=pgc`);
           return;
         }
-const nextV = (nextVideo as any).shortId || String((nextVideo as any).vid);
+        const nextV = (nextVideo as any).shortId || String((nextVideo as any).vid);
         const pgcMode = isPGCPage.value ? '&mode=pgc' : '';
         const partNum = (nextVideo as any).p;
         if (partNum) {
