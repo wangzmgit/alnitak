@@ -374,7 +374,11 @@ const changePart = async (target: number) => {
 }
 
 // 监听路由参数 p，自动切换分P和弹幕
-watch(() => route.query.p, async (newP) => {
+watch(() => route.query.p, async (newP, oldP) => {
+  // 如果有 v 参数，v/ep/p watch 会处理
+  if (route.query.v) return;
+  
+  if (!videoInfo.value) return;
   const partNum = Number(newP) || 1;
   if (videoInfo.value?.resources[partNum - 1]) {
     currentPart.value = partNum;
@@ -636,8 +640,8 @@ onBeforeUnmount(() => {
 
 // 监听 v/ep 变化，重新拉取视频信息和重置状态
 watch(
-  () => [route.query.v, route.query.ep],
-  async ([newV, newEp], [oldV, oldEp]) => {
+  () => [route.query.v, route.query.ep, route.query.p],
+  async ([newV, newEp, newP], [oldV, oldEp, oldP]) => {
     if (newV === oldV && newEp === oldEp) return;
     const resolved = await resolveWatchVideoIdOnQueryChange(route.query);
     if (!resolved.ok) {
