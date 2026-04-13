@@ -104,7 +104,7 @@ function guessType(url: string, qualityItem?: any) {
   return 'mp4';
 }
 
-const getQualities = (qualityList: string[], resourceId: number, serverSupportsDash: boolean, qualityOrderFromServer: string[] = []) => {
+const getQualities = (qualityList: string[], resourceId: number | string, serverSupportsDash: boolean, qualityOrderFromServer: string[] = []) => {
   const sorted = [...qualityList].sort((a, b) => {
     const wa = parseInt(a.split('x')[0], 10);
     const wb = parseInt(b.split('x')[0], 10);
@@ -198,12 +198,13 @@ const initPlayer = async () => {
   if (!resource?.id) {
     return;
   }
-  const res = await getResourceQualityApi(resource.id);
+  const rid = resource.shortId || resource.id;
+  const res = await getResourceQualityApi(rid);
   let qualities = [];
   if (res.data.code === 200 && res.data.data.quality.length > 0) {
     const serverSupportsDash = res.data.data.supportsDash === true;
     const qualityOrderFromServer = (res.data.data.qualityOrder as string[]) || [];
-    qualities = getQualities(res.data.data.quality, resource.id, serverSupportsDash, serverSupportsDash ? qualityOrderFromServer : []);
+    qualities = getQualities(res.data.data.quality, rid, serverSupportsDash, serverSupportsDash ? qualityOrderFromServer : []);
   } else {
     qualities = [{ default: true, html: '默认', url: resource.url, type: 'm3u8' }];
   }

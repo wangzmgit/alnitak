@@ -62,25 +62,25 @@ export const getResourceQualityApi = async (resourceId: number | string) => {
 }
 
 // 获取视频文件URL（HLS格式）
-export const getVideoFileUrl = (resourceId: number, quality: string, ts?: number) => {
+export const getVideoFileUrl = (resourceId: number | string, quality: string, ts?: number) => {
   const cacheBust = ts ? `&ts=${ts}` : '';
   return `${baseURL}/api/v1/video/getVideoFile?resourceId=${resourceId}&quality=${quality}&format=m3u8${cacheBust}`;
 }
 
 // 获取视频文件URL（DASH格式 - 返回MPD XML）
-export const getVideoFileUrlDash = (resourceId: number, quality: string, ts?: number) => {
+export const getVideoFileUrlDash = (resourceId: number | string, quality: string, ts?: number) => {
   const cacheBust = ts ? `&ts=${ts}` : '';
   return `${baseURL}/api/v1/video/getVideoFile?resourceId=${resourceId}&quality=${quality}&format=dash${cacheBust}`;
 }
 
 // 获取统一DASH MPD URL（所有清晰度合并到一个MPD，用于无缝切换）
-export const getVideoFileUrlDashUnified = (resourceId: number, ts?: number) => {
+export const getVideoFileUrlDashUnified = (resourceId: number | string, ts?: number) => {
   const cacheBust = ts ? `&ts=${ts}` : '';
   return `${baseURL}/api/v1/video/getVideoFile?resourceId=${resourceId}&format=dash-unified${cacheBust}`;
 }
 
 // 获取视频播放信息（JSON格式，类似B站）
-export const getVideoPlayInfo = (resourceId: number, quality: string) => {
+export const getVideoPlayInfo = (resourceId: number | string, quality: string) => {
   return request.get(`v1/video/getVideoFile?resourceId=${resourceId}&quality=${quality}`);
 }
 

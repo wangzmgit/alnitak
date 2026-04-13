@@ -67,12 +67,14 @@ const props = defineProps<{
 
 interface VideoItem {
   vid: number
+  shortId?: string
   title: string
   cover: string
   duration: number
   clicks: number
   desc: string
   resourceId?: number  // 分P的资源ID，用于播放
+  resourceShortId?: string  // 分P的资源ShortID，用于URL
   partTitle?: string  // 分P的标题
 }
 
@@ -203,9 +205,10 @@ const goVideo = (item: VideoItem) => {
     }
   } else if (item.vid !== props.vid) {
     // 切换到其他视频
-    const v = (item as any).shortId || String(item.vid);
+    const v = item.shortId || String(item.vid);
     if (item.resourceId) {
-      navigateTo(`/watch?v=${v}&resourceId=${item.resourceId}`)
+      const rid = item.resourceShortId || String(item.resourceId);
+      navigateTo(`/watch?v=${v}&resourceId=${rid}`)
     } else {
       navigateTo(`/watch?v=${v}`)
     }
@@ -277,6 +280,7 @@ const loadPartList = () => {
       clicks: 0,
       desc: '',
       resourceId: resource.id,
+      resourceShortId: resource.shortId,
       partTitle: resource.title || `P${index + 1}`
     }))
   } else {
@@ -300,6 +304,7 @@ const loadPlaylist = async (vid: number) => {
       clicks: 0,
       desc: '',
       resourceId: resource.id,
+      resourceShortId: resource.shortId,
       partTitle: resource.title || `P${index + 1}`
     }))
   }
@@ -318,12 +323,14 @@ const loadPlaylist = async (vid: number) => {
       playlist.value = { id: data.playlist.id, title: data.playlist.title }
       videoList.value = (data.videos || []).map((v: any) => ({
         vid: v.vid,
+        shortId: v.shortId,
         title: v.title,
         cover: v.cover,
         duration: v.duration,
         clicks: v.clicks,
         desc: v.desc,
         resourceId: v.resourceId,
+        resourceShortId: v.resourceShortId,
         partTitle: v.partTitle
       }))
     } else if (!hasCollection && !partList.value.length && data.currentVideoParts && data.currentVideoParts.length > 0) {
@@ -336,6 +343,7 @@ const loadPlaylist = async (vid: number) => {
         clicks: 0,
         desc: '',
         resourceId: r.resourceId,
+        resourceShortId: r.resourceShortId,
         partTitle: r.title || `P${index + 1}`
       }))
     }

@@ -279,7 +279,8 @@ const onVideoEnded = () => {
         const nextV = (nextVideo as any).shortId || String((nextVideo as any).vid);
         const pgcMode = isPGCPage.value ? '&mode=pgc' : '';
         if (nextVideo.resourceId) {
-          navigateTo(`/watch?v=${nextV}&resourceId=${nextVideo.resourceId}${pgcMode}`)
+          const rid = (nextVideo as any).resourceShortId || String(nextVideo.resourceId);
+          navigateTo(`/watch?v=${nextV}&resourceId=${rid}${pgcMode}`)
         } else {
           navigateTo(`/watch?v=${nextV}${pgcMode}`)
         }

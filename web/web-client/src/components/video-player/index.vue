@@ -442,9 +442,10 @@ const loadResource = async (part: number) => {
     return;
   }
 
+  const rid = resource.shortId || resource.id;  // 优先使用 shortId
   const requestTs = Date.now();
 
-  const res = await getResourceQualityApi(resource.id)
+  const res = await getResourceQualityApi(rid)
   if (res.data.code === statusCode.OK && res.data.data.quality?.length > 0) {
     // 复制并根据分辨率宽度 & 帧率从高到低排序
     const qualities = [...res.data.data.quality] as string[]
@@ -478,7 +479,7 @@ const loadResource = async (part: number) => {
         dashQualityMap.set(getQualityDisplayName(q), index)
       })
 
-      const unifiedMpdUrl = getVideoFileUrlDashUnified(resource.id, requestTs)
+      const unifiedMpdUrl = getVideoFileUrlDashUnified(rid, requestTs)
       options.video.quality = qualities.map((item, index) => {
         const name = getQualityDisplayName(item)
         if (name === defaultQuality.value) {
@@ -493,7 +494,7 @@ const loadResource = async (part: number) => {
       options.video.quality = qualities.map((item, index) => {
         const name = getQualityDisplayName(item)
         if (name === defaultQuality.value) options.video.defaultQuality = index
-        return { name, url: getVideoFileUrlDash(resource.id, item, requestTs) }
+        return { name, url: getVideoFileUrlDash(rid, item, requestTs) }
       })
       options.video.type = 'customDash'
     } else {
@@ -502,7 +503,7 @@ const loadResource = async (part: number) => {
       options.video.quality = qualities.map((item, index) => {
         const name = getQualityDisplayName(item)
         if (name === defaultQuality.value) options.video.defaultQuality = index
-        return { name, url: getVideoFileUrl(resource.id, item, requestTs) }
+        return { name, url: getVideoFileUrl(rid, item, requestTs) }
       })
       options.video.type = 'customHls'
     }

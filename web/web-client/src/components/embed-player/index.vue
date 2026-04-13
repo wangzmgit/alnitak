@@ -102,7 +102,7 @@ const getQualityDisplayName = (qualityStr: string): string => {
   return qualityStr.split('_')[0] || qualityStr;
 };
 
-const getQualities = (qualityList: string[], resourceId: number, qualityOrderFromServer: string[] = []) => {
+const getQualities = (qualityList: string[], resourceId: number | string, qualityOrderFromServer: string[] = []) => {
   // 主站同款排序
   const sorted = [...qualityList].sort((a, b) => {
     const wa = parseInt(a.split('x')[0], 10);
@@ -195,13 +195,14 @@ const initPlayer = async () => {
     (window as any).Hls = Hls;
   }
 
-  const res = await getResourceQualityApi(resource.id);
+  const rid = resource.shortId || resource.id;
+  const res = await getResourceQualityApi(rid);
   let qualities: any[] = [];
   let supportDash = false;
   if (res.data.code === 200 && res.data.data.quality?.length > 0) {
     const qualityOrderFromServer = (res.data.data.qualityOrder as string[]) || [];
     const serverSupportsDash = res.data.data.supportsDash === true;
-    const result = getQualities(res.data.data.quality, resource.id, serverSupportsDash ? qualityOrderFromServer : []);
+    const result = getQualities(res.data.data.quality, rid, serverSupportsDash ? qualityOrderFromServer : []);
     qualities = result.qualities;
     supportDash = result.supportDash;
   } else {
