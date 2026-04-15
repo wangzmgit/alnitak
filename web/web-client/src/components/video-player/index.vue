@@ -41,6 +41,12 @@ const props = withDefaults(defineProps<{
   progress: null
 })
 
+// 获取当前分P的资源ShortID
+const getCurrentResourceShortId = () => {
+  const resource = props.videoInfo?.resources?.[props.part - 1];
+  return resource?.shortId;
+}
+
 // ===== 播放器与弹幕相关变量 =====
 let player: any = null;
 let dashPlayer: any = null;
@@ -343,6 +349,7 @@ const loadPart = async (part: number) => {
           part: props.part,
           time: -1,        // 已看完统一用 -1
           duration,        // 整数秒
+          resourceShortId: getCurrentResourceShortId(),
         });
       } catch (error) {
         console.error('上报播放完成失败:', error);
@@ -364,7 +371,7 @@ const loadPart = async (part: number) => {
       if (Math.abs(current - lastSeekTime) > 10 && !isWatched() && !hasEnded.value) {
         const current = Math.floor(player.video.currentTime || 0);
         const duration = Math.floor(player.video.duration || 0);
-        addHistoryAPI({ vid: props.videoInfo.vid, part: props.part, time: current, duration });
+        addHistoryAPI({ vid: props.videoInfo.vid, part: props.part, time: current, duration, resourceShortId: getCurrentResourceShortId() });
       }
       lastSeekTime = current;
     });
@@ -607,6 +614,7 @@ const uploadHistory = async () => {
     part: props.part,
     time: currentTime >= duration ? -1 : currentTime, // 播放完了就上报 -1
     duration,
+    resourceShortId: getCurrentResourceShortId(),
   });
 }
 

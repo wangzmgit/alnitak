@@ -2,7 +2,8 @@ interface AddHistoryType {
   vid: number,
   part: number,
   time: number,
-  duration: number
+  duration: number,
+  resourceShortId?: string
 }
 
 interface HistoryVideoType {
