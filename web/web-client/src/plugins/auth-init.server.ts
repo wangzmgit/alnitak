@@ -1,12 +1,17 @@
 import { useAuthStore } from '@/stores/auth-store';
 import { statusCode } from '@/utils/status-code';
+import { globalConfig } from '@/utils/global-config';
 
 export default defineNuxtPlugin(async () => {
   if (process.client) return;
 
   const auth = useAuthStore();
   const headers = useRequestHeaders(['cookie']);
-  const url = `${useRequestURL().origin}/api/v1/auth/me`;
+  
+  // SSR阶段直接请求后端（端口9001），避免代理问题
+  const domain = globalConfig.domain;
+  const protocol = globalConfig.https ? 'https' : 'http';
+  const url = `${protocol}://${domain}/api/v1/auth/me`;
 
   try {
     const res: any = await $fetch(url, { headers });
