@@ -182,12 +182,9 @@ const emits = defineEmits(['changePart'])
 const goVideo = (item: VideoItem) => {
   const itemP = (item as any).p || 1
   
-  // 如果是同一个视频
+  // 如果是同一个视频，切换到对应的分P
   if (item.vid === props.vid) {
-    // 只有当不是P1时才发changePart事件
-    if (itemP > 1) {
-      emits('changePart', itemP)
-    }
+    emits('changePart', itemP)
   } else if (item.vid !== props.vid) {
     // 切换到其他视频：只有p>1才带p参数
     const v = item.shortId || String(item.vid);
