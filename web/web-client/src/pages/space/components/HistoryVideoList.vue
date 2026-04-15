@@ -39,9 +39,15 @@ const props = defineProps<{
 const watchLink = (item: HistoryVideoType) => {
   const p = item.part ?? 1;
   if (item.pgcAttached && item.epId && item.epId > 0) {
-    return `/watch?ep=${item.epId}&mode=pgc&p=${p}`;
+    if (p > 1) {
+      return `/watch?ep=${item.epId}&mode=pgc&p=${p}`;
+    }
+    return `/watch?ep=${item.epId}&mode=pgc`;
   }
-  return `/watch?v=${item.shortId || String(item.vid)}&p=${p}`;
+  if (p > 1) {
+    return `/watch?v=${item.shortId || String(item.vid)}&p=${p}`;
+  }
+  return `/watch?v=${item.shortId || String(item.vid)}`;
 };
 </script>
 
