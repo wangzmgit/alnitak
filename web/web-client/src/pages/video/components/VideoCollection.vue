@@ -180,16 +180,19 @@ const isActiveItem = (item: VideoItem, index: number) => {
 const emits = defineEmits(['changePart'])
 
 const goVideo = (item: VideoItem) => {
-  // 如果是同一个视频的不同分P
+  const itemP = (item as any).p || 1
+  
+  // 如果是同一个视频
   if (item.vid === props.vid) {
-    const itemP = (item as any).p || 1
-    emits('changePart', itemP)
+    // 只有当不是P1时才发changePart事件
+    if (itemP > 1) {
+      emits('changePart', itemP)
+    }
   } else if (item.vid !== props.vid) {
-    // 切换到其他视频
+    // 切换到其他视频：只有p>1才带p参数
     const v = item.shortId || String(item.vid);
-    const p = (item as any).p;
-    if (p) {
-      navigateTo(`/watch?v=${v}&p=${p}`)
+    if (itemP > 1) {
+      navigateTo(`/watch?v=${v}&p=${itemP}`)
     } else {
       navigateTo(`/watch?v=${v}`)
     }
