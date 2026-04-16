@@ -541,6 +541,8 @@ const supportsDashJs = (): boolean => {
 const originalDanmaku = shallowRef<DanmakuType[]>([]);
 const setDanmaku = (data: DanmakuType[]) => {
   originalDanmaku.value = data;
+  // 更新弹幕数量统计
+  danmakuSendRef.value?.updateDanmakuCount(data.length);
 }
 // 弹幕显示改变
 const changeShow = (val: boolean) => {
