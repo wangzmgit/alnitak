@@ -44,6 +44,10 @@ const watchLink = (item: HistoryVideoType) => {
     }
     return `/watch?ep=${item.epId}&mode=pgc`;
   }
+  // 仅当分P > 1 时使用 rid 精准跳转，分P=1 时不带 rid
+  if (item.rid && p > 1) {
+    return `/watch?v=${item.shortId || String(item.vid)}&rid=${item.rid}`;
+  }
   if (p > 1) {
     return `/watch?v=${item.shortId || String(item.vid)}&p=${p}`;
   }

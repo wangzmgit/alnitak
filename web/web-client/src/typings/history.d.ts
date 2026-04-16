@@ -3,7 +3,7 @@ interface AddHistoryType {
   part: number,
   time: number,
   duration: number,
-  resourceShortId?: string
+  rid?: string
 }
 
 interface HistoryVideoType {
@@ -17,6 +17,8 @@ interface HistoryVideoType {
   duration?: number;
   updatedAt: string;
   part?: number;
+  /** 资源短ID，用于精准跳转（不受分P排序影响） */
+  rid?: string;
 
   /** PGC：列表展示与续播链接按剧集维度 */
   pgcAttached?: boolean;
@@ -27,4 +29,4 @@ interface HistoryVideoType {
 
   // 观看日期，后端不返回
   viewingDate?:string;
-}	
+}

@@ -51,11 +51,11 @@ export const getMyPlaylistVideoIdsAPI = () => {
 }
 
 // 获取视频所属的合集列表
-export const getVideoPlaylistsAPI = (vid: number) => {
+export const getVideoPlaylistsAPI = (vid: number | string) => {
   return request.get(`v1/playlist/video/playlists?vid=${vid}`);
 }
 
 // 获取合集视频列表（包含多分P展开）
-export const getPlaylistVideoListWithPartsAPI = (vid: number) => {
+export const getPlaylistVideoListWithPartsAPI = (vid: number | string) => {
   return request.get(`v1/playlist/video/listWithParts?vid=${vid}`);
 }

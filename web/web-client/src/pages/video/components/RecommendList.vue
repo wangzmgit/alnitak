@@ -43,7 +43,7 @@ import { asyncGetRelatedVideoList } from "@/api/video";
 import PlayCountIcon from '@/components/icons/PlayCountIcon.vue';
 
 const props = defineProps<{
-  vid: number;
+  vid: number | string;
   showAutoplayControl?: boolean; // 新增：是否显示自动连播控制
 }>();
 

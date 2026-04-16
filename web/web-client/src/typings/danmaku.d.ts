@@ -5,6 +5,7 @@ interface AddDanmakuType {
   type: number,
   text: string,
   part: number,
+  rid?: string,
 }
 
 interface DanmakuType {

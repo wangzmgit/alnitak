@@ -115,7 +115,8 @@ import { useClientHydrated } from '@/composables/use-client-hydrated';
 import { useAuthStore } from "@/stores/auth-store";
 
 const props = defineProps<{
-  vid: number
+  vid: number | string
+  shortId?: string
 }>();
 
 const emit = defineEmits<{
@@ -202,7 +203,8 @@ const commentCount = ref(0);
 const commentList = ref<CommentType[]>([]);
 const getCommentList = async () => {
   pagination.loading = true;
-  const res = await getVideoCommentAPI(props.vid, pagination.page, pagination.pageSize);
+  const videoId = props.shortId || props.vid;
+  const res = await getVideoCommentAPI(videoId, pagination.page, pagination.pageSize);
   if (res.data.code === statusCode.OK) {
     commentCount.value = res.data.data.total;
     commentList.value = commentList.value.concat(res.data.data.comments);
@@ -230,7 +232,7 @@ const replyPageChange = (comment: CommentType, page: number) => {
 
 const commentContent = ref("");
 const commentForm = reactive<AddCommentType>({
-  cid: props.vid,
+  cid: props.shortId || props.vid,
   content: "",
   parentId: 0,
   replyUserId: 0,

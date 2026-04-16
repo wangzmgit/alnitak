@@ -35,7 +35,16 @@ if (!v || typeof v !== 'string') {
 }
 const videoId = v;
 
-const currentPart = ref(Number(route.query.p) || 1);
+const currentPart = ref(1);
+if (route.query.rid) {
+  const rid = String(route.query.rid);
+  const idx = videoInfo.value?.resources.findIndex(r => r.shortId === rid);
+  if (idx !== undefined && idx >= 0) {
+    currentPart.value = idx + 1;
+  }
+} else {
+  currentPart.value = Number(route.query.p) || 1;
+}
 const pendingProgress = ref<number | null>(null);
 const playerRef = ref();
 const playerReady = ref(false);
@@ -59,6 +68,10 @@ const pageTitle = computed(() => {
 
 const videoLink = computed(() => {
   const vVal = videoInfo.value?.shortId || String(videoInfo.value?.vid ?? '');
+  const currentRid = videoInfo.value?.resources?.[currentPart.value - 1]?.shortId;
+  if (currentRid) {
+    return `/watch?v=${vVal}&rid=${currentRid}`;
+  }
   return `/watch?v=${vVal}${currentPart.value > 1 ? `&p=${currentPart.value}` : ''}`;
 });
 

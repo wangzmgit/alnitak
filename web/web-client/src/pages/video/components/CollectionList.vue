@@ -52,7 +52,7 @@ import { requireLogin } from '@/utils/require-login';
 
 const emits = defineEmits(['close']);
 const props = defineProps<{
-  vid: number
+  vid: number | string
 }>();
 
 const loading = ref(true);// 加载中

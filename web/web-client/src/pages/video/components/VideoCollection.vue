@@ -60,14 +60,15 @@ import { getPlaylistVideoListWithPartsAPI } from '@/api/playlist'
 import { statusCode } from '@/utils/status-code'
 
 const props = defineProps<{
-  vid: number
+  vid: number | string
   resources?: Array<ResourceType>  // 当前视频的分P列表
   currentPart?: number  // 当前播放的分P序号
 }>()
 
 interface VideoItem {
-  vid: number
+  vid: number | string
   shortId?: string
+  resourceRid?: string  // 资源shortId，用于精确匹配分P
   title: string
   cover: string
   duration: number
@@ -76,6 +77,15 @@ interface VideoItem {
   p?: number  // 分P序号
   partTitle?: string  // 分P的标题
 }
+
+// 清理 vid，兼容数字和 shortId
+const cleanVid = (v: number | string): string => {
+  if (typeof v === 'number') return String(v)
+  return v
+}
+
+// 当前视频的 vid 字符串（兼容数字和 shortId）
+const currentVidStr = computed(() => cleanVid(props.vid))
 
 interface PlaylistInfo {
   id: number
@@ -138,17 +148,30 @@ const currentIndex = computed(() => {
     return currentPart
   }
   
-  // 合集类型：用p字段匹配
-  const currentVideoParts = mergedList.value.filter(v => v.vid === props.vid)
+  // 合集类型：用p字段匹配（兼容 shortId）
+  const currentVideoParts = mergedList.value.filter(v => {
+    const itemVidStr = cleanVid(v.vid)
+    const itemShortId = (v as any).shortId
+    return itemVidStr === currentVidStr.value || itemShortId === currentVidStr.value
+  })
+  
   if (currentVideoParts.length > 1) {
     const idx = currentVideoParts.findIndex(v => (v.p || 1) === currentPart)
     if (idx >= 0) {
-      const firstIndex = mergedList.value.indexOf(currentVideoParts[0])
+      const firstIndex = mergedList.value.findIndex(v => {
+        const itemVidStr = cleanVid(v.vid)
+        const itemShortId = (v as any).shortId
+        return itemVidStr === currentVidStr.value || itemShortId === currentVidStr.value
+      })
       return firstIndex + idx + 1
     }
   }
   // 单分P或找不到，返回第一个
-  const firstIdx = mergedList.value.findIndex(v => v.vid === props.vid)
+  const firstIdx = mergedList.value.findIndex(v => {
+    const itemVidStr = cleanVid(v.vid)
+    const itemShortId = (v as any).shortId
+    return itemVidStr === currentVidStr.value || itemShortId === currentVidStr.value
+  })
   return firstIdx >= 0 ? firstIdx + 1 : 0
 })
 
@@ -168,10 +191,28 @@ const isActiveItem = (item: VideoItem, index: number) => {
     return (index + 1) === currentPart
   }
   
-  // 合集类型：匹配 vid + p
-  if (item.vid === props.vid) {
-    const itemP = (item as any).p || 1
-    return itemP === currentPart
+  // 合集类型：需要同时匹配主稿件ID + 资源rid
+  const itemShortId = (item as any).shortId;
+  const itemResourceRid = (item as any).resourceRid;
+  const itemP = (item as any).p || 1;
+  const itemVidStr = cleanVid(item.vid);
+  
+  // 获取当前播放的资源 shortId (rid)，从 partList 中获取
+  const currentRid = partList.value[currentPart - 1]?.shortId;
+  
+  // 主稿件ID匹配（兼容 shortId）
+  const mainVideoMatch = itemVidStr === currentVidStr.value || itemShortId === currentVidStr.value;
+  // 资源rid匹配
+  const resourceMatch = itemResourceRid && currentRid && itemResourceRid === currentRid;
+  
+  // 合集类型：精确匹配主稿件 + 资源rid
+  if (mainVideoMatch && resourceMatch) {
+    return true;
+  }
+  
+  // 同一主稿件的不同分P，用 p 匹配
+  if (mainVideoMatch && itemP) {
+    return itemP === currentPart;
   }
   
   return false
@@ -181,18 +222,40 @@ const emits = defineEmits(['changePart'])
 
 const goVideo = (item: VideoItem) => {
   const itemP = (item as any).p || 1
+  const itemShortId = (item as any).shortId;
+  const itemResourceRid = (item as any).resourceRid;
+  const isMultiPart = itemP > 1;
+  const currentPart = props.currentPart || 1;
+  const itemVidStr = cleanVid(item.vid);
   
-  // 如果是同一个视频，切换到对应的分P
-  if (item.vid === props.vid) {
-    emits('changePart', itemP)
-  } else if (item.vid !== props.vid) {
-    // 切换到其他视频：只有p>1才带p参数
-    const v = item.shortId || String(item.vid);
-    if (itemP > 1) {
-      navigateTo(`/watch?v=${v}&p=${itemP}`)
+  // 获取当前播放的资源 shortId (rid)
+  const currentRid = partList.value[currentPart - 1]?.shortId;
+  
+  // 判断是否同一分P（兼容 shortId）
+  const mainVideoMatch = itemVidStr === currentVidStr.value || itemShortId === currentVidStr.value;
+  const resourceMatch = itemResourceRid && currentRid && itemResourceRid === currentRid;
+  
+  if (mainVideoMatch && resourceMatch) {
+    return;
+  }
+  
+  if (mainVideoMatch) {
+    if (isMultiPart && itemResourceRid) {
+      navigateTo(`/watch?v=${itemShortId || itemVidStr}&rid=${itemResourceRid}`);
     } else {
-      navigateTo(`/watch?v=${v}`)
+      emits('changePart', itemP)
     }
+    return;
+  }
+  
+  // 切换到其他视频
+  const v = itemShortId || itemVidStr;
+  if (isMultiPart && itemResourceRid) {
+    navigateTo(`/watch?v=${v}&rid=${itemResourceRid}`)
+  } else if (itemP > 1) {
+    navigateTo(`/watch?v=${v}&p=${itemP}`)
+  } else {
+    navigateTo(`/watch?v=${v}`)
   }
 }
 
@@ -205,9 +268,9 @@ const getNextPart = () => {
     if (currentPart < mergedList.value.length) {
       return currentPart + 1
     }
-  } else {
+} else {
     // 合集类型：检查当前视频是否有下一个分P
-    const currentPartItems = mergedList.value.filter(v => v.vid === props.vid)
+    const currentPartItems = mergedList.value.filter(v => cleanVid(v.vid) === cleanVid(props.vid))
     if (currentPartItems.length > 1) {
       // 找到当前分P的位置
       const currentPartIdx = currentPartItems.findIndex((item, idx) => idx + 1 === currentPart)
@@ -224,14 +287,17 @@ const getNextVideo = () => {
   const currentPart = props.currentPart || 1
   
   if (listType.value === 'parts') {
-    // 分P类型：下一个分P
     const currentIdx = currentPart - 1
     if (currentIdx >= 0 && currentIdx < mergedList.value.length - 1) {
       return mergedList.value[currentIdx + 1]
     }
   } else {
-    // 合集类型：匹配当前视频的下一个分P
-    const currentVideoParts = mergedList.value.filter(v => v.vid === props.vid)
+    // 合集类型：匹配当前视频的下一个分P（兼容 shortId）
+    const currentVideoParts = mergedList.value.filter(v => {
+      const itemVidStr = cleanVid(v.vid)
+      const itemShortId = (v as any).shortId
+      return itemVidStr === currentVidStr.value || itemShortId === currentVidStr.value
+    })
     if (currentVideoParts.length > 1) {
       const currentIdx = currentPart - 1
       if (currentIdx >= 0 && currentIdx < currentVideoParts.length - 1) {
@@ -239,7 +305,11 @@ const getNextVideo = () => {
       }
     }
     // 当前视频没有更多分P，找下一个视频
-    const vidIdx = mergedList.value.findIndex(v => v.vid === props.vid)
+    const vidIdx = mergedList.value.findIndex(v => {
+      const itemVidStr = cleanVid(v.vid)
+      const itemShortId = (v as any).shortId
+      return itemVidStr === currentVidStr.value || itemShortId === currentVidStr.value
+    })
     if (vidIdx >= 0 && vidIdx < mergedList.value.length - 1) {
       return mergedList.value[vidIdx + 1]
     }
@@ -252,7 +322,8 @@ const loadPartList = () => {
   // 优先使用API返回的当前视频分P列表
 if (props.resources && props.resources.length > 0) {
     partList.value = props.resources.map((resource, index) => ({
-      vid: props.vid,
+      vid: vidAsNum.value,
+      shortId: resource.shortId, // 添加资源的 shortId (rid)
       title: '',
       cover: '',
       duration: resource.duration || 0,
@@ -267,15 +338,17 @@ if (props.resources && props.resources.length > 0) {
 }
 
 // 使用新API加载合集数据
-const loadPlaylist = async (vid: number) => {
+const vidAsNum = computed(() => Number(props.vid));
+const loadPlaylist = async (vid: number | string) => {
   playlist.value = null
   videoList.value = []
   partList.value = []
 
   // 优先使用 props.resources 设置分P列表（页面已有数据）
   if (props.resources && props.resources.length > 0) {
-partList.value = props.resources.map((resource, index) => ({
-      vid: vid,
+    partList.value = props.resources.map((resource, index) => ({
+      vid: vidAsNum.value,
+      shortId: resource.shortId, // 添加资源的 shortId (rid)
       title: '',
       cover: '',
       duration: resource.duration || 0,
@@ -295,12 +368,13 @@ partList.value = props.resources.map((resource, index) => ({
     // 设置是否有合集
     const hasCollection = data.hasCollection === true
     
-    if (hasCollection && data.playlist) {
+if (hasCollection && data.playlist) {
       // 有合集
       playlist.value = { id: data.playlist.id, title: data.playlist.title }
 videoList.value = (data.videos || []).map((v: any) => ({
         vid: v.vid,
         shortId: v.shortId,
+        resourceRid: v.resourceRid,  // 资源shortId
         title: v.title,
         cover: v.cover,
         duration: v.duration,

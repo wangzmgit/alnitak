@@ -227,8 +227,10 @@ let pendingSeek: number | null = null;
 // ===== 监听 progress 属性变化，自动 seek =====
 watch(
   () => props.progress,
-  (val) => {
-    if (val != null && player) {
+  (val, oldVal) => {
+    // 检查 player 是否真正准备好（video 元素存在且 readyState >= 2）
+    const isPlayerReady = player && player.video && player.video.readyState >= 2;
+    if (val != null && isPlayerReady) {
       player.seek(val);
       pendingSeek = null;
     } else if (val != null) {
@@ -349,7 +351,7 @@ const loadPart = async (part: number) => {
           part: props.part,
           time: -1,        // 已看完统一用 -1
           duration,        // 整数秒
-          resourceShortId: getCurrentResourceShortId(),
+          rid: getCurrentResourceShortId(),
         });
       } catch (error) {
         console.error('上报播放完成失败:', error);
@@ -371,7 +373,7 @@ const loadPart = async (part: number) => {
       if (Math.abs(current - lastSeekTime) > 10 && !isWatched() && !hasEnded.value) {
         const current = Math.floor(player.video.currentTime || 0);
         const duration = Math.floor(player.video.duration || 0);
-        addHistoryAPI({ vid: props.videoInfo.vid, part: props.part, time: current, duration, resourceShortId: getCurrentResourceShortId() });
+        addHistoryAPI({ vid: props.videoInfo.vid, part: props.part, time: current, duration, rid: getCurrentResourceShortId() });
       }
       lastSeekTime = current;
     });
@@ -562,6 +564,11 @@ const sendDanmaku = (danmakuForm: DrawDanmakuType) => {
   player.danmaku.send(danmakuForm, async (danmaku: AddDanmakuType) => {
     danmaku.vid = props.videoInfo.vid;
     danmaku.part = props.part;
+    // 附带 rid 用于精准绑定
+    const currentRid = props.videoInfo.resources?.[props.part - 1]?.shortId;
+    if (currentRid) {
+      danmaku.rid = currentRid;
+    }
     const res = await sendDanmakuAPI(danmaku);
     if (res.data.code !== statusCode.OK) {
       ElMessage.error(res.data.msg);
@@ -614,7 +621,7 @@ const uploadHistory = async () => {
     part: props.part,
     time: currentTime >= duration ? -1 : currentTime, // 播放完了就上报 -1
     duration,
-    resourceShortId: getCurrentResourceShortId(),
+    rid: getCurrentResourceShortId(),
   });
 }
 
@@ -678,7 +685,7 @@ const reportOnLeave = () => {
   if (player && player.video && typeof player.video.currentTime === 'number' && !isWatched()) {
     const duration = Math.floor(player.video.duration || 0); // 总时长取整
     const currentTime = Math.floor(player.video.currentTime); // 当前进度取整
-    addHistoryAPI({ vid: props.videoInfo.vid, part: props.part, time: currentTime >= duration ? -1 : currentTime, duration });
+    addHistoryAPI({ vid: props.videoInfo.vid, part: props.part, time: currentTime >= duration ? -1 : currentTime, duration, rid: getCurrentResourceShortId() });
   }
 };
 if (typeof window !== 'undefined') {

@@ -11,7 +11,7 @@ export const addArticleCommentAPI = (addComment: AddCommentType) => {
 }
 
 // 获取评论
-export const getVideoCommentAPI = (vid: number, page: number, pageSize: number) => {
+export const getVideoCommentAPI = (vid: number | string, page: number, pageSize: number) => {
   return request.get(`v1/comment/video/getComment?vid=${vid}&page=${page}&pageSize=${pageSize}`);
 }
 
@@ -41,7 +41,7 @@ export const deleteArticleCommentAPI = (commentId: number) => {
 }
 
 // 获取视频评论
-export const getVideoCommentListAPI = (vid: number, page: number, pageSize: number) => {
+export const getVideoCommentListAPI = (vid: string | number, page: number, pageSize: number) => {
   return request.get(`v1/comment/video/getCommentList?vid=${vid}&page=${page}&pageSize=${pageSize}`);
 }
 
