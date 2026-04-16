@@ -472,12 +472,12 @@ const loadResource = async (part: number) => {
     const useDash = supportsDashJs() && serverSupportsDash
     const qualityOrderFromServer = (res.data.data.qualityOrder as string[]) || []
 
-    // 当前视频不包含上次保存的清晰度名时，回退到本视频的最高档，并同步更新 localStorage
+    // 当前视频不包含上次保存的清晰度名时，回退到本视频的最高档（不记住选择，避免影响其他视频）
     const qualityNames = qualities.map((q) => getQualityDisplayName(q))
     if (!qualityNames.includes(defaultQuality.value)) {
       const highestName = qualityNames[0] || '720p'
       defaultQuality.value = highestName
-      localStorage.setItem('default-video-quality', highestName)
+      // 不更新 localStorage，避免影响其他视频
     }
 
     if (useDash && qualityOrderFromServer.length > 0) {
