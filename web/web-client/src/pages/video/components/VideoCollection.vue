@@ -320,9 +320,9 @@ const getNextVideo = () => {
 // 处理分P列表
 const loadPartList = () => {
   // 优先使用API返回的当前视频分P列表
-if (props.resources && props.resources.length > 0) {
+  if (props.resources && props.resources.length > 0) {
     partList.value = props.resources.map((resource, index) => ({
-      vid: vidAsNum.value,
+      vid: props.vid,
       shortId: resource.shortId, // 添加资源的 shortId (rid)
       title: '',
       cover: '',
@@ -338,7 +338,6 @@ if (props.resources && props.resources.length > 0) {
 }
 
 // 使用新API加载合集数据
-const vidAsNum = computed(() => Number(props.vid));
 const loadPlaylist = async (vid: number | string) => {
   playlist.value = null
   videoList.value = []
@@ -347,7 +346,7 @@ const loadPlaylist = async (vid: number | string) => {
   // 优先使用 props.resources 设置分P列表（页面已有数据）
   if (props.resources && props.resources.length > 0) {
     partList.value = props.resources.map((resource, index) => ({
-      vid: vidAsNum.value,
+      vid: props.vid,
       shortId: resource.shortId, // 添加资源的 shortId (rid)
       title: '',
       cover: '',

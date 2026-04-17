@@ -224,26 +224,25 @@ const handelResize = () => {
   })
 }
 
-// 视频分集：校验 p 参数有效性，无效则重定向（移除p参数）
-if (route.query.p && !route.query.rid && Number(route.query.p) > videoInfo.value!.resources.length) {
-  router.replace({ path: '/watch', query: { ...route.query, v: currentWatchVQuery.value, p: undefined } });
-}
+// 计算当前分P：rid 优先（不受分P排序影响），否则用 p，最后兜底 1
+const resolveInitialPart = (): number => {
+  if (route.query.rid) {
+    const rid = String(route.query.rid);
+    const idx = videoInfo.value?.resources.findIndex(r => r.shortId === rid) ?? -1;
+    if (idx >= 0) return idx + 1;
+  }
+  return Number(route.query.p) || 1;
+};
+const currentPart = ref(resolveInitialPart());
 
-// rid 参数：resource_short_id 精准定位（不受分P排序影响）
-// 如果有 rid 参数，自动清理 p 参数（避免冗余）
-let currentPart = ref(1);
-if (route.query.rid) {
-  const { p, ...queryWithoutP } = route.query;
-  if (p) {
+// URL 冗余/非法参数清理，仅在 client 端做以避免 SSR 期间副作用
+if (process.client) {
+  if (route.query.rid && route.query.p) {
+    const { p, ...queryWithoutP } = route.query;
     router.replace({ path: '/watch', query: queryWithoutP });
+  } else if (route.query.p && !route.query.rid && Number(route.query.p) > videoInfo.value!.resources.length) {
+    router.replace({ path: '/watch', query: { ...route.query, v: currentWatchVQuery.value, p: undefined } });
   }
-  const rid = String(route.query.rid);
-  const idx = videoInfo.value?.resources.findIndex(r => r.shortId === rid);
-  if (idx !== undefined && idx >= 0) {
-    currentPart = ref(idx + 1);
-  }
-} else {
-  currentPart = ref(Number(route.query.p) || 1);
 }
 
 const pendingProgress = ref<number | null>(null);
@@ -316,32 +315,24 @@ const onVideoEnded = () => {
 // 检查推荐视频自动连播
 const checkRecommendAutoplay = () => {
   const recommendRef = recommendListRef.value
-  console.log('检查推荐自动连播:', recommendRef?.autonext, recommendRef?.getNextVideo?.())
-  
-  if (recommendRef?.autonext) {
-    const nextVideo = recommendRef.getNextVideo?.();
-    console.log('自动连播下一个推荐视频:', nextVideo);
-
-    if (nextVideo) {
-      setTimeout(() => {
-        const nextEp = Number((nextVideo as any).epId || 0);
-        if (isPGCPage.value && Number.isFinite(nextEp) && nextEp > 0) {
-          navigateTo(`/watch?ep=${Math.floor(nextEp)}&mode=pgc`);
-          return;
-        }
-        const nextV = nextVideo.shortId || String(nextVideo.vid);
-        const pgcMode = isPGCPage.value ? '&mode=pgc' : '';
-        const nextShortId = nextVideo.shortId;
-        if (nextShortId) {
-          navigateTo(`/watch?v=${nextV}&rid=${nextShortId}${pgcMode}`)
-        } else {
-          navigateTo(`/watch?v=${nextV}${pgcMode}`)
-        }
-      }, 3000);
-    } else {
-      console.log('没有更多推荐视频了');
+  if (!recommendRef?.autonext) return;
+  const nextVideo = recommendRef.getNextVideo?.();
+  if (!nextVideo) return;
+  setTimeout(() => {
+    const nextEp = Number((nextVideo as any).epId || 0);
+    if (isPGCPage.value && Number.isFinite(nextEp) && nextEp > 0) {
+      navigateTo(`/watch?ep=${Math.floor(nextEp)}&mode=pgc`);
+      return;
     }
-  }
+    const nextV = nextVideo.shortId || String(nextVideo.vid);
+    const pgcMode = isPGCPage.value ? '&mode=pgc' : '';
+    const nextShortId = nextVideo.shortId;
+    if (nextShortId) {
+      navigateTo(`/watch?v=${nextV}&rid=${nextShortId}${pgcMode}`)
+    } else {
+      navigateTo(`/watch?v=${nextV}${pgcMode}`)
+    }
+  }, 3000);
 };
 
 const onPlayerReady = () => {
@@ -378,69 +369,6 @@ const handleSeekTime = (seconds: number) => {
   }
 };
 
-const changePart = async (target: number) => {
-  if (videoInfo.value?.resources[target - 1]) {
-    currentPart.value = target;
-    // 使用 rid 精准定位
-    const targetRid = videoInfo.value.resources[target - 1]?.shortId;
-    const vid = videoInfo.value.shortId || videoInfo.value.vid;
-    if (targetRid) {
-      router.replace({ path: '/watch', query: { ...route.query, rid: targetRid, p: undefined } });
-      getDanmakuList(vid, undefined, targetRid);
-      // 主动请求新分集进度（使用rid精准获取）
-      const res = await getHistoryProgressAPI(vid, undefined, targetRid);
-      if (res.data.code === 200 && res.data.data && typeof res.data.data.progress === 'number' && res.data.data.progress > 0) {
-        pendingProgress.value = res.data.data.progress;
-      } else {
-        pendingProgress.value = null;
-      }
-    } else {
-      router.replace({ path: '/watch', query: { ...route.query, v: currentWatchVQuery.value, p: currentPart.value } });
-      getDanmakuList(vid, currentPart.value);
-      const res = await getHistoryProgressAPI(vid, currentPart.value);
-      if (res.data.code === 200 && res.data.data && typeof res.data.data.progress === 'number' && res.data.data.progress > 0) {
-        pendingProgress.value = res.data.data.progress;
-      } else {
-        pendingProgress.value = null;
-      }
-    }
-  }
-}
-
-// 监听路由参数 p，自动切换分P和弹幕
-watch(() => route.query.p, async (newP, oldP) => {
-  // 如果有 v 参数，v/ep/p watch 会处理
-  if (route.query.v) return;
-  
-  if (!videoInfo.value) return;
-  const partNum = Number(newP) || 1;
-  if (videoInfo.value?.resources[partNum - 1]) {
-    currentPart.value = partNum;
-    // 优先使用 rid 获取进度和弹幕
-    const currentRid = videoInfo.value.resources[partNum - 1]?.shortId;
-    const vid = videoInfo.value.shortId || videoInfo.value.vid;
-    if (currentRid) {
-      const res = await getHistoryProgressAPI(vid, undefined, currentRid);
-      if (res.data.code === 200 && res.data.data && typeof res.data.data.progress === 'number') {
-        pendingProgress.value = res.data.data.progress;
-      } else {
-        pendingProgress.value = null;
-      }
-      getDanmakuList(vid, undefined, currentRid);
-    } else {
-      const res = await getHistoryProgressAPI(vid, partNum);
-      if (res.data.code === 200 && res.data.data && typeof res.data.data.progress === 'number') {
-        pendingProgress.value = res.data.data.progress;
-      } else {
-        pendingProgress.value = null;
-      }
-      getDanmakuList(vid, partNum);
-    }
-  } else {
-    router.replace({ path: '/watch', query: { ...route.query, v: currentWatchVQuery.value, p: 1 } });
-  }
-});
-
 // 获取弹幕列表
 const danmakuListRef = ref<InstanceType<typeof DanmakuList> | null>(null);
 
@@ -453,6 +381,39 @@ const getDanmakuList = async (vid: string | number, part?: number, rid?: string)
       danmakuListRef.value?.setDanmaku(danmakus)
     })
   }
+};
+
+// 加载某分P的进度与弹幕；rid 存在则优先走 rid 精准定位
+const refreshProgressAndDanmaku = async (partNum: number) => {
+  if (!videoInfo.value) return;
+  const vid = videoInfo.value.shortId || videoInfo.value.vid;
+  const rid = videoInfo.value.resources[partNum - 1]?.shortId;
+  try {
+    const res = rid
+      ? await getHistoryProgressAPI(vid, undefined, rid)
+      : await getHistoryProgressAPI(vid, partNum);
+    const progress = res?.data?.code === 200 ? res.data.data?.progress : null;
+    pendingProgress.value = typeof progress === 'number' && progress !== 0 ? progress : null;
+  } catch {
+    pendingProgress.value = null;
+  }
+  if (rid) {
+    getDanmakuList(vid, undefined, rid);
+  } else {
+    getDanmakuList(vid, partNum);
+  }
+};
+
+const changePart = async (target: number) => {
+  if (!videoInfo.value?.resources[target - 1]) return;
+  currentPart.value = target;
+  const targetRid = videoInfo.value.resources[target - 1]?.shortId;
+  if (targetRid) {
+    router.replace({ path: '/watch', query: { ...route.query, rid: targetRid, p: undefined } });
+  } else {
+    router.replace({ path: '/watch', query: { ...route.query, v: currentWatchVQuery.value, p: currentPart.value } });
+  }
+  await refreshProgressAndDanmaku(target);
 };
 
 // 简介部分
@@ -471,30 +432,8 @@ onMounted(async () => {
     foldDescHeight.value = 'auto';
   }
 
-if (videoInfo.value) {
-    try {
-      // 获取视频标识（优先用 shortId）
-      const vid = videoInfo.value.shortId || videoInfo.value.vid;
-
-      // 优先使用当前分P的 rid 获取精准进度（不受排序影响）
-      const currentRid = videoInfo.value.resources[currentPart.value - 1]?.shortId;
-      const res = await getHistoryProgressAPI(vid, undefined, currentRid);
-      if (res.data.code === 200 && res.data.data) {
-        const { part: resPart, progress } = res.data.data;
-        getDanmakuList(vid, undefined, currentRid);
-        if (typeof progress === 'number' && progress > 0) {
-          pendingProgress.value = progress;
-        } else {
-          pendingProgress.value = null;
-        }
-      } else {
-        getDanmakuList(vid, undefined, currentRid);
-        pendingProgress.value = null;
-      }
-    } catch (e) {
-      const currentRid = videoInfo.value.resources[currentPart.value - 1]?.shortId;
-      getDanmakuList(vid, undefined, currentRid);
-    }
+  if (videoInfo.value) {
+    await refreshProgressAndDanmaku(currentPart.value);
   }
 
   handelResize();
@@ -690,12 +629,21 @@ onBeforeUnmount(() => {
 watch(
   () => [route.query.v, route.query.ep, route.query.p, route.query.rid],
   async ([newV, newEp, newP, newRid], [oldV, oldEp, oldP, oldRid]) => {
-    if (newV === oldV && newEp === oldEp && newRid === oldRid) return;
-    const resolved = await resolveWatchVideoIdOnQueryChange(route.query);
-    if (!resolved.ok) {
-      if (resolved.reason === 'no_identifier') return;
+    // 视频主体未变（v/ep/rid 都没动），仅 p 变：不重拉 videoInfo，只切分P
+    if (newV === oldV && newEp === oldEp && newRid === oldRid) {
+      if (newP !== oldP && videoInfo.value) {
+        const partNum = Number(newP) || 1;
+        if (videoInfo.value.resources[partNum - 1]) {
+          currentPart.value = partNum;
+          await refreshProgressAndDanmaku(partNum);
+        } else {
+          router.replace({ path: '/watch', query: { ...route.query, v: currentWatchVQuery.value, p: 1 } });
+        }
+      }
       return;
     }
+    const resolved = await resolveWatchVideoIdOnQueryChange(route.query);
+    if (!resolved.ok) return;
     const newVideoId = resolved.videoId;
     const { data } = await asyncGetVideoInfoAPI(newVideoId);
     if ((data.value as any).code === statusCode.OK) {
@@ -710,24 +658,7 @@ watch(
       } else {
         currentPart.value = Number(route.query.p) || 1;
       }
-      const currentRid = videoInfo.value.resources[currentPart.value - 1]?.shortId;
-      if (currentRid) {
-        getDanmakuList(vid, undefined, currentRid);
-        const res = await getHistoryProgressAPI(vid, undefined, currentRid);
-        if (res.data.code === 200 && res.data.data && typeof res.data.data.progress === 'number') {
-          pendingProgress.value = res.data.data.progress;
-        } else {
-          pendingProgress.value = null;
-        }
-      } else {
-        getDanmakuList(vid, currentPart.value);
-        const res = await getHistoryProgressAPI(vid, currentPart.value);
-        if (res.data.code === 200 && res.data.data && typeof res.data.data.progress === 'number') {
-          pendingProgress.value = res.data.data.progress;
-        } else {
-          pendingProgress.value = null;
-        }
-      }
+      await refreshProgressAndDanmaku(currentPart.value);
       if (process.client) {
         reconnectWebSocket();
       }
