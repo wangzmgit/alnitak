@@ -102,7 +102,7 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeMount, onBeforeUnmount, reactive, ref, computed } from "vue";
+import { onBeforeMount, onBeforeUnmount, reactive, ref, computed, watch } from "vue";
 import { handleMention } from '@/utils/mention';
 import { statusCode } from '@/utils/status-code';
 import { ElMessage } from "element-plus";
@@ -371,6 +371,16 @@ onBeforeMount(() => {
   getCommentList();
   window.addEventListener("scroll", lazyLoading, true);
 })
+
+watch(
+  () => [props.vid, props.shortId],
+  () => {
+    commentList.value = [];
+    pagination.page = 1;
+    pagination.noMore = false;
+    getCommentList();
+  }
+)
 
 onBeforeUnmount(() => {
   window.removeEventListener("scroll", lazyLoading, true);
