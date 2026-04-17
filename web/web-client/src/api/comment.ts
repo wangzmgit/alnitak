@@ -49,3 +49,33 @@ export const getVideoCommentListAPI = (vid: string | number, page: number, pageS
 export const getArticleCommentListAPI = (aid: number, page: number, pageSize: number) => {
   return request.get(`v1/comment/article/getCommentList?aid=${aid}&page=${page}&pageSize=${pageSize}`);
 }
+
+// 点赞视频评论
+export const likeVideoCommentAPI = (commentId: number) => {
+  return request.post(`v1/comment/video/like/${commentId}`);
+}
+
+// 取消点赞视频评论
+export const unlikeVideoCommentAPI = (commentId: number) => {
+  return request.delete(`v1/comment/video/like/${commentId}`);
+}
+
+// 点赞文章评论
+export const likeArticleCommentAPI = (commentId: number) => {
+  return request.post(`v1/comment/article/like/${commentId}`);
+}
+
+// 取消点赞文章评论
+export const unlikeArticleCommentAPI = (commentId: number) => {
+  return request.delete(`v1/comment/article/like/${commentId}`);
+}
+
+// 获取视频评论点赞状态
+export const getVideoCommentLikeStatusAPI = (commentId: number) => {
+  return request.get(`v1/comment/video/getLikeStatus?commentId=${commentId}`);
+}
+
+// 获取文章评论点赞状态
+export const getArticleCommentLikeStatusAPI = (commentId: number) => {
+  return request.get(`v1/comment/article/getLikeStatus?commentId=${commentId}`);
+}

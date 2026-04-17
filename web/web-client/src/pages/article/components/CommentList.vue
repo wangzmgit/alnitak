@@ -32,8 +32,12 @@
           <nuxt-link v-else class="at" :to="`/user/${content.key}`">{{ content.value }}</nuxt-link>
         </span>
       </div>
-      <div class="comment-info">
+<div class="comment-info">
         <span class="comment-time">{{ formatRelativeTime(item.createdAt) }}</span>
+        <span class="like-btn" :class="item.liked ? 'liked' : ''" @click="likeComment(item)">
+          <like-fill-icon :liked="item.liked"></like-fill-icon>
+          <span v-if="item.likes > 0" class="like-count">{{ item.likes }}</span>
+        </span>
         <span class="reply-btn" :class="isLoggedIn ? '' : 'btn-disabled'" @click="showReplyBox(item)">回复</span>
         <client-only v-if="isLoggedIn">
           <el-popconfirm title="是否删除该条评论？" confirm-button-text="确认" cancel-button-text="取消"
@@ -63,8 +67,12 @@
             <nuxt-link v-else class="at" :to="`/user/${content.key}`">{{ content.value }}</nuxt-link>
           </span>
         </span>
-        <div class="reply-info">
+<div class="reply-info">
           <span class="reply-time">{{ formatRelativeTime(reply.createdAt) }}</span>
+          <span class="like-btn" :class="reply.liked ? 'liked' : ''" @click="likeComment(reply, item)">
+            <like-fill-icon :liked="reply.liked"></like-fill-icon>
+            <span v-if="reply.likes > 0" class="like-count">{{ reply.likes }}</span>
+          </span>
           <span class="reply-btn" :class="isLoggedIn ? '' : 'btn-disabled'" @click="showReplyBox(item, reply)">回复</span>
           <client-only v-if="isLoggedIn">
             <el-popconfirm title="是否删除该条回复？" confirm-button-text="确认" cancel-button-text="取消"
@@ -104,7 +112,8 @@ import { statusCode } from '@/utils/status-code';
 import { ElMessage } from "element-plus";
 import { formatRelativeTime } from "@/utils/format";
 import CommonAvatar from "@/components/common-avatar/index.vue";
-import { addArticleCommentAPI, getArticleCommentAPI, getArticleReplyAPI, deleteArticleCommentAPI } from "@/api/comment";
+import { addArticleCommentAPI, getArticleCommentAPI, getArticleReplyAPI, deleteArticleCommentAPI, likeArticleCommentAPI, unlikeArticleCommentAPI, getArticleCommentLikeStatusAPI } from "@/api/comment";
+import LikeFillIcon from "@/components/icons/LikeFillIcon.vue";
 import { scrollToViewCenter } from "@/utils/scroll";
 import { requireLogin } from "@/utils/require-login";
 import { useAuthStore } from "@/stores/auth-store";
@@ -132,7 +141,24 @@ const getCommentList = async () => {
   const res = await getArticleCommentAPI(props.aid, pagination.page, pagination.pageSize);
   if (res.data.code === statusCode.OK) {
     commentCount.value = res.data.data.total;
-    commentList.value = commentList.value.concat(res.data.data.comments);
+    const comments = res.data.data.comments;
+    // 获取点赞状态
+    for (const comment of comments) {
+      try {
+        const likeRes = await getArticleCommentLikeStatusAPI(comment.id);
+        comment.liked = likeRes.data.data?.liked || false;
+        // 获取回复的点赞状态
+        if (comment.reply) {
+          for (const reply of comment.reply) {
+            const replyLikeRes = await getArticleCommentLikeStatusAPI(reply.id);
+            reply.liked = replyLikeRes.data.data?.liked || false;
+          }
+        }
+      } catch (e) {
+        comment.liked = false;
+      }
+    }
+    commentList.value = commentList.value.concat(comments);
     if (res.data.data.comments < pagination.pageSize) {
       pagination.noMore = true;
     }
@@ -277,6 +303,26 @@ const deleteComment = async (index: number, comment: CommentType, reply?: ReplyT
     } else {
       commentList.value.splice(index, 1);
     }
+  }
+}
+
+// 点赞/取消点赞评论
+const likeComment = async (comment: CommentType | ReplyType, parentComment?: CommentType) => {
+  if (!isLoggedIn.value) {
+    requireLogin('点赞');
+    return;
+  }
+  try {
+    if (comment.liked) {
+      await unlikeArticleCommentAPI(comment.id);
+      comment.likes = (comment.likes || 1) - 1;
+    } else {
+      await likeArticleCommentAPI(comment.id);
+      comment.likes = (comment.likes || 0) + 1;
+    }
+    comment.liked = !comment.liked;
+  } catch (e) {
+    ElMessage.error(comment.liked ? '取消点赞失败' : '点赞失败');
   }
 }
 

@@ -20,6 +20,8 @@ interface CommentType {
   parentId: number;
   reply: ReplyType[];
   replyCount: number;
+  likes: number;
+  liked: boolean;
 
   // 本地使用的数据，接口不返回
   page?: number;
@@ -38,6 +40,8 @@ interface ReplyType {
   parentId: number;
   replyUserId: number;
   replyUserName: string;
+  likes: number;
+  liked: boolean;
 }
 
 interface CommentManageType {
