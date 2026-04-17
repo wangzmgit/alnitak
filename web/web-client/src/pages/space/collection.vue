@@ -42,6 +42,10 @@ import { MoreOne as MoreIcon } from '@icon-park/vue-next';
 import CollectionModal from "./components/CollectionModal.vue";
 import { getCollectionListAPI, deleteCollectionAPI } from '@/api/collection';
 
+definePageMeta({
+  middleware: ['auth']
+})
+
 const collectionList = ref<CollectionType[]>([]);
 const getCollectionList = async () => {
   const res = await getCollectionListAPI();

@@ -32,6 +32,10 @@ import { ElIcon } from 'element-plus';
 import PlayCountIcon from "@/components/icons/PlayCountIcon.vue";
 import { useVideoCountStore } from '@/composables/video-count-store';
 
+definePageMeta({
+  middleware: ['auth']
+})
+
 //获取我的视频
 const page = ref(1);
 const total = ref(0);

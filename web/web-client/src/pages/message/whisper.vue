@@ -54,6 +54,10 @@ import CommonAvatar from '@/components/common-avatar/index.vue';
 import { onBeforeMount, onBeforeUnmount, reactive, ref, nextTick } from 'vue';
 import { getWhisperDetailsAPI, getWhisperListAPI, readWhisperAPI, sendWhisperAPI } from "@/api/msg-whisper";
 
+definePageMeta({
+  middleware: ['auth']
+})
+
 const userInfo = ref<UserInfoType>();
 const getUserInfo = async () => {
   const res = await getUserInfoAPI();

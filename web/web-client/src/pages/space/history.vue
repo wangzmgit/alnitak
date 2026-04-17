@@ -19,6 +19,10 @@ import { reactive, onMounted, onBeforeUnmount } from 'vue';
 import { getHistoryVideoAPI } from '@/api/history';
 import HistoryVideoList from './components/HistoryVideoList.vue';
 
+definePageMeta({
+  middleware: ['auth']
+})
+
 
 const historyList = reactive<{
   today: HistoryVideoType[];

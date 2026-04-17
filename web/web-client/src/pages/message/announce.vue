@@ -29,6 +29,10 @@ import { ElPagination } from 'element-plus';
 import { formatTime } from "@/utils/format";
 import { getAnnounceAPI } from '@/api/msg-announce';
 
+definePageMeta({
+  middleware: ['auth']
+})
+
 const page = ref(1);
 const total = ref(0);
 const pageSize = ref(10);
