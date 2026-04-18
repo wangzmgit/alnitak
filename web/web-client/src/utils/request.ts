@@ -37,11 +37,6 @@ let requests: TokenCallback[] = [];
 let isRefreshing = false;
 let refreshPromise: Promise<string> | null = null;
 
-// 播放页（watch）在后端重启清会话后不续签，避免噪音与无意义重试
-const isWatchPage = () => {
-  if (typeof window === 'undefined') return false;
-  return window.location.pathname === '/watch';
-};
 // 开发环境仅在“浏览器端”通过前端代理，SSR/生产环境直连后端
 const isBrowser = typeof window !== 'undefined';
 export const baseURL = (process.dev && isBrowser)
@@ -102,8 +97,7 @@ service.interceptors.request.use(async (config) => {
     const token = storage.get('token');
     if (token) {
       config.headers.Authorization = token;
-    } else if (!isWatchPage()) {
-      // 播放页不做 token 续签/刷新，避免后端重启后产生噪音重试
+    } else {
       // 如果没有 accessToken 且有 refreshToken
       const localRefreshToken = storage.get('refreshToken');
       if (localRefreshToken) {
@@ -140,9 +134,6 @@ service.interceptors.response.use(async (res) => {
   if (process.client) {
     switch (res.data.code) {
       case statusCode.TOKEN_EXPRIED:
-        if (isWatchPage()) {
-          return res;
-        }
         // token 过期：优先刷新；无本地 refresh 时仍可能通过 HttpOnly Cookie 由服务端续签
         if (!isRefreshing) {
           isRefreshing = true;

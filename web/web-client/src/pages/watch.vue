@@ -5,9 +5,9 @@
       <div class="mian-content">
         <div class="left-column">
           <div class="video-player" ref="playerContainerRef">
-            <client-only>
+<client-only>
               <video-player v-if="videoInfo && playerReady" ref="playerRef" :video-info="videoInfo" :part="currentPart"
-                :progress="pendingProgress" :key="videoInfo?.vid + '-' + currentPart"></video-player>
+                :progress="pendingProgress" :key="videoInfo?.vid + '-' + currentPart" @danmaku-sent="handleDanmakuSent"></video-player>
             </client-only>
             <div v-if="!showPlayer" class="skeleton"></div>
           </div>
@@ -336,24 +336,15 @@ const checkRecommendAutoplay = () => {
 };
 
 const onPlayerReady = () => {
-  // 延迟执行 seek，确保播放器完全准备好
-  setTimeout(() => {
-    // 原有的进度恢复逻辑
-    if (pendingProgress.value === -1 && playerRef.value && playerRef.value.seek) {
-      playerRef.value.seek(0);
-      pendingProgress.value = null;
-      return;
-    }
-    if (pendingProgress.value !== null && playerRef.value && playerRef.value.seek) {
-      playerRef.value.seek(pendingProgress.value);
-      pendingProgress.value = null;
-    }
-
-    // 新增：绑定播放结束事件
-    if (playerRef.value && playerRef.value.setOnEnded) {
-      playerRef.value.setOnEnded(onVideoEnded);
-    }
-  }, 100);
+  // 进度恢复由 video-player 内部通过 props.progress + pendingSeek + loadedmetadata/canplay 统一处理
+  // 这里只做"已看完即重新开始"的场景兜底 + 绑定播放结束事件
+  if (pendingProgress.value === -1 && playerRef.value?.seek) {
+    playerRef.value.seek(0);
+  }
+  pendingProgress.value = null;
+  if (playerRef.value?.setOnEnded) {
+    playerRef.value.setOnEnded(onVideoEnded);
+  }
 };
 
 watch(playerRef, (val) => {
@@ -383,6 +374,9 @@ const getDanmakuList = async (vid: string | number, part?: number, rid?: string)
   }
 };
 
+// 弹幕发送成功后无需额外处理：server 会通过 ws 回广播自己发的弹幕，走 websocketOnmessage 分支单条插入
+const handleDanmakuSent = () => {};
+
 // 加载某分P的进度与弹幕；rid 存在则优先走 rid 精准定位
 const refreshProgressAndDanmaku = async (partNum: number) => {
   if (!videoInfo.value) return;
@@ -393,7 +387,14 @@ const refreshProgressAndDanmaku = async (partNum: number) => {
       ? await getHistoryProgressAPI(vid, undefined, rid)
       : await getHistoryProgressAPI(vid, partNum);
     const progress = res?.data?.code === 200 ? res.data.data?.progress : null;
-    pendingProgress.value = typeof progress === 'number' && progress !== 0 ? progress : null;
+    // -1 = 已看完：不做续播（由 onPlayerReady 兜底 seek(0)）；其他 0 或非数字也视为无续播
+    if (progress === -1) {
+      pendingProgress.value = -1;
+    } else if (typeof progress === 'number' && progress > 0) {
+      pendingProgress.value = progress;
+    } else {
+      pendingProgress.value = null;
+    }
   } catch {
     pendingProgress.value = null;
   }
@@ -414,6 +415,8 @@ const changePart = async (target: number) => {
     router.replace({ path: '/watch', query: { ...route.query, v: currentWatchVQuery.value, p: currentPart.value } });
   }
   await refreshProgressAndDanmaku(target);
+  // 切换分P后重新连接WebSocket以使用新的rid
+  reconnectWebSocket();
 };
 
 // 简介部分
@@ -490,12 +493,22 @@ const initWebSocket = () => {
     localStorage.setItem("ws-client-id", clientId);
   }
 
+  // 实时读取当前 vid，避免 SPA 路由切换后用到初始 setup 阶段捕获的旧值
+  const currentVid = videoInfo.value?.shortId || videoInfo.value?.vid || videoId;
+  if (!currentVid) {
+    console.warn('[WebSocket] 当前 vid 为空，放弃建立连接');
+    return;
+  }
+  // 获取当前分P的rid
+  const rid = videoInfo.value?.resources?.[currentPart.value - 1]?.shortId || '';
+  const ridParam = rid ? `&rid=${rid}` : '';
+
   if (process.dev) {
     const wsProtocol = globalConfig.https ? 'wss://' : 'ws://';
-    SocketURL = `${wsProtocol}${globalConfig.domain}/api/v1/online/video?vid=${videoId}&clientId=${clientId}`;
+    SocketURL = `${wsProtocol}${globalConfig.domain}/api/v1/online/video?vid=${currentVid}&clientId=${clientId}${ridParam}`;
   } else {
     const wsProtocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
-    SocketURL = `${wsProtocol}${window.location.host}/api/v1/online/video?vid=${videoId}&clientId=${clientId}`;
+    SocketURL = `${wsProtocol}${window.location.host}/api/v1/online/video?vid=${currentVid}&clientId=${clientId}${ridParam}`;
   }
 
   if (heartbeatTimer) {
@@ -605,6 +618,18 @@ const websocketOnmessage = (e: any) => {
     if (typeof res.number === 'number') {
       onlineCount.value = res.number;
       console.log('[WebSocket] 更新在线人数:', res.number);
+    }
+    // 处理弹幕消息：单条插入，不再全量刷新列表
+    if (res.type === 'danmaku' && res.danmaku) {
+      const currentRid = videoInfo.value?.resources?.[currentPart.value - 1]?.shortId;
+      const danmakuWithMeta = {
+        ...res.danmaku,
+        vid: videoInfo.value?.vid,
+        part: currentPart.value,
+        rid: currentRid
+      };
+      playerRef.value?.addDanmaku(danmakuWithMeta);
+      danmakuListRef.value?.addDanmaku(danmakuWithMeta);
     }
   } catch (error) {
     console.error('[WebSocket] 解析消息失败:', error);

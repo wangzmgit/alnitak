@@ -59,8 +59,15 @@ const setDanmaku = (data: DanmakuType[]) => {
   danmakuList.value = data;
 }
 
+// 列表按发送时间（createdAt）升序排列：新弹幕直接追加到末尾
+// ws 回广播天然按发送顺序到达，与后端初始查询的插入顺序一致
+const addDanmaku = (item: DanmakuType) => {
+  danmakuList.value.push(item);
+}
+
 defineExpose({
   setDanmaku,
+  addDanmaku,
 });
 </script>
 

@@ -15,7 +15,7 @@ import Hls from "hls.js";
 import * as dashjs from "dashjs";
 import Wplayer from 'wplayer-next';
 import { ref, shallowRef, onBeforeMount, watch, onMounted, onBeforeUnmount, computed } from 'vue';
-import { getDanmakuAPI, sendDanmakuAPI } from "@/api/danmaku";
+import { sendDanmakuAPI } from "@/api/danmaku";
 import DanmakuSend from "./components/DanmakuSend.vue";
 import { getResourceQualityApi, getVideoFileUrl, getVideoFileUrlDash, getVideoFileUrlDashUnified } from "@/api/video";
 import { addHistoryAPI } from "@/api/history";
@@ -40,6 +40,10 @@ const props = withDefaults(defineProps<{
   part: 1,
   progress: null
 })
+
+const emit = defineEmits<{
+  danmakuSent: []
+}>()
 
 // 获取当前分P的资源ShortID
 const getCurrentResourceShortId = () => {
@@ -223,17 +227,32 @@ const initFilterConfig = () => {
 
 // ===== 进度续播相关 =====
 let pendingSeek: number | null = null;
+// 标记当前 player 实例是否已经完成 loadedmetadata（可安全 seek）
+let playerReady = false;
+
+const doSeek = (time: number) => {
+  if (!player) return false;
+  try {
+    player.seek(time);
+    return true;
+  } catch (e) {
+    console.warn('[video-player] seek 失败:', e);
+    return false;
+  }
+};
 
 // ===== 监听 progress 属性变化，自动 seek =====
 watch(
   () => props.progress,
-  (val, oldVal) => {
-    // 检查 player 是否真正准备好（video 元素存在且 readyState >= 2）
-    const isPlayerReady = player && player.video && player.video.readyState >= 2;
-    if (val != null && isPlayerReady) {
-      player.seek(val);
+  (val) => {
+    if (val == null || val <= 0) {
       pendingSeek = null;
-    } else if (val != null) {
+      return;
+    }
+    if (playerReady) {
+      doSeek(val);
+      pendingSeek = null;
+    } else {
       pendingSeek = val;
     }
   },
@@ -272,6 +291,8 @@ const setOnEnded = (callback: () => void) => {
 const loadPart = async (part: number) => {
   // 重置播放结束标记
   hasEnded.value = false;
+  // 新实例未 ready，允许下次 pendingSeek 消费
+  playerReady = false;
 
   const el = document.getElementById('dplayer');
   if (el) {
@@ -544,6 +565,44 @@ const setDanmaku = (data: DanmakuType[]) => {
   // 更新弹幕数量统计
   danmakuSendRef.value?.updateDanmakuCount(data.length);
 }
+// 本地刚发出、正在等 ws 回广播的弹幕键（避免自己的弹幕被当成他人弹幕二次渲染）
+const recentlySent = new Map<string, number>();
+// 把 time 按 0.1s 取整，规避后端 float32 往返精度差异，保证发送端构造的 key 能匹配 ws 回广播的 key
+const makeDanmakuKey = (d: { time?: number; text?: string; color?: string; type?: number | string }) =>
+  `${Math.round((d.time ?? 0) * 10)}|${d.text ?? ''}|${d.color ?? ''}|${d.type ?? ''}`;
+
+// 追加单条弹幕到播放器（不触发 wplayer 的 reload/seek，避免卡顿 + 丢掉在飞的弹幕）
+const addDanmaku = (danmaku: DanmakuType) => {
+  // 1. 同步本地数据源与计数
+  originalDanmaku.value = [...originalDanmaku.value, danmaku];
+  danmakuSendRef.value?.updateDanmakuCount(originalDanmaku.value.length);
+
+  if (!player || !player.danmaku) return;
+
+  // 2. 同步 wplayer 的 options.data，确保后续 reload/resize 不会漏掉
+  const dataRef = player.danmaku.options && player.danmaku.options.data;
+  if (Array.isArray(dataRef)) dataRef.push(danmaku);
+
+  // 3. 若是自己刚发出的那条 ws 回广播：player.danmaku.send 已经插入 dan 并绘制过了，跳过渲染
+  const key = makeDanmakuKey(danmaku);
+  if (recentlySent.has(key)) {
+    recentlySent.delete(key);
+    return;
+  }
+
+  // 4. 他人的弹幕：只绘制接近当前时刻的，过时的直接丢弃（防止跑完又冒一条）
+  const dan = player.danmaku.dan;
+  if (!Array.isArray(dan)) return;
+  const nowT = player.video?.currentTime ?? 0;
+  const dTime = danmaku.time ?? 0;
+  // 已错过 > 0.5s 的历史弹幕：只留在 options.data 供后续 reload 用，不再补绘
+  if (dTime < nowT - 0.5) return;
+
+  const idx = player.danmaku.danIndex ?? 0;
+  let i = idx;
+  while (i < dan.length && (dan[i]?.time ?? 0) <= dTime) i++;
+  dan.splice(i, 0, danmaku);
+}
 // 弹幕显示改变
 const changeShow = (val: boolean) => {
   if (val) {
@@ -571,11 +630,24 @@ const sendDanmaku = (danmakuForm: DrawDanmakuType) => {
     if (currentRid) {
       danmaku.rid = currentRid;
     }
-    const res = await sendDanmakuAPI(danmaku);
+    // 后端要求 vid 为字符串
+    const danmakuData = {
+      ...danmaku,
+      vid: String(danmaku.vid)
+    };
+
+    // 记录本地已绘制的 key，让 ws 回广播到这条时跳过重复渲染（30s 后自动过期清理）
+    const echoKey = makeDanmakuKey(danmaku);
+    recentlySent.set(echoKey, Date.now());
+    setTimeout(() => recentlySent.delete(echoKey), 30000);
+
+    const res = await sendDanmakuAPI(danmakuData);
     if (res.data.code !== statusCode.OK) {
       ElMessage.error(res.data.msg);
+      // 发送失败：ws 不会回广播，主动清理占位
+      recentlySent.delete(echoKey);
     }
-  })
+  });
 }
 
 //过滤弹幕
@@ -653,13 +725,22 @@ onMounted(async () => {
   await loadPart(props.part);
 
   if (player) {
+    const flushPendingSeek = () => {
+      playerReady = true;
+      if (pendingSeek != null && pendingSeek > 0) {
+        doSeek(pendingSeek);
+      }
+      pendingSeek = null;
+    };
     player.on('loadedmetadata', () => {
       onReadyCallbacks.forEach(cb => cb());
       onReadyCallbacks.length = 0;
-      // loadedmetadata 兜底 seek
-      if (pendingSeek != null) {
-        player.seek(pendingSeek);
-        pendingSeek = null;
+      flushPendingSeek();
+    });
+    // canplay 兜底：某些 DASH 场景 loadedmetadata 后仍不可 seek，等到 canplay 再补一次
+    player.on('canplay', () => {
+      if (!playerReady || pendingSeek != null) {
+        flushPendingSeek();
       }
     });
   }
@@ -722,6 +803,7 @@ defineExpose({
   setOnReady,
   uploadHistory,
   setDanmaku,
+  addDanmaku,
   setOnEnded
 })
 </script>
