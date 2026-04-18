@@ -70,12 +70,23 @@ export const unlikeArticleCommentAPI = (commentId: number) => {
   return request.delete(`v1/comment/article/like/${commentId}`);
 }
 
-// 获取视频评论点赞状态
-export const getVideoCommentLikeStatusAPI = (commentId: number) => {
-  return request.get(`v1/comment/video/getLikeStatus?commentId=${commentId}`);
+// 点踩视频评论
+export const dislikeVideoCommentAPI = (commentId: number) => {
+  return request.post(`v1/comment/video/dislike/${commentId}`);
 }
 
-// 获取文章评论点赞状态
-export const getArticleCommentLikeStatusAPI = (commentId: number) => {
-  return request.get(`v1/comment/article/getLikeStatus?commentId=${commentId}`);
+// 取消点踩视频评论
+export const undislikeVideoCommentAPI = (commentId: number) => {
+  return request.delete(`v1/comment/video/dislike/${commentId}`);
 }
+
+// 点踩文章评论
+export const dislikeArticleCommentAPI = (commentId: number) => {
+  return request.post(`v1/comment/article/dislike/${commentId}`);
+}
+
+// 取消点踩文章评论
+export const undislikeArticleCommentAPI = (commentId: number) => {
+  return request.delete(`v1/comment/article/dislike/${commentId}`);
+}
+

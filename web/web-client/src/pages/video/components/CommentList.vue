@@ -39,6 +39,9 @@
           <like-fill-icon :liked="item.liked"></like-fill-icon>
           <span v-if="item.likes > 0" class="like-count">{{ item.likes }}</span>
         </span>
+        <span class="dislike-btn" :class="item.disliked ? 'disliked' : ''" @click="dislikeComment(item)">
+          <dislike-fill-icon :disliked="item.disliked"></dislike-fill-icon>
+        </span>
         <span class="reply-btn" :class="uiLoggedIn ? '' : 'btn-disabled'" @click="showReplyBox(item)">回复</span>
         <client-only v-if="uiLoggedIn">
           <el-popconfirm title="是否删除该条评论？" confirm-button-text="确认" cancel-button-text="取消"
@@ -72,9 +75,12 @@
         </span>
         <div class="reply-info">
           <span class="reply-time">{{ formatRelativeTime(reply.createdAt) }}</span>
-          <span class="like-btn" :class="reply.liked ? 'liked' : ''" @click="likeComment(reply, item)">
+          <span class="like-btn" :class="reply.liked ? 'liked' : ''" @click="likeComment(reply)">
             <like-fill-icon :liked="reply.liked"></like-fill-icon>
             <span v-if="reply.likes > 0" class="like-count">{{ reply.likes }}</span>
+          </span>
+          <span class="dislike-btn" :class="reply.disliked ? 'disliked' : ''" @click="dislikeComment(reply)">
+            <dislike-fill-icon :disliked="reply.disliked"></dislike-fill-icon>
           </span>
           <span class="reply-btn" :class="uiLoggedIn ? '' : 'btn-disabled'" @click="showReplyBox(item, reply)">回复</span>
           <client-only v-if="uiLoggedIn">
@@ -116,8 +122,9 @@ import { statusCode } from '@/utils/status-code';
 import { ElMessage } from "element-plus";
 import { formatRelativeTime } from "@/utils/format";
 import CommonAvatar from "@/components/common-avatar/index.vue";
-import { addVideoCommentAPI, getVideoCommentAPI, getVideoReplyAPI, deleteVideoCommentAPI, likeVideoCommentAPI, unlikeVideoCommentAPI, getVideoCommentLikeStatusAPI } from "@/api/comment";
+import { addVideoCommentAPI, getVideoCommentAPI, getVideoReplyAPI, deleteVideoCommentAPI, likeVideoCommentAPI, unlikeVideoCommentAPI, dislikeVideoCommentAPI, undislikeVideoCommentAPI } from "@/api/comment";
 import LikeFillIcon from "@/components/icons/LikeFillIcon.vue";
+import DislikeFillIcon from "@/components/icons/DislikeFillIcon.vue";
 import { scrollToViewCenter } from "@/utils/scroll";
 import { requireLogin } from "@/utils/require-login";
 import { useClientHydrated } from '@/composables/use-client-hydrated';
@@ -216,25 +223,9 @@ const getCommentList = async () => {
   const res = await getVideoCommentAPI(videoId, pagination.page, pagination.pageSize);
   if (res.data.code === statusCode.OK) {
     commentCount.value = res.data.data.total;
-    const comments = res.data.data.comments;
-    // 获取点赞状态
-    for (const comment of comments) {
-      try {
-        const likeRes = await getVideoCommentLikeStatusAPI(comment.id);
-        comment.liked = likeRes.data.data?.liked || false;
-        // 获取回复的点赞状态
-        if (comment.reply) {
-          for (const reply of comment.reply) {
-            const replyLikeRes = await getVideoCommentLikeStatusAPI(reply.id);
-            reply.liked = replyLikeRes.data.data?.liked || false;
-          }
-        }
-      } catch (e) {
-        comment.liked = false;
-      }
-    }
+    const comments: CommentType[] = res.data.data.comments || [];
     commentList.value = commentList.value.concat(comments);
-    if (res.data.data.comments < pagination.pageSize) {
+    if (comments.length < pagination.pageSize) {
       pagination.noMore = true;
     }
   }
@@ -380,8 +371,8 @@ const deleteComment = async (index: number, comment: CommentType, reply?: ReplyT
   }
 }
 
-// 点赞/取消点赞评论
-const likeComment = async (comment: CommentType | ReplyType, parentComment?: CommentType) => {
+// 点赞/取消点赞评论（与点踩互斥）
+const likeComment = async (comment: CommentType | ReplyType) => {
   if (!uiLoggedIn.value) {
     requireLogin('点赞');
     return;
@@ -389,14 +380,43 @@ const likeComment = async (comment: CommentType | ReplyType, parentComment?: Com
   try {
     if (comment.liked) {
       await unlikeVideoCommentAPI(comment.id);
-      comment.likes = (comment.likes || 1) - 1;
+      comment.likes = Math.max(0, (comment.likes || 1) - 1);
+      comment.liked = false;
     } else {
       await likeVideoCommentAPI(comment.id);
       comment.likes = (comment.likes || 0) + 1;
+      comment.liked = true;
+      // 互斥：清除本地点踩状态（后端已同步处理）
+      if (comment.disliked) {
+        comment.disliked = false;
+      }
     }
-    comment.liked = !comment.liked;
   } catch (e) {
     ElMessage.error(comment.liked ? '取消点赞失败' : '点赞失败');
+  }
+}
+
+// 点踩/取消点踩评论（与点赞互斥）
+const dislikeComment = async (comment: CommentType | ReplyType) => {
+  if (!uiLoggedIn.value) {
+    requireLogin('点踩');
+    return;
+  }
+  try {
+    if (comment.disliked) {
+      await undislikeVideoCommentAPI(comment.id);
+      comment.disliked = false;
+    } else {
+      await dislikeVideoCommentAPI(comment.id);
+      comment.disliked = true;
+      // 互斥：清除本地点赞状态（后端已同步处理）
+      if (comment.liked) {
+        comment.liked = false;
+        comment.likes = Math.max(0, (comment.likes || 1) - 1);
+      }
+    }
+  } catch (e) {
+    ElMessage.error(comment.disliked ? '取消点踩失败' : '点踩失败');
   }
 }
 
@@ -418,15 +438,19 @@ onBeforeMount(() => {
   window.addEventListener("scroll", lazyLoading, true);
 })
 
-watch(
-  () => [props.vid, props.shortId],
-  () => {
-    commentList.value = [];
-    pagination.page = 1;
-    pagination.noMore = false;
-    getCommentList();
-  }
-)
+const reloadComments = () => {
+  commentList.value = [];
+  pagination.page = 1;
+  pagination.noMore = false;
+  getCommentList();
+}
+
+watch(() => [props.vid, props.shortId], reloadComments)
+
+// 登录状态变化时重拉一次，刷新当前用户的 liked 字段
+watch(isLoggedIn, () => {
+  reloadComments();
+})
 
 onBeforeUnmount(() => {
   window.removeEventListener("scroll", lazyLoading, true);
@@ -620,6 +644,27 @@ onBeforeUnmount(() => {
           font-size: 12px;
         }
       }
+
+      .dislike-btn {
+        display: inline-flex;
+        align-items: center;
+        margin-right: 20px;
+        cursor: pointer;
+        color: #9499a0;
+
+        &:hover {
+          color: #5eb6ff;
+        }
+
+        &.disliked {
+          color: #5eb6ff;
+        }
+
+        :deep(.like-icon) {
+          width: 16px;
+          height: 16px;
+        }
+      }
     }
   }
 }
@@ -762,6 +807,27 @@ onBeforeUnmount(() => {
 
   .like-count {
     font-size: 12px;
+  }
+}
+
+.dislike-btn {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 16px;
+  cursor: pointer;
+  color: #9499a0;
+
+  &:hover {
+    color: #5eb6ff;
+  }
+
+  &.disliked {
+    color: #5eb6ff;
+  }
+
+  :deep(.like-icon) {
+    width: 16px;
+    height: 16px;
   }
 }
 

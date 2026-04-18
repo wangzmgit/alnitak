@@ -22,6 +22,8 @@ interface CommentType {
   replyCount: number;
   likes: number;
   liked: boolean;
+  dislikes: number;
+  disliked: boolean;
 
   // 本地使用的数据，接口不返回
   page?: number;
@@ -42,6 +44,8 @@ interface ReplyType {
   replyUserName: string;
   likes: number;
   liked: boolean;
+  dislikes: number;
+  disliked: boolean;
 }
 
 interface CommentManageType {
