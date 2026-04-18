@@ -66,7 +66,7 @@
           <author-card v-if="videoInfo && !isPGCPage" :info="videoInfo.author"></author-card>
           <!-- 添加弹幕列表 -->
           <div class="danmaku-list-container">
-            <danmaku-list ref="danmakuListRef" :height="danmakuListHeight"></danmaku-list>
+            <danmaku-list ref="danmakuListRef" :height="danmakuListHeight" @seek-time="handleSeekTime"></danmaku-list>
           </div>
 <!-- 合并的分P和合集列表 / PGC正片列表 -->
           <PGCSeasonPanel

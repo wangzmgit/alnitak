@@ -19,11 +19,21 @@
     </div>
     <!-- 弹幕列表 -->
     <el-scrollbar :height="props.height - 76">
-      <div class="danmaku-item" v-for="item in danmakuList" :key="`${item.time}-${item.text}`">
-        <div class="time">{{ formatDanmakuTime(item.time) }}</div>
-        <div class="text">{{ item.text }}</div>
-        <div class="send-time">{{ moment(item.createdAt).format('MM-DD HH:mm') }}</div>
-      </div>
+      <el-tooltip
+        v-for="item in danmakuList"
+        :key="`${item.time}-${item.text}`"
+        content="点击跳转到该弹幕出现的进度"
+        placement="left"
+        :show-after="400"
+        :hide-after="0"
+        popper-class="danmaku-item-tip"
+      >
+        <div class="danmaku-item" @click="handleItemClick(item)">
+          <div class="time">{{ formatDanmakuTime(item.time) }}</div>
+          <div class="text">{{ item.text }}</div>
+          <div class="send-time">{{ moment(item.createdAt).format('MM-DD HH:mm') }}</div>
+        </div>
+      </el-tooltip>
     </el-scrollbar>
   </div>
 </template>
@@ -39,6 +49,16 @@ const props = withDefaults(defineProps<{
 }>(), {
   height: 300,
 })
+
+const emit = defineEmits<{
+  (e: 'seek-time', seconds: number): void;
+}>();
+
+const handleItemClick = (item: DanmakuType) => {
+  if (typeof item.time === 'number' && isFinite(item.time) && item.time >= 0) {
+    emit('seek-time', item.time);
+  }
+}
 
 // 添加弹幕列表相关的代码
 const showDanmakuList = ref(false);
@@ -70,6 +90,22 @@ defineExpose({
   addDanmaku,
 });
 </script>
+
+<style lang="scss">
+/* 非 scoped：el-tooltip popper 被 teleport 到 body，需全局样式才能命中 */
+.danmaku-item-tip.el-popper {
+  background: var(--bg-elev-1) !important;
+  color: var(--font-primary-1) !important;
+  border: 1px solid var(--border-color) !important;
+  box-shadow: 0 4px 12px var(--shadow-weak);
+  font-size: 12px;
+
+  .el-popper__arrow::before {
+    background: var(--bg-elev-1) !important;
+    border: 1px solid var(--border-color) !important;
+  }
+}
+</style>
 
 <style lang="scss" scoped>
 .danmaku-list-container {
