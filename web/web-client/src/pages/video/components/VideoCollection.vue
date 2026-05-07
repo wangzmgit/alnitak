@@ -412,8 +412,24 @@ watch(isNumberMode, (val) => {
   localStorage.setItem('video-collection-view-mode', val ? 'number' : 'title')
 })
 
+/** 新稿件仍在当前已展开的合集列表中：不清空、不重拉整表，只更新当前稿分 P（避免侧栏整表闪烁） */
+const isVidInLoadedPlaylist = (vid: number | string): boolean => {
+  if (!playlist.value || videoList.value.length === 0) return false
+  const nv = cleanVid(vid)
+  return videoList.value.some((v) => {
+    const id = cleanVid(v.vid)
+    const sid = v.shortId != null ? String(v.shortId) : ''
+    return id === nv || sid === nv
+  })
+}
+
 watch(() => props.vid, (newVid) => {
-  if (newVid) loadPlaylist(newVid)
+  if (!newVid) return
+  if (isVidInLoadedPlaylist(newVid)) {
+    loadPartList()
+    return
+  }
+  loadPlaylist(newVid)
 })
 
 // 监听resources变化（备用，如果API没返回分P则使用props）
