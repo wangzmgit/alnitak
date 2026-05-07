@@ -58,6 +58,7 @@
 import { ref, computed, onMounted, watch, readonly } from 'vue'
 import { getPlaylistVideoListWithPartsAPI } from '@/api/playlist'
 import { statusCode } from '@/utils/status-code'
+import { useVideoAutonextFollow } from '@/composables/use-video-autonext-follow'
 
 const props = defineProps<{
   vid: number | string
@@ -95,7 +96,7 @@ interface PlaylistInfo {
 const playlist = ref<PlaylistInfo | null>(null)
 const videoList = ref<VideoItem[]>([])
 const partList = ref<VideoItem[]>([])  // 分P列表
-const autonext = ref(false)
+const autonext = useVideoAutonextFollow()
 const isNumberMode = ref(false)
 
 // 合并后的列表：根据列表类型显示对应的列表
@@ -401,16 +402,10 @@ partList.value = data.currentVideoParts.map((r: any, index: number) => ({
 }
 
 onMounted(() => {
-  const saved = localStorage.getItem('video-autonext-collection')
-  autonext.value = saved === 'true'
   const savedViewMode = localStorage.getItem('video-collection-view-mode')
   isNumberMode.value = savedViewMode === 'number'
   // 加载数据（包含合集和当前视频分P）
   if (props.vid) loadPlaylist(props.vid)
-})
-
-watch(autonext, (val) => {
-  localStorage.setItem('video-autonext-collection', val.toString())
 })
 
 watch(isNumberMode, (val) => {

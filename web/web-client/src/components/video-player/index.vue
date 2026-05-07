@@ -179,6 +179,26 @@ const options: PlayerOptionsType = {
           setTimeout(() => { dashLoopReplaying = false; }, 500);
         };
 
+        // 与 embed-player 一致：用标记区分「原生 ended 已走过」与「仅 dash playbackEnded」，
+        // 避免漏派发（原先依赖 video.ended 在部分 MPD/时序下会误判导致 Wplayer 收不到 ended）
+        let dashEndedHandled = false;
+        video.addEventListener('ended', () => {
+          dashEndedHandled = true;
+        });
+
+        // 极少数情况下 native ended 与 playbackEnded 都不驱动业务层：用片尾 timeupdate 再补一次
+        let dashEndedFallbackTicking = false;
+        const resetDashEndedFallback = () => {
+          dashEndedFallbackTicking = false;
+        };
+        video.addEventListener('seeked', () => {
+          const d = video.duration;
+          if (Number.isFinite(d) && d > 0 && video.currentTime < d - 1) {
+            resetDashEndedFallback();
+            dashEndedHandled = false;
+          }
+        });
+
         // 拦截原生 ended：循环模式下阻止 Wplayer 的 pause()，改用 dash.js API 重播
         video.addEventListener('ended', (e) => {
           if (player && player.setting && player.setting.loop) {
@@ -187,16 +207,33 @@ const options: PlayerOptionsType = {
           }
         }, true); // capture 阶段先于 Wplayer handler
 
-        // playbackEnded 兜底（SegmentBase 可能不触发原生 ended）
+        // playbackEnded 兜底（SegmentBase 等可能不触发原生 ended）
         dash.value.on('playbackEnded', () => {
           if (player && player.setting && player.setting.loop) {
             dashLoopReplay();
             return;
           }
-          // 非循环：兜底派发 ended 事件
-          if (!video.ended) {
-            video.dispatchEvent(new Event('ended'));
+          if (dashEndedHandled) {
+            dashEndedHandled = false;
+            return;
           }
+          video.dispatchEvent(new Event('ended'));
+        });
+
+        video.addEventListener('timeupdate', () => {
+          if (player?.setting?.loop || hasEnded.value || dashEndedFallbackTicking) return;
+          const d = video.duration;
+          if (!Number.isFinite(d) || d <= 0) return;
+          if (video.currentTime < d - 0.45) return;
+          dashEndedFallbackTicking = true;
+          window.setTimeout(() => {
+            dashEndedFallbackTicking = false;
+            if (player?.setting?.loop || hasEnded.value) return;
+            const dur = video.duration;
+            if (!Number.isFinite(dur) || dur <= 0) return;
+            if (video.currentTime < dur - 0.35) return;
+            video.dispatchEvent(new Event('ended'));
+          }, 220);
         });
 
         dash.value.on('error', (e: any) => {
@@ -361,6 +398,7 @@ const loadPart = async (part: number) => {
 
     // 监听播放完成事件，上报已看完并终止定时上报
     player.on('ended', async () => {
+      if (hasEnded.value) return;
       hasEnded.value = true; // 标记为已结束
 
       try {

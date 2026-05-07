@@ -104,11 +104,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick, type ComponentPublicInstance } from "vue";
+import { ref, computed, unref, onMounted, onBeforeUnmount, watch, nextTick, type ComponentPublicInstance } from "vue";
 import { ElIcon } from "element-plus";
 import { Forbid as ForbidIcon } from "@icon-park/vue-next";
 import { formatTime } from "@/utils/format";
-import PartList from "./video/components/PartList.vue";
 import AuthorCard from './video/components/AuthorCard.vue';
 import ArchiveInfo from './video/components/ArchiveInfo.vue';
 import VideoCollection from "./video/components/VideoCollection.vue";
@@ -253,7 +252,6 @@ const recommendListRef = ref<ComponentPublicInstance<{
   getNextVideo?: () => any;
   resetPlayIndex?: (vid: number) => void;
 }> | null>(null);
-const partListRef = ref<InstanceType<typeof PartList> | null>(null);
 const collectionRef = ref<ComponentPublicInstance<{
   autonext?: boolean;
   getNextVideo?: () => any;
@@ -261,47 +259,43 @@ const collectionRef = ref<ComponentPublicInstance<{
 }> | null>(null);
 const hasCollection = computed(() => !!collectionRef.value?.hasPlaylist);
 
+/** 合集与推荐共用 useVideoAutonextFollow；defineExpose 的 autonext 可能是 Ref / ComputedRef，任一侧有实例即可，只 unref 一次 */
+const isFollowAutonextOn = () => {
+  const inst = collectionRef.value ?? recommendListRef.value;
+  return Boolean(inst && unref((inst as { autonext?: unknown }).autonext as any));
+};
+
 // 视频播放结束时的自动连播逻辑
 const onVideoEnded = () => {
   // PGC模式不执行自动连播
   if (isPGCPage.value) return;
-  
-  // 检查用户是否开启了自动连播
-  if (localStorage.getItem('video-autonext') !== 'true') return;
 
-  // 优先检查当前视频是否有分P
-  const hasParts = (videoInfo.value?.resources?.length || 0) > 1
-  const curPart = currentPart.value
-  
-  if (hasParts) {
-    // 当前视频有分P，检查是否还有下一个分P
-    if (curPart < (videoInfo.value?.resources?.length || 0)) {
-      // 切换到下一个分P
+  // 优先检查当前视频是否有分P（与 PartList 开关一致：video-autonext-parts）
+  const partCount = videoInfo.value?.resources?.length || 0;
+  const hasParts = partCount > 1;
+  const curPart = currentPart.value;
+
+  if (hasParts && localStorage.getItem('video-autonext-parts') === 'true') {
+    if (curPart < partCount) {
       setTimeout(() => {
-        changePart(curPart + 1)
-      }, 1000)
-      return
+        changePart(curPart + 1);
+      }, 1000);
+      return;
     }
   }
-  
+
   // 没有分P或已是最后一个分P，检查合集自动连播
-  const collectionRefVal = collectionRef.value
-  if (collectionRefVal?.autonext) {
+  const collectionRefVal = collectionRef.value;
+  if (isFollowAutonextOn() && collectionRefVal) {
     const nextVideo = collectionRefVal.getNextVideo?.()
     if (nextVideo) {
       setTimeout(() => {
-        const nextEp = Number((nextVideo as any).epId || 0);
-        if (isPGCPage.value && Number.isFinite(nextEp) && nextEp > 0) {
-          navigateTo(`/watch?ep=${Math.floor(nextEp)}&mode=pgc`);
-          return;
-        }
         const nextV = (nextVideo as any).shortId || String((nextVideo as any).vid);
-        const pgcMode = isPGCPage.value ? '&mode=pgc' : '';
         const nextShortId = (nextVideo as any).shortId;
         if (nextShortId) {
-          navigateTo(`/watch?v=${nextV}&rid=${nextShortId}${pgcMode}`)
+          navigateTo(`/watch?v=${nextV}&rid=${nextShortId}`)
         } else {
-          navigateTo(`/watch?v=${nextV}${pgcMode}`)
+          navigateTo(`/watch?v=${nextV}`)
         }
       }, 1000)
       return
@@ -314,23 +308,17 @@ const onVideoEnded = () => {
 
 // 检查推荐视频自动连播
 const checkRecommendAutoplay = () => {
-  const recommendRef = recommendListRef.value
-  if (!recommendRef?.autonext) return;
+  const recommendRef = recommendListRef.value;
+  if (!isFollowAutonextOn() || !recommendRef) return;
   const nextVideo = recommendRef.getNextVideo?.();
   if (!nextVideo) return;
   setTimeout(() => {
-    const nextEp = Number((nextVideo as any).epId || 0);
-    if (isPGCPage.value && Number.isFinite(nextEp) && nextEp > 0) {
-      navigateTo(`/watch?ep=${Math.floor(nextEp)}&mode=pgc`);
-      return;
-    }
     const nextV = nextVideo.shortId || String(nextVideo.vid);
-    const pgcMode = isPGCPage.value ? '&mode=pgc' : '';
     const nextShortId = nextVideo.shortId;
     if (nextShortId) {
-      navigateTo(`/watch?v=${nextV}&rid=${nextShortId}${pgcMode}`)
+      navigateTo(`/watch?v=${nextV}&rid=${nextShortId}`)
     } else {
-      navigateTo(`/watch?v=${nextV}${pgcMode}`)
+      navigateTo(`/watch?v=${nextV}`)
     }
   }, 3000);
 };
@@ -643,7 +631,6 @@ onBeforeUnmount(() => {
   closeWebSocket();
   playerRef.value = null;
   recommendListRef.value = null;
-  partListRef.value = null;
   collectionRef.value = null;
   danmakuListRef.value = null;
   playerContainerRef.value = null;

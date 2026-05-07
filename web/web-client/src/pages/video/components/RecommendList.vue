@@ -41,24 +41,15 @@
 import UpIcon from '@/components/icons/UpIcon.vue';
 import { asyncGetRelatedVideoList } from "@/api/video";
 import PlayCountIcon from '@/components/icons/PlayCountIcon.vue';
+import { useVideoAutonextFollow } from '@/composables/use-video-autonext-follow';
 
 const props = defineProps<{
   vid: number | string;
   showAutoplayControl?: boolean; // 新增：是否显示自动连播控制
 }>();
 
-// 修改自动连播状态的存储key，区分分集和推荐
-const autonext = ref(false);
-
-onMounted(() => {
-  const saved = localStorage.getItem('video-autonext-recommend');
-  autonext.value = saved === 'true';
-});
-
-watch(autonext, (val) => {
-  localStorage.setItem('video-autonext-recommend', val.toString());
-  console.log('推荐自动连播状态变更:', val);
-});
+// 与合集列表共用同一开关（localStorage: video-autonext-follow）
+const autonext = useVideoAutonextFollow();
 
 const videoList = ref<VideoType[]>([])
 const { data } = await asyncGetRelatedVideoList(props.vid);
