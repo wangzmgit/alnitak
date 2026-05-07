@@ -293,26 +293,24 @@ const getNextVideo = () => {
       return mergedList.value[currentIdx + 1]
     }
   } else {
-    // 合集类型：匹配当前视频的下一个分P（兼容 shortId）
-    const currentVideoParts = mergedList.value.filter(v => {
-      const itemVidStr = cleanVid(v.vid)
-      const itemShortId = (v as any).shortId
-      return itemVidStr === currentVidStr.value || itemShortId === currentVidStr.value
+    // 合集类型：mergedList 中同一主稿件可能占多行（各分 P）；须按「当前 part」或「本稿最后一行」再取下一行
+    const indices: number[] = []
+    mergedList.value.forEach((row, i) => {
+      const itemVidStr = cleanVid(row.vid)
+      const itemShortId = (row as any).shortId as string | undefined
+      if (itemVidStr === currentVidStr.value || (itemShortId && itemShortId === currentVidStr.value)) {
+        indices.push(i)
+      }
     })
-    if (currentVideoParts.length > 1) {
-      const currentIdx = currentPart - 1
-      if (currentIdx >= 0 && currentIdx < currentVideoParts.length - 1) {
-        return currentVideoParts[currentIdx + 1]
+    if (indices.length > 1) {
+      const partIdx = currentPart - 1
+      if (partIdx >= 0 && partIdx < indices.length - 1) {
+        return mergedList.value[indices[partIdx + 1]]
       }
     }
-    // 当前视频没有更多分P，找下一个视频
-    const vidIdx = mergedList.value.findIndex(v => {
-      const itemVidStr = cleanVid(v.vid)
-      const itemShortId = (v as any).shortId
-      return itemVidStr === currentVidStr.value || itemShortId === currentVidStr.value
-    })
-    if (vidIdx >= 0 && vidIdx < mergedList.value.length - 1) {
-      return mergedList.value[vidIdx + 1]
+    const lastSameVidIdx = indices.length > 0 ? indices[indices.length - 1] : -1
+    if (lastSameVidIdx >= 0 && lastSameVidIdx < mergedList.value.length - 1) {
+      return mergedList.value[lastSameVidIdx + 1]
     }
   }
   return null

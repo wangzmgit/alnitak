@@ -265,19 +265,25 @@ const isFollowAutonextOn = () => {
   return Boolean(inst && unref((inst as { autonext?: unknown }).autonext as any));
 };
 
-/** 侧栏/推荐「下一则」：有资源 shortId 时同时带 rid，与列表里手动点开保持一致 */
+/** 侧栏/推荐「下一则」：与 VideoCollection.goVideo 一致：多分 P 用 resourceRid 作查询 rid，勿把稿件 shortId 当成资源 rid */
 function scheduleNavigateToWatchNext(
-  item: { shortId?: string; vid?: number | string },
+  item: { shortId?: string; vid?: number | string; resourceRid?: string; p?: number },
   delayMs: number,
 ) {
-  const rid = item.shortId;
-  const v = rid || String(item.vid ?? '');
+  const v = String(item.shortId ?? item.vid ?? '').trim();
+  if (!v) return;
+  const resourceRid = item.resourceRid;
+  const p = item.p;
   window.setTimeout(() => {
-    if (rid) {
-      void navigateTo(`/watch?v=${v}&rid=${rid}`);
-    } else {
-      void navigateTo(`/watch?v=${v}`);
+    if (resourceRid) {
+      void navigateTo(`/watch?v=${v}&rid=${encodeURIComponent(resourceRid)}`);
+      return;
     }
+    if (typeof p === 'number' && p > 1) {
+      void navigateTo(`/watch?v=${v}&p=${p}`);
+      return;
+    }
+    void navigateTo(`/watch?v=${v}`);
   }, delayMs);
 }
 
