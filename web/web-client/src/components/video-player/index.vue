@@ -63,6 +63,11 @@ const hasEnded = ref(false);
 let dashUnifiedMode = false;
 let dashQualityMap: Map<string, number> = new Map(); // 清晰度显示名 → dash.js Representation 索引
 
+/** DASH 片尾兜底：与 dash 调度/缓冲的秒级容差，过小易误判未完结 */
+const DASH_NEAR_END_SEC = 0.45;
+const DASH_VERIFY_END_SEC = 0.35;
+const DASH_END_FALLBACK_DELAY_MS = 220;
+
 // ===== HLS 清晰度切换时保存播放状态（HLS 模式下 Wplayer 仍会创建新 video 元素） =====
 let lastPlaybackState: { time: number; playing: boolean } = { time: 0, playing: false };
 const danmakuSendRef = ref<InstanceType<typeof DanmakuSend> | null>(null);
@@ -134,7 +139,7 @@ const options: PlayerOptionsType = {
               autoSwitchBitrate: { video: false, audio: false },
             },
           },
-          debug: { logLevel: 3 },
+          debug: { logLevel: import.meta.dev ? 3 : 0 },
         });
         dash.value.initialize(video, video.src, false);
 
@@ -147,12 +152,14 @@ const options: PlayerOptionsType = {
           // 设置用户偏好的初始清晰度（forceReplace=true：此时尚未播放，立即切到目标清晰度）
           if (dashUnifiedMode) {
             const dashIndex = dashQualityMap.get(defaultQuality.value);
-            console.log('[DASH] 初始清晰度设置:', {
-              defaultQuality: defaultQuality.value,
-              dashIndex,
-              dashQualityMap: Object.fromEntries(dashQualityMap),
-              representations: dash.value.getRepresentationsByType?.('video'),
-            });
+            if (import.meta.dev) {
+              console.log('[DASH] 初始清晰度设置:', {
+                defaultQuality: defaultQuality.value,
+                dashIndex,
+                dashQualityMap: Object.fromEntries(dashQualityMap),
+                representations: dash.value.getRepresentationsByType?.('video'),
+              });
+            }
             if (dashIndex !== undefined) {
               dash.value.setRepresentationForTypeByIndex('video', dashIndex, true);
             }
@@ -224,16 +231,16 @@ const options: PlayerOptionsType = {
           if (player?.setting?.loop || hasEnded.value || dashEndedFallbackTicking) return;
           const d = video.duration;
           if (!Number.isFinite(d) || d <= 0) return;
-          if (video.currentTime < d - 0.45) return;
+          if (video.currentTime < d - DASH_NEAR_END_SEC) return;
           dashEndedFallbackTicking = true;
           window.setTimeout(() => {
             dashEndedFallbackTicking = false;
             if (player?.setting?.loop || hasEnded.value) return;
             const dur = video.duration;
             if (!Number.isFinite(dur) || dur <= 0) return;
-            if (video.currentTime < dur - 0.35) return;
+            if (video.currentTime < dur - DASH_VERIFY_END_SEC) return;
             video.dispatchEvent(new Event('ended'));
-          }, 220);
+          }, DASH_END_FALLBACK_DELAY_MS);
         });
 
         dash.value.on('error', (e: any) => {

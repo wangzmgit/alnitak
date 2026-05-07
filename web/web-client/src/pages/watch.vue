@@ -2,7 +2,7 @@
   <div class="video">
     <header-bar class="header"></header-bar>
     <div class="video-main">
-      <div class="mian-content">
+      <div class="main-content">
         <div class="left-column">
           <div class="video-player" ref="playerContainerRef">
 <client-only>
@@ -95,7 +95,7 @@
             ref="recommendListRef"
             v-else-if="videoInfo"
             :vid="videoInfo.shortId || videoInfo.vid"
-            :show-autoplay-control="!videoInfo || (videoInfo.resources.length <= 1 && !hasCollection)"
+            :show-autoplay-control="(videoInfo.resources?.length ?? 0) <= 1 && !hasCollection"
           ></recommend-list>
         </div>
       </div>
@@ -265,6 +265,22 @@ const isFollowAutonextOn = () => {
   return Boolean(inst && unref((inst as { autonext?: unknown }).autonext as any));
 };
 
+/** 侧栏/推荐「下一则」：有资源 shortId 时同时带 rid，与列表里手动点开保持一致 */
+function scheduleNavigateToWatchNext(
+  item: { shortId?: string; vid?: number | string },
+  delayMs: number,
+) {
+  const rid = item.shortId;
+  const v = rid || String(item.vid ?? '');
+  window.setTimeout(() => {
+    if (rid) {
+      void navigateTo(`/watch?v=${v}&rid=${rid}`);
+    } else {
+      void navigateTo(`/watch?v=${v}`);
+    }
+  }, delayMs);
+}
+
 // 视频播放结束时的自动连播逻辑
 const onVideoEnded = () => {
   // PGC模式不执行自动连播
@@ -287,18 +303,10 @@ const onVideoEnded = () => {
   // 没有分P或已是最后一个分P，检查合集自动连播
   const collectionRefVal = collectionRef.value;
   if (isFollowAutonextOn() && collectionRefVal) {
-    const nextVideo = collectionRefVal.getNextVideo?.()
+    const nextVideo = collectionRefVal.getNextVideo?.();
     if (nextVideo) {
-      setTimeout(() => {
-        const nextV = (nextVideo as any).shortId || String((nextVideo as any).vid);
-        const nextShortId = (nextVideo as any).shortId;
-        if (nextShortId) {
-          navigateTo(`/watch?v=${nextV}&rid=${nextShortId}`)
-        } else {
-          navigateTo(`/watch?v=${nextV}`)
-        }
-      }, 1000)
-      return
+      scheduleNavigateToWatchNext(nextVideo as { shortId?: string; vid?: number | string }, 1000);
+      return;
     }
   }
   
@@ -312,15 +320,7 @@ const checkRecommendAutoplay = () => {
   if (!isFollowAutonextOn() || !recommendRef) return;
   const nextVideo = recommendRef.getNextVideo?.();
   if (!nextVideo) return;
-  setTimeout(() => {
-    const nextV = nextVideo.shortId || String(nextVideo.vid);
-    const nextShortId = nextVideo.shortId;
-    if (nextShortId) {
-      navigateTo(`/watch?v=${nextV}&rid=${nextShortId}`)
-    } else {
-      navigateTo(`/watch?v=${nextV}`)
-    }
-  }, 3000);
+  scheduleNavigateToWatchNext(nextVideo, 3000);
 };
 
 const onPlayerReady = () => {
@@ -699,7 +699,7 @@ useHead({
   min-width: 1200px;
 }
 
-.mian-content {
+.main-content {
   display: flex;
   justify-content: center;
   width: 100%;
