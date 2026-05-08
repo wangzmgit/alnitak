@@ -285,6 +285,37 @@ const doSeek = (time: number) => {
   }
 };
 
+/** 每次 Wplayer 重新创建后：用当前 props 续播进度入队（progress 未变时 watch 不会触发） */
+const queueProgressRestoreForNewPlayer = () => {
+  const p = props.progress;
+  if (p != null && p > 0) {
+    pendingSeek = p;
+  } else {
+    pendingSeek = null;
+  }
+};
+
+const attachPlayerReadyAndProgressFlush = () => {
+  if (!player) return;
+  const flushPendingSeek = () => {
+    playerReady = true;
+    onReadyCallbacks.forEach(cb => cb());
+    onReadyCallbacks.length = 0;
+    if (pendingSeek != null && pendingSeek > 0) {
+      doSeek(pendingSeek);
+    }
+    pendingSeek = null;
+  };
+  player.on('loadedmetadata', () => {
+    flushPendingSeek();
+  });
+  player.on('canplay', () => {
+    if (!playerReady || pendingSeek != null) {
+      flushPendingSeek();
+    }
+  });
+};
+
 // ===== 监听 progress 属性变化，自动 seek =====
 watch(
   () => props.progress,
@@ -323,6 +354,24 @@ const getWatchedKey = () => `video-watched-${props.videoInfo.vid}-${props.part}`
 const isWatched = () => localStorage.getItem(getWatchedKey()) === '1';
 const setWatched = () => localStorage.setItem(getWatchedKey(), '1');
 const clearWatched = () => localStorage.removeItem(getWatchedKey());
+
+/** 片尾容差：离开末尾超过该秒数视为重新播放，恢复进度上报 */
+const REPLAY_LEAVE_END_SEC = 0.55;
+
+const videoLeftEndAfterWatched = (v: HTMLVideoElement) => {
+  const d = v.duration;
+  if (!Number.isFinite(d) || d <= 0) return false;
+  return v.currentTime < d - REPLAY_LEAVE_END_SEC;
+};
+
+/** 已标记看完的本轮播放结束后，用户不刷新再次播放时需恢复上报 */
+const resetReportingAfterReplay = (v: HTMLVideoElement) => {
+  if (!videoLeftEndAfterWatched(v)) return;
+  if (!hasEnded.value && !isWatched() && !hasReportedWatched) return;
+  hasEnded.value = false;
+  hasReportedWatched = false;
+  clearWatched();
+};
 
 // ===== 分集切换与播放器实例化 =====
 // 添加播放结束回调
@@ -435,6 +484,8 @@ const loadPart = async (part: number) => {
     // 监听进度条大跨度跳转
     let lastSeekTime = 0;
     player.on('seeked', () => {
+      const v = player.video;
+      if (v) resetReportingAfterReplay(v);
       const current = player.video.currentTime;
       if (Math.abs(current - lastSeekTime) > 10 && !isWatched() && !hasEnded.value) {
         const current = Math.floor(player.video.currentTime || 0);
@@ -443,6 +494,14 @@ const loadPart = async (part: number) => {
       }
       lastSeekTime = current;
     });
+
+    player.on('play', () => {
+      const v = player?.video;
+      if (v) resetReportingAfterReplay(v);
+    });
+
+    queueProgressRestoreForNewPlayer();
+    attachPlayerReadyAndProgressFlush();
   }
 }
 
@@ -769,26 +828,7 @@ onMounted(async () => {
   initFilterConfig();
   await loadPart(props.part);
 
-  if (player) {
-    const flushPendingSeek = () => {
-      playerReady = true;
-      if (pendingSeek != null && pendingSeek > 0) {
-        doSeek(pendingSeek);
-      }
-      pendingSeek = null;
-    };
-    player.on('loadedmetadata', () => {
-      onReadyCallbacks.forEach(cb => cb());
-      onReadyCallbacks.length = 0;
-      flushPendingSeek();
-    });
-    // canplay 兜底：某些 DASH 场景 loadedmetadata 后仍不可 seek，等到 canplay 再补一次
-    player.on('canplay', () => {
-      if (!playerReady || pendingSeek != null) {
-        flushPendingSeek();
-      }
-    });
-  }
+  // loadedmetadata / canplay 与续播 flush 已在 loadPart 内按实例绑定
 
   // 定时上报历史进度，若已看完则停止上报
   timer = window.setInterval(() => {
