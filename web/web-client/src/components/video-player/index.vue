@@ -285,6 +285,14 @@ const doSeek = (time: number) => {
   }
 };
 
+/** 已知 duration 时将续播秒数限制在 [0, duration-ε]，避免 seek 越界 */
+const clampResumeSeconds = (seconds: number, video: HTMLVideoElement): number => {
+  const d = video.duration;
+  if (!Number.isFinite(d) || d <= 0) return Math.max(0, seconds);
+  const safeEnd = Math.max(0, d - 0.35);
+  return Math.min(Math.max(0, seconds), safeEnd);
+};
+
 /** 每次 Wplayer 重新创建后：用当前 props 续播进度入队（progress 未变时 watch 不会触发） */
 const queueProgressRestoreForNewPlayer = () => {
   const p = props.progress;
@@ -301,8 +309,8 @@ const attachPlayerReadyAndProgressFlush = () => {
     playerReady = true;
     onReadyCallbacks.forEach(cb => cb());
     onReadyCallbacks.length = 0;
-    if (pendingSeek != null && pendingSeek > 0) {
-      doSeek(pendingSeek);
+    if (pendingSeek != null && pendingSeek > 0 && player.video) {
+      doSeek(clampResumeSeconds(pendingSeek, player.video));
     }
     pendingSeek = null;
   };
@@ -325,7 +333,11 @@ watch(
       return;
     }
     if (playerReady) {
-      doSeek(val);
+      if (player?.video) {
+        doSeek(clampResumeSeconds(val, player.video));
+      } else {
+        doSeek(val);
+      }
       pendingSeek = null;
     } else {
       pendingSeek = val;
@@ -346,11 +358,14 @@ let timer: number | null = null;
 let hasReportedWatched = false; // 是否已上报过“已看完”
 const onReadyCallbacks: Array<() => void> = [];
 const setOnReady = (cb: () => void) => {
+  onReadyCallbacks.length = 0;
   onReadyCallbacks.push(cb);
 };
 
 // ===== 本地已看完标记工具函数 =====
 const getWatchedKey = () => `video-watched-${props.videoInfo.vid}-${props.part}`;
+const getWatchedKeyForPart = (partNum: number) =>
+  `video-watched-${props.videoInfo.vid}-${partNum}`;
 const isWatched = () => localStorage.getItem(getWatchedKey()) === '1';
 const setWatched = () => localStorage.setItem(getWatchedKey(), '1');
 const clearWatched = () => localStorage.removeItem(getWatchedKey());
@@ -784,6 +799,32 @@ const isDisableType = (item: DanmakuType, disableType: Array<number>) => {
 }
 
 // ===== 历史记录上报 =====
+/** 串行化分 P 切换：避免连续切换时在上一个 loadPart 未完成时用错画面做快照 */
+let partSwitchTail: Promise<void> = Promise.resolve();
+
+const flushHistoryBeforePartChange = async (previousPart: number) => {
+  if (!props.videoInfo?.resources?.length) return;
+  if (!player?.video || typeof player.video.currentTime !== 'number') return;
+  if (localStorage.getItem(getWatchedKeyForPart(previousPart)) === '1') return;
+
+  const v = player.video;
+  const snapshotTime = Math.floor(v.currentTime);
+  const snapshotDuration = Math.floor(v.duration || 0);
+  const rid = props.videoInfo.resources[previousPart - 1]?.shortId;
+
+  try {
+    await addHistoryAPI({
+      vid: props.videoInfo.vid,
+      part: previousPart,
+      time: snapshotDuration > 0 && snapshotTime >= snapshotDuration ? -1 : snapshotTime,
+      duration: snapshotDuration,
+      ...(rid ? { rid } : {}),
+    });
+  } catch (e) {
+    console.error('[video-player] 分P切换前进度上报失败:', e);
+  }
+};
+
 const uploadHistory = async () => {
   // 如果视频已播放结束，不再上报进度
   if (hasEnded.value) {
@@ -804,17 +845,23 @@ const uploadHistory = async () => {
 }
 
 
-// ===== 分集切换监听 =====
-watch(() => props.part, (newPart, oldPart) => {
-  if (newPart !== oldPart) {
-    // 切换前上报当前进度（如果未播放完）
-    if (!hasEnded.value && !isWatched()) {
-      uploadHistory();
-    }
-    // 加载新分集
-    loadPart(newPart);
+// ===== 分集切换监听（快照上一 P 进度后再 loadPart，链式串行防竞态） =====
+watch(
+  () => props.part,
+  (newPart, oldPart) => {
+    if (newPart === oldPart) return;
+    const prev = oldPart;
+    const next = newPart;
+    partSwitchTail = partSwitchTail
+      .catch(() => {})
+      .then(async () => {
+        if (prev !== undefined) {
+          await flushHistoryBeforePartChange(prev);
+        }
+        await loadPart(next);
+      });
   }
-});
+);
 
 onMounted(async () => {
   const quality = localStorage.getItem('default-video-quality');
