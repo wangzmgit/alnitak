@@ -17,6 +17,7 @@ import {
   getSavedVolumeState,
   type HlsPlayerState,
 } from '@/utils/hls-player';
+import { fetchAndApplySubtitles } from '@/utils/subtitle-tracks';
 
 const props = defineProps<{
   videoInfo: VideoType;
@@ -213,11 +214,14 @@ const initPlayer = async () => {
   /* === 播放器实例化片段 start === */
   player = new Wplayer({
     container,
+    setting: true,
+    lang: 'zh-cn',
     video: {
       quality: qualities,
       defaultQuality: 0,
       autoplay: shouldAutoplay,
       controls: ["play", "progress", "volume", "quality", "fullscreen"],
+      subtitles: [],
       type: supportDash ? 'customDash' : 'customHls',
       customType: {
         customHls: function (video: HTMLVideoElement) {
@@ -295,7 +299,7 @@ const initPlayer = async () => {
         },
       },
     },
-    danmaku: { show: true },
+    danmaku: { show: true, bottom: '52px' },
     preload: "auto",
     volume: shouldMuted ? 0 : 0.8,
     muted: shouldMuted,
@@ -331,6 +335,9 @@ const initPlayer = async () => {
         lastPlaybackState = { time: player.video.currentTime, playing: !player.video.paused };
       }
     });
+    player.on('quality_start', () => {
+      void fetchAndApplySubtitles(String(rid), player);
+    });
   }
 
   // 强制设置 video 元素属性，确保自动静音播放生效
@@ -348,6 +355,7 @@ const initPlayer = async () => {
   player.on('loadedmetadata', () => {
     console.log('[embed-player] player loadedmetadata');
     injectDanmaku();
+    void fetchAndApplySubtitles(String(rid), player);
   });
 
   // 加载弹幕
@@ -395,5 +403,9 @@ watch(
   width: 100vw;
   margin: 0;
   padding: 0;
+
+  :deep(.wplayer-subtitles-quick.wplayer-subtitles-quick-disabled) {
+    opacity: 0.72 !important;
+  }
 }
 </style> 

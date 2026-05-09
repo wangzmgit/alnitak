@@ -30,6 +30,7 @@ import {
   type HlsPlayerState,
   type PlaybackState,
 } from "@/utils/hls-player";
+import { fetchAndApplySubtitles } from "@/utils/subtitle-tracks";
 
 // ===== 组件属性定义 =====
 const props = withDefaults(defineProps<{
@@ -49,6 +50,15 @@ const emit = defineEmits<{
 const getCurrentResourceShortId = () => {
   const resource = props.videoInfo?.resources?.[props.part - 1];
   return resource?.shortId;
+}
+
+/** 指定分 P 的 resourceShortId（用于字幕与历史 rid；无 shortId 时用数字 id 兼容后端 ParseResourceID） */
+const getResourceShortIdForPart = (partNum: number): string | undefined => {
+  const r = props.videoInfo?.resources?.[partNum - 1];
+  if (!r) return undefined;
+  if (r.shortId) return String(r.shortId);
+  if (r.id != null) return String(r.id);
+  return undefined;
 }
 
 // ===== 播放器与弹幕相关变量 =====
@@ -75,11 +85,15 @@ const auth = useAuthStore();
 const isLoggedIn = computed(() => auth.isLoggedIn);
 const options: PlayerOptionsType = {
   container: null,
+  setting: true,
+  lang: 'zh-cn',
   video: {
     quality: [],
     defaultQuality: 0,
     pic: '',
     type: 'customHls',
+    // wplayer-next：初始为空，分 P 加载后由 player.updateSubtitles 写入（见 vendor/wplayer-next/src/js/subtitle.js）
+    subtitles: [],
     customType: {
       customHls: function (video: HTMLVideoElement) {
         const savedVolumeState = getSavedVolumeState();
@@ -251,6 +265,7 @@ const options: PlayerOptionsType = {
   },
   danmaku: {
     data: [],
+    bottom: '52px',
   }
 }
 
@@ -303,8 +318,10 @@ const queueProgressRestoreForNewPlayer = () => {
   }
 };
 
-const attachPlayerReadyAndProgressFlush = () => {
+const attachPlayerReadyAndProgressFlush = (partNum: number) => {
   if (!player) return;
+  /** loadedmetadata / canplay 都可能触发 flush，避免重复 fetchAndApply（第二次会 revoke 第一次的 blob，多轨字幕全挂） */
+  let subtitlesHookFired = false;
   const flushPendingSeek = () => {
     playerReady = true;
     onReadyCallbacks.forEach(cb => cb());
@@ -313,6 +330,10 @@ const attachPlayerReadyAndProgressFlush = () => {
       doSeek(clampResumeSeconds(pendingSeek, player.video));
     }
     pendingSeek = null;
+    if (!subtitlesHookFired) {
+      subtitlesHookFired = true;
+      void fetchAndApplySubtitles(getResourceShortIdForPart(partNum), player);
+    }
   };
   player.on('loadedmetadata', () => {
     flushPendingSeek();
@@ -411,6 +432,8 @@ const loadPart = async (part: number) => {
     }
     /* === 播放器销毁与重建实例化片段 start === */
     if (player) player.destroy();
+    // 复用同一 options 时上一分 P 的 subtitles 会污染新实例，导致轨加载失败、CC 一直 disabled
+    options.video.subtitles = [];
     options.container = el;
     player = new Wplayer(options);
     /* === 播放器销毁与重建实例化片段 end === */
@@ -447,6 +470,8 @@ const loadPart = async (part: number) => {
       // 非统一模式（HLS 或降级 DASH）：保存清晰度偏好
       player.on('quality_start', (quality: PlayerQualityType) => {
         localStorage.setItem('default-video-quality', quality.name);
+        // 切清晰度会更换 video 元素，需用 WPlayer.updateSubtitles 重新挂载 data-wplayer-subtitle 轨
+        void fetchAndApplySubtitles(getResourceShortIdForPart(part), player);
       });
 
       // HLS 模式下 Wplayer 仍会创建新 video 元素，需要保存播放状态用于恢复
@@ -516,7 +541,7 @@ const loadPart = async (part: number) => {
     });
 
     queueProgressRestoreForNewPlayer();
-    attachPlayerReadyAndProgressFlush();
+    attachPlayerReadyAndProgressFlush(part);
   }
 }
 
@@ -962,6 +987,11 @@ defineExpose({
       width: 100vw;
       height: 100vh;
       z-index: 9999;
+    }
+
+    /* CC：无轨时为 disabled（默认很淡）；有轨后 wplayer 会去掉 disabled 并可点 */
+    :deep(.wplayer-subtitles-quick.wplayer-subtitles-quick-disabled) {
+      opacity: 0.72 !important;
     }
   }
 

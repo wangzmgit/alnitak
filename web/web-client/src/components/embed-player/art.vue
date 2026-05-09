@@ -18,6 +18,8 @@ import {
   getSavedVolumeState,
   type HlsPlayerState,
 } from '@/utils/hls-player';
+import { fetchSubtitleTracksForArtplayer } from '@/utils/subtitle-tracks';
+import { pickSubtitleTrackIndexByPreference, writeStoredSubtitlePreference } from '@/utils/subtitle-preference';
 
 const props = defineProps<{
   videoInfo: VideoType;
@@ -34,6 +36,73 @@ let originalDanmaku: DanmakuType[] = [];
 // DASH 统一 MPD 模式状态
 let dashUnifiedMode = false;
 let dashQualityMap: Map<string, number> = new Map();
+
+/** 外链 Artplayer blob 字幕撤销 */
+let embedSubtitleRevoke: (() => void) | null = null;
+
+/** CC/字幕底线栏快捷键：是否与上次保持一致 */
+const ARTPLAYER_CC_LS = 'artplayer-cc-visible';
+
+/** 字幕叠加层字号/字重（与站内 ::cue 接近；Artplayer 写入 $subtitle 行内样式） */
+const EMBED_SUBTITLE_STYLE: Record<string, string> = {
+  color: '#fff',
+  'font-size': 'clamp(25px, 1.5vw + 17px, 37px)',
+  'font-weight': '600',
+  'line-height': '1.45',
+  /** 多层 text-shadow 模拟黑色描边，浅色背景下仍清晰 */
+  'text-shadow': [
+    '-3px 0 0 #000',
+    '3px 0 0 #000',
+    '0 -3px 0 #000',
+    '0 3px 0 #000',
+    '-3px -3px 0 #000',
+    '3px -3px 0 #000',
+    '-3px 3px 0 #000',
+    '3px 3px 0 #000',
+    '-2px -2px 0 #000',
+    '2px -2px 0 #000',
+    '-2px 2px 0 #000',
+    '2px 2px 0 #000',
+    '-1px 0 0 #000',
+    '1px 0 0 #000',
+    '0 -1px 0 #000',
+    '0 1px 0 #000',
+    '-1px -1px 0 #000',
+    '1px -1px 0 #000',
+    '-1px 1px 0 #000',
+    '1px 1px 0 #000',
+    '-2px 0 0 #000',
+    '2px 0 0 #000',
+    '0 -2px 0 #000',
+    '0 2px 0 #000',
+    '0 4px 9px rgba(0,0,0,0.6)',
+  ].join(','),
+  'font-family':
+    "system-ui,-apple-system,'Segoe UI','PingFang SC','PingFang TC','Microsoft YaHei UI','Microsoft YaHei',sans-serif",
+  '-webkit-font-smoothing': 'antialiased',
+};
+
+/** Same paths as wplayer-next vendor subtitles.svg / subtitles-on.svg */
+const WPLAYER_SUB_SVG_OFF =
+  '<path d="M21.2 3.01L21 3H3l-.21.01c-.49.05-.95.28-1.28.64-.33.37-.52.85-.51 1.35v14l.01.2c.04.46.25.88.57 1.21.33.32.75.53 1.21.58L3 21h18l.2-.02c.46-.04.88-.25 1.21-.57.32-.33.53-.75.58-1.21l.01-.14V5c0-.5-.19-.98-.52-1.35-.33-.36-.79-.59-1.28-.64zM3 19V5h18v14H3zm5-8H6c-.27 0-.52.1-.71.29a1 1 0 000 1.42c.19.19.44.29.71.29h2c.26 0 .51-.11.7-.29a1 1 0 000-1.42A.97.97 0 008 11zm10 0h-6c-.27 0-.52.1-.71.29a1 1 0 000 1.42c.19.19.44.29.71.29h6c.26 0 .51-.11.7-.29a1 1 0 000-1.42c-.19-.19-.44-.29-.7-.29zm0 4h-2c-.27 0-.52.1-.71.29a1 1 0 000 1.42c.19.19.44.29.71.29h2c.26 0 .51-.11.7-.29a1 1 0 000-1.42c-.19-.19-.44-.29-.7-.29zm-6 0H6c-.27 0-.52.1-.71.29a1 1 0 000 1.42c.19.19.44.29.71.29h6c.26 0 .51-.11.7-.29a1 1 0 000-1.42c-.19-.19-.44-.29-.7-.29z"/>';
+const WPLAYER_SUB_SVG_ON =
+  '<path d="M21 3H3C2.46 3 1.96 3.21 1.58 3.58C1.21 3.96 1 4.46 1 5V19C1 19.53 1.21 20.03 1.58 20.41C1.96 20.78 2.46 21 3 21H21C21.53 21 22.03 20.78 22.41 20.41C22.78 20.03 23 19.53 23 19V5C23 4.46 22.78 3.96 22.41 3.58C22.03 3.21 21.53 3 21 3ZM6 11H8C8.26 11 8.51 11.10 8.70 11.29C8.89 11.48 9 11.73 9 12C9 12.26 8.89 12.51 8.70 12.70C8.51 12.89 8.26 13 8 13H6C5.73 13 5.48 12.89 5.29 12.70C5.10 12.51 5 12.26 5 12C5 11.73 5.10 11.48 5.29 11.29C5.48 11.10 5.73 11 6 11ZM12 11H18C18.26 11 18.51 11.10 18.70 11.29C18.89 11.48 19 11.73 19 12C19 12.26 18.89 12.51 18.70 12.70C18.51 12.89 18.26 13 18 13H12C11.73 13 11.48 12.89 11.29 12.70C11.10 12.51 11 12.26 11 12C11 11.73 11.10 11.48 11.29 11.29C11.48 11.10 11.73 11 12 11ZM16 15H18C18.26 15 18.51 15.10 18.70 15.29C18.89 15.48 19 15.73 19 16C19 16.26 18.89 16.51 18.70 16.70C18.51 16.89 18.26 17 18 17H16C15.73 17 15.48 16.89 15.29 16.70C15.10 16.51 15 16.26 15 16C15 15.73 15.10 15.48 15.29 15.29C15.48 15.10 15.73 15 16 15ZM6 15H12C12.26 15 12.51 15.10 12.70 15.29C12.89 15.48 13 15.73 13 16C13 16.26 12.89 16.51 12.70 16.70C12.51 16.89 12.26 17 12 17H6C5.73 17 5.48 16.89 5.29 16.70C5.10 16.51 5 16.26 5 16C5 15.73 5.10 15.48 5.29 15.29C5.48 15.10 5.73 15 6 15Z"/>';
+
+function embedCcButtonHtml(active: boolean) {
+  const fill = active ? '#2196f3' : 'rgba(255,255,255,0.85)';
+  const inner = active ? WPLAYER_SUB_SVG_ON : WPLAYER_SUB_SVG_OFF;
+  const svg =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="' +
+    fill +
+    '" width="23" height="23" aria-hidden="true">' +
+    inner +
+    '</svg>';
+  return (
+    '<span style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:100%;box-sizing:border-box;line-height:0">' +
+    svg +
+    '</span>'
+  );
+}
 
 const resourceNameMap: Record<string, string> = {
   "640x360_1000k_30": "360p",
@@ -199,6 +268,7 @@ const initPlayer = async () => {
     return;
   }
   const rid = resource.shortId || resource.id;
+  const subPrep = await fetchSubtitleTracksForArtplayer(String(rid));
   const res = await getResourceQualityApi(rid);
   let qualities = [];
   if (res.data.code === 200 && res.data.data.quality.length > 0) {
@@ -211,12 +281,140 @@ const initPlayer = async () => {
 
   await loadDanmaku();
 
+  const embedSubTracks = subPrep.tracks;
+  const subtitleBarToggle = {
+    visible: embedSubTracks.length === 0 || localStorage.getItem(ARTPLAYER_CC_LS) !== '0',
+  };
+
+  function applyPreferredEmbedSubtitleWhenShowing() {
+    if (!embedSubTracks.length || !player?.subtitle?.switch) return;
+    const idx = pickSubtitleTrackIndexByPreference(embedSubTracks);
+    const st = embedSubTracks[idx];
+    if (!st?.url) return;
+    player.subtitle.switch(st.url, { name: st.label });
+  }
+
+  function syncSubtitleQuickControl() {
+    if (!embedSubTracks.length || !player) return;
+    const html = embedCcButtonHtml(subtitleBarToggle.visible);
+    const tooltip = subtitleBarToggle.visible ? '隐藏字幕' : '显示字幕';
+    try {
+      if (typeof player.controls?.update === 'function') {
+        player.controls.update({
+          name: 'subtitle-quick',
+          html,
+          tooltip,
+        });
+        return;
+      }
+    } catch {
+      /* 继续 DOM 兜底 */
+    }
+    try {
+      const root = player.controls['subtitle-quick'] as HTMLElement | undefined;
+      const innerBtn = root?.querySelector?.('button') ?? root?.firstElementChild;
+      const target = (innerBtn ?? root) as HTMLElement | undefined;
+      if (target) {
+        target.innerHTML = html;
+        target.setAttribute('aria-label', tooltip);
+        target.setAttribute('aria-pressed', subtitleBarToggle.visible ? 'true' : 'false');
+      }
+      const tipHost = root?.closest?.('[data-balloon]') ?? root?.parentElement;
+      if (tooltip && tipHost) {
+        tipHost.setAttribute('data-balloon', tooltip);
+        tipHost.setAttribute('aria-label', tooltip);
+      }
+    } catch {
+      /* noop */
+    }
+  }
+
+  const subtitleQuickControl =
+    embedSubTracks.length > 0
+      ? {
+          name: 'subtitle-quick',
+          index: 8,
+          position: 'right',
+          tooltip: subtitleBarToggle.visible ? '隐藏字幕' : '显示字幕',
+          html: embedCcButtonHtml(subtitleBarToggle.visible),
+          click() {
+            if (!player?.subtitle) return;
+            const next = !subtitleBarToggle.visible;
+            subtitleBarToggle.visible = next;
+            player.subtitle.show = next;
+            localStorage.setItem(ARTPLAYER_CC_LS, subtitleBarToggle.visible ? '1' : '0');
+            if (next) applyPreferredEmbedSubtitleWhenShowing();
+            syncSubtitleQuickControl();
+          },
+        }
+      : null;
+
+  let artSubtitleCfg:
+    | { url: string; type: 'vtt'; name: string; style: Record<string, string> }
+    | undefined;
+  let artSubtitleMenu: Record<string, unknown> | undefined;
+  if (embedSubTracks.length) {
+    let defI = embedSubTracks.findIndex((x) => x.isDefault);
+    if (defI < 0) defI = 0;
+    const first = embedSubTracks[defI];
+    artSubtitleCfg = {
+      url: first.url,
+      type: 'vtt',
+      name: first.label,
+      style: EMBED_SUBTITLE_STYLE,
+    };
+    artSubtitleMenu = {
+      width: 200,
+      html: '字幕',
+      tooltip: first.label,
+      icon:
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#2196f3" width="20" height="20">' +
+        WPLAYER_SUB_SVG_OFF +
+        '</svg>',
+      selector: [
+        {
+          html: '显示',
+          tooltip: subtitleBarToggle.visible ? '隐藏' : '显示',
+          switch: true,
+          onSwitch(item: { tooltip?: string; switch: boolean }) {
+            if (!player) return item.switch;
+            item.tooltip = item.switch ? '隐藏' : '显示';
+            const show = !item.switch;
+            player.subtitle.show = show;
+            subtitleBarToggle.visible = show;
+            localStorage.setItem(ARTPLAYER_CC_LS, subtitleBarToggle.visible ? '1' : '0');
+            if (show) applyPreferredEmbedSubtitleWhenShowing();
+            syncSubtitleQuickControl();
+            return !item.switch;
+          },
+        },
+        ...embedSubTracks.map((st, idx) => ({
+          html: st.label,
+          url: st.url,
+          default: idx === defI,
+        })),
+      ],
+      onSelect(item: { html?: string; url?: string }) {
+        if (item.url && player) {
+          player.subtitle.switch(item.url, { name: item.html ?? '' });
+          const st = embedSubTracks.find((t) => t.url === item.url);
+          writeStoredSubtitlePreference({
+            label: ((item.html || st?.label) ?? '').trim(),
+            lang: (st?.srclang ?? '').trim(),
+          });
+        }
+        return item.html ?? '';
+      },
+    };
+  }
+
   const type = guessType(qualities[0].url, qualities[0]);
   const isDash = type === 'dash';
 
   // 读取本地循环播放初始状态
   const loopInit = localStorage.getItem('artplayer-loop') === '1';
 
+  try {
   player = new Artplayer({
     container,
     url: qualities[0].url,
@@ -234,6 +432,9 @@ const initPlayer = async () => {
     screenshot: true,
     hotkey: true,
     pip: true,
+    controls: subtitleQuickControl ? [subtitleQuickControl] : [],
+    subtitleOffset: !!artSubtitleCfg,
+    subtitle: artSubtitleCfg,
     theme: '#2196f3',
     // DASH 模式下禁用 artplayer 的 loop（它会 seek+play 导致 AbortError），
     // 改用原生 video.loop，dashjs 能正确处理
@@ -259,8 +460,9 @@ const initPlayer = async () => {
 
         return newLoop;
       },
-      name: 'loop-setting',  // 这里可以保留 name 属性
+      name: 'loop-setting', // 保留 name：主题/存档用
     },
+    ...(artSubtitleMenu ? [artSubtitleMenu] : []),
   ],
     layers: [
       // ...Layer 配置...
@@ -386,6 +588,14 @@ customType: {
       }),
     ],
   });
+  embedSubtitleRevoke = subPrep.revoke;
+  } catch (e) {
+    subPrep.revoke();
+    embedSubtitleRevoke = null;
+    console.error('[art.vue] Artplayer init failed:', e);
+    throw e;
+  }
+
 //弹幕输入框
 //  player.on('ready', () => {
 //    const danmakuInput = player.container.querySelector('.apd-input');
@@ -411,6 +621,13 @@ customType: {
 
   // 监听 ready 事件，安全地开始播放
   player.on('ready', () => {
+    if (embedSubTracks.length && player?.subtitle !== undefined) {
+      player.subtitle.show = subtitleBarToggle.visible;
+      if (subtitleBarToggle.visible) {
+        applyPreferredEmbedSubtitleWhenShowing();
+      }
+    }
+    syncSubtitleQuickControl();
     const playPromise = player.play();
     if (playPromise !== undefined) {
       playPromise.catch((error: any) => {
@@ -464,6 +681,10 @@ watch(
 
 // 组件卸载时清理资源
 onBeforeUnmount(() => {
+  if (embedSubtitleRevoke) {
+    embedSubtitleRevoke();
+    embedSubtitleRevoke = null;
+  }
   if (player) {
     player.destroy();
     player = null;

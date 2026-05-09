@@ -42,6 +42,6 @@
     "spark-md5": "^3.0.2",
     "vue-picture-cropper": "^0.7.0",
     "vuedraggable": "^4.1.0",
-    "wplayer-next": "1.0.6"
+    "wplayer-next": "file:./vendor/wplayer-next"
   }
 }

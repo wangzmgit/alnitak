@@ -53,6 +53,11 @@
                 <div class="progress" :style="`width: ${item.uploading ? item.percent : 100}%`"></div>
               </div>
             </div>
+            <resource-subtitle-editor
+              v-if="canManageSubtitles(item)"
+              :resource-short-id="subtitleResourceKey(item)"
+              :key="`sub-${item.id}`"
+            />
           </div>
         </div>
       </template>
@@ -61,7 +66,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, nextTick, ref } from "vue";
+import { reactive, nextTick, ref, watch } from "vue";
 import { Plus } from '@icon-park/vue-next';
 import { reviewCode } from '@/utils/review-code';
 import { ElIcon, ElButton, ElInput, ElPopconfirm } from "element-plus";
@@ -71,6 +76,7 @@ import { submitReviewAPI, getVideoStatusAPI } from "@/api/video";
 import { deleteResourceAPI, modifyTitleAPI, replaceResourceAPI, checkReplaceResourceAPI, reorderResourceAPI } from "@/api/resource";
 import { uploadFileChunkAPI } from "@/api/upload";
 import { getFileMD5 } from '@/utils/md5';
+import ResourceSubtitleEditor from './ResourceSubtitleEditor.vue';
 
 const emit = defineEmits(["review"]);
 const props = defineProps<{
@@ -79,6 +85,19 @@ const props = defineProps<{
 }>();
 
 const resourceList = ref<Array<ResourceType | UploadResourceType>>(props.resources ?? []);
+
+/** 分 P 已有正式 ID 且未在上传中时可管理字幕 */
+const canManageSubtitles = (item: ResourceType | UploadResourceType) => {
+  if (item.id <= 0) return false;
+  if ('uploading' in item && item.uploading) return false;
+  return true;
+};
+
+const subtitleResourceKey = (item: ResourceType | UploadResourceType): string => {
+  const r = item as ResourceType;
+  if (r.shortId) return String(r.shortId);
+  return String(item.id);
+};
 
 // 获取标签文本
 const getTagText = (state: number) => {
