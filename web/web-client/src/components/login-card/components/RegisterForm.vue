@@ -37,8 +37,6 @@ import { reactive, ref } from 'vue';
 import { isEmail } from "@/utils/verify";
 import { statusCode } from '@/utils/status-code';
 import { registerAPI } from "@/api/auth";
-import BaseTabs from "@/components/base-tabs/index.vue";
-import SliderCaptcha from "@/components/slider-captcha/index.vue";
 import { sendEmailCodeAPI } from '~/api/code';
 
 const emit = defineEmits(["changeForm"]);

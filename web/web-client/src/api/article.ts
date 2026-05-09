@@ -29,12 +29,12 @@ export const getAllArticleAPI = () => {
 
 // 获取文章信息
 export const asyncGetArticleInfoAPI = async (articleId: number | string) => {
-  return await useAsyncData(() => $fetch(`${baseURL}/api/v1/article/getArticleById?aid=${articleId}`));
+  return await useAsyncData(`article-info-${articleId}`, () => $fetch(`${baseURL}/api/v1/article/getArticleById?aid=${articleId}`));
 }
 
 // 获取随机文章
 export const asyncGetRandomArticleAPI = async (size: number) => {
-  return await useAsyncData(() => $fetch(`${baseURL}/api/v1/article/getRandomArticleList?size=${size}`));
+  return await useAsyncData(`random-article-${size}`, () => $fetch(`${baseURL}/api/v1/article/getRandomArticleList?size=${size}`));
 }
 
 // 获取随机文章

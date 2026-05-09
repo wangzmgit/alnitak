@@ -121,7 +121,6 @@ import { handleMention } from '@/utils/mention';
 import { statusCode } from '@/utils/status-code';
 import { ElMessage } from "element-plus";
 import { formatRelativeTime } from "@/utils/format";
-import CommonAvatar from "@/components/common-avatar/index.vue";
 import { addVideoCommentAPI, getVideoCommentAPI, getVideoReplyAPI, deleteVideoCommentAPI, likeVideoCommentAPI, unlikeVideoCommentAPI, dislikeVideoCommentAPI, undislikeVideoCommentAPI } from "@/api/comment";
 import LikeFillIcon from "@/components/icons/LikeFillIcon.vue";
 import DislikeFillIcon from "@/components/icons/DislikeFillIcon.vue";

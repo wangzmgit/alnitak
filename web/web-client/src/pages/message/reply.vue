@@ -44,8 +44,6 @@ import { ref, onBeforeMount } from "vue";
 import { ElPagination } from 'element-plus';
 import { formatTime } from "@/utils/format";
 import { getReplyMsgAPI } from '@/api/msg-reply';
-import CommonAvatar from '@/components/common-avatar/index.vue';
-
 definePageMeta({
   middleware: ['auth']
 })

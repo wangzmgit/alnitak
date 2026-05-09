@@ -20,7 +20,6 @@
 
 <script setup lang="ts">
 import { h, ref, onBeforeMount } from "vue";
-import HeaderBar from '@/components/header-bar/index.vue';
 import VideoIcon from "@/components/icons/VideoIcon.vue";
 import CommentIcon from "@/components/icons/CommentIcon.vue";
 import UploadIcon from "@/components/icons/UploadIcon.vue";

@@ -11,8 +11,6 @@
 </template>
 
 <script setup lang="ts">
-import HeaderBar from "@/components/header-bar/index.vue";
-
 useHead({
   title: `404 - ${globalConfig.title}`
 })

@@ -62,14 +62,11 @@
 
 <script setup lang="ts">
 import { storeToRefs } from 'pinia';
-import HeaderBar from '@/components/header-bar/index.vue';
-import CommonAvatar from '@/components/common-avatar/index.vue';
 import { useVideoCountStore } from "@/composables/video-count-store";
 import { getUserInfoAPI, asyncGetUserBaseInfoAPI, editUserInfoAPI } from '@/api/user';
 import type { RouteRecordName } from 'vue-router';
 import { getFollowDataAPI } from '@/api/relation';
 import UploadIcon from "@/components/icons/UploadIcon.vue";
-import ImageCropper from "@/components/image-cropper/index.vue";
 import SpaceCoverCropper from "@/components/image-cropper/components/SpaceCoverCropper.vue";
 import { Male, Female, VideoTwo, FolderFocus, History as HistoryIcon, Message as MessageIcon, Config } from '@icon-park/vue-next';
 import { getUploadVideoAPI } from '@/api/video';

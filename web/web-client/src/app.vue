@@ -14,7 +14,6 @@
 <script setup lang="ts">
 import { ElConfigProvider } from 'element-plus';
 import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
-import LoginDialog from '@/components/login-dialog/index.vue';
 import { useAuthStore } from '@/stores/auth-store';
 
 const auth = useAuthStore();

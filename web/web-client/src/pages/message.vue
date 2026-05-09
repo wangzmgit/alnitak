@@ -17,8 +17,6 @@
 
 <script setup lang="ts">
 import { ref, onBeforeMount, computed } from "vue";
-import HeaderBar from "@/components/header-bar/index.vue";
-
 definePageMeta({
   middleware: ['auth', (to) => {
     if (to.name === 'message') {

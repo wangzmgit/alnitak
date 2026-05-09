@@ -6,7 +6,6 @@
 
 <script setup lang="ts" >
 import { globalConfig } from '@/utils/global-config';
-import LoginCard from '@/components/login-card/index.vue';
 import { useAuthStore } from '@/stores/auth-store';
 
 const route = useRoute();

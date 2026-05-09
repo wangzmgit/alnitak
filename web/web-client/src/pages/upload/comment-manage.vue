@@ -52,7 +52,6 @@ import { ref, onBeforeMount } from "vue";
 import { formatTime } from "@/utils/format";
 import { getVideoCommentListAPI, getArticleCommentListAPI } from '@/api/comment';
 
-import CommonAvatar from '@/components/common-avatar/index.vue';
 import { getAllVideoAPI } from "@/api/video";
 import { getAllArticleAPI } from "~/api/article";
 

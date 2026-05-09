@@ -6,14 +6,18 @@ import path from "node:path";
 const certDir = path.resolve(process.cwd(), "../../../../server/alnitak/server/conf");
 const keyPath = path.join(certDir, "private.key");
 const certPath = path.join(certDir, "public.crt");
-const httpsConfig = globalConfig.https && fs.existsSync(keyPath)
+// 环境变量 NUXT_DEV_HTTP=true 强制 HTTP，覆盖 globalConfig.https
+const useHttps = process.env.NUXT_DEV_HTTP !== 'true' && globalConfig.https;
+const httpsConfig = useHttps && fs.existsSync(keyPath)
   ? { key: keyPath, cert: certPath }
   : undefined;
 
 export default defineNuxtConfig({
+  compatibilityDate: '2026-05-09',
   devServer: {
     https: httpsConfig,
   },
+
   modules: [
     '@element-plus/nuxt',
     '@pinia/nuxt',
@@ -40,12 +44,6 @@ export default defineNuxtConfig({
       ],
       link: [
         { rel: "icon", type: "image/x-icon", href: "/favicon.ico" }
-      ],
-      script: [
-        {
-          // 在首屏渲染前应用主题，避免刷新首页仍为浅色
-          children: `(() => { try { const k='ui-theme-mode'; const m=(localStorage.getItem(k)||'light'); const r=document.documentElement; r.setAttribute('data-theme', m); if (m==='dark') r.classList.add('dark'); else r.classList.remove('dark'); } catch(e){} })();`,
-        }
       ]
     }
   },
@@ -151,7 +149,11 @@ export default defineNuxtConfig({
         'spark-md5',
         '@icon-park/vue-next',
         'axios',
-        'js-cookie'
+        'js-cookie',
+        '@wangeditor/editor-for-vue',
+        'artplayer',
+        'dashjs',
+        'artplayer-plugin-danmuku'
       ]
     },
     server: {

@@ -5,7 +5,6 @@
 </template>
 
 <script setup lang="ts">
-import LoginCard from "@/components/login-card/index.vue";
 const emit = defineEmits(["close", "success"]);
 
 const closeCard = () => {

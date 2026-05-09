@@ -72,7 +72,6 @@
 
 <script setup lang="ts">
 import { ref, reactive } from "vue";
-import BaseSlider from "@/components/base-slider/index.vue";
 import TextIcon from "@/components/icons/TextIcon.vue";
 import { SettingConfig } from "@icon-park/vue-next";
 import { requireLogin } from "@/utils/require-login";

@@ -114,8 +114,7 @@ import VideoCollection from "./video/components/VideoCollection.vue";
 import PGCSeasonPanel from "./video/components/PGCSeasonPanel.vue";
 import CommentList from "./video/components/CommentList.vue";
 import DanmakuList from "./video/components/DanmakuList.vue";
-import HeaderBar from "@/components/header-bar/index.vue";
-import VideoPlayer from "@/components/video-player/index.vue";
+
 import RecommendList from "./video/components/RecommendList.vue";
 import PGCRecommendList from "./video/components/PGCRecommendList.vue";
 import { asyncGetVideoInfoAPI } from "@/api/video";

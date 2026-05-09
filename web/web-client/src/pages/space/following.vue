@@ -7,8 +7,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { getUserInfoAPI } from "@/api/user";
-import FollowList from "@/components/follow-list/index.vue";
-
 definePageMeta({
   middleware: ['auth']
 })

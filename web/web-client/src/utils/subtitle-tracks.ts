@@ -145,7 +145,11 @@ async function hydrateSubtitleSrcForTrack(url: string, blobCollector: string[]):
     throw new Error(`subtitle fetch ${res.status}`);
   }
   const text = await res.text();
-  const blob = new Blob([text], { type: 'text/vtt;charset=utf-8' });
+  const positioned = text.replace(
+    /^(\d+(?::\d+)*[.,]\d+\s*-->\s*\d+(?::\d+)*[.,]\d+).*$/gm,
+    '$1 line:98%',
+  );
+  const blob = new Blob([positioned], { type: 'text/vtt;charset=utf-8' });
   const objectUrl = URL.createObjectURL(blob);
   blobCollector.push(objectUrl);
   return objectUrl;

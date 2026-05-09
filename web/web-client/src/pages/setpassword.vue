@@ -46,12 +46,10 @@
 
 <script setup lang="ts">
 import { reactive, ref } from "vue";
-import HeaderBar from '@/components/header-bar/index.vue';
 import Steps from '@/components/alnitak-steps/index.vue';
 import type { FormRules, FormInstance } from "element-plus";
 import { ElMessage } from "element-plus";
 import { resetpwdCheckAPI, mpdifyPwdAPI } from "@/api/auth";
-import SliderCaptcha from "@/components/slider-captcha/index.vue";
 import { sendEmailCodeAPI } from "@/api/code";
 
 const current = ref(1);

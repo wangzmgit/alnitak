@@ -44,8 +44,6 @@
 
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount, ref } from 'vue';
-import HomeSidebar from '@/components/home-sidebar/index.vue';
-import HomeHeader from "@/components/home-header/index.vue";
 import { PreviewOpen } from '@icon-park/vue-next';
 import { asyncGetRandomArticleAPI, getRandomArticleAPI } from '@/api/article';
 

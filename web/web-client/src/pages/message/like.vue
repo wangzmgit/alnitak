@@ -41,8 +41,6 @@ import { getLikeMsgAPI } from '@/api/msg-like';
 definePageMeta({
   middleware: ['auth']
 })
-import CommonAvatar from '@/components/common-avatar/index.vue';
-
 const page = ref(1);
 const total = ref(0);
 const pageSize = ref(10);

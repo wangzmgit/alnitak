@@ -128,7 +128,6 @@ import {
   Right as RightIcon, FolderFocusOne as CollectIcon,
   Theme as ThemeIcon, SunOne as SunIcon, Moon as MoonIcon
 } from '@icon-park/vue-next';
-import CommonAvatar from '@/components/common-avatar/index.vue';
 import { useClientHydrated } from '@/composables/use-client-hydrated';
 import { useAuthStore } from '@/stores/auth-store';
 
