@@ -53,16 +53,21 @@
                 <div class="progress" :style="`width: ${item.uploading ? item.percent : 100}%`"></div>
               </div>
             </div>
-            <resource-subtitle-editor
-              v-if="canManageSubtitles(item)"
-              :resource-short-id="subtitleResourceKey(item)"
-              :key="`sub-${item.id}`"
-            />
+            <div v-if="canManageSubtitles(item)" class="subtitle-action">
+              <el-button link type="primary" size="small" @click="openSubtitleDialog(subtitleResourceKey(item))">字幕管理</el-button>
+            </div>
           </div>
         </div>
       </template>
     </draggable>
   </div>
+  <el-dialog v-model="subtitleDialogVisible" title="字幕管理" width="600" :destroy-on-close="true">
+    <resource-subtitle-editor
+      v-if="subtitleDialogResourceId"
+      :resource-short-id="subtitleDialogResourceId"
+      :key="subtitleDialogResourceId"
+    />
+  </el-dialog>
 </template>
 
 <script setup lang="ts">
@@ -77,6 +82,14 @@ import { deleteResourceAPI, modifyTitleAPI, replaceResourceAPI, checkReplaceReso
 import { uploadFileChunkAPI } from "@/api/upload";
 import { getFileMD5 } from '@/utils/md5';
 import ResourceSubtitleEditor from './ResourceSubtitleEditor.vue';
+
+const subtitleDialogVisible = ref(false);
+const subtitleDialogResourceId = ref('');
+
+const openSubtitleDialog = (resourceId: string) => {
+  subtitleDialogResourceId.value = resourceId;
+  subtitleDialogVisible.value = true;
+};
 
 const emit = defineEmits(["review"]);
 const props = defineProps<{
