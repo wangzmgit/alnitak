@@ -4,26 +4,34 @@
     <div v-if="loading" class="subtitle-muted">加载中…</div>
     <ul v-else class="track-list">
       <li v-for="t in tracks" :key="t.id" class="track-row">
-        <span class="track-name">{{ t.label || t.lang }}</span>
-        <span class="track-lang">{{ t.lang }}</span>
-        <el-tag v-if="t.isDefault" size="small" type="success" class="tag-def">默认</el-tag>
-        <el-popconfirm title="确定删除该字幕？" width="220" @confirm="onDelete(t.id)">
-          <template #reference>
-            <el-button link type="danger" size="small">删除</el-button>
-          </template>
-        </el-popconfirm>
+        <template v-if="editingId === t.id">
+          <el-select v-model="editForm.lang" size="small" class="inp-lang" filterable allow-create placeholder="语言代码">
+            <el-option v-for="opt in LANG_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+          </el-select>
+          <el-input v-model="editForm.label" size="small" class="inp-label" placeholder="显示名" maxlength="64" />
+          <el-checkbox v-model="editForm.isDefault" size="small">默认</el-checkbox>
+          <el-button link type="primary" size="small" :loading="saving" @click="onSaveEdit(t.id)">保存</el-button>
+          <el-button link size="small" @click="cancelEdit">取消</el-button>
+        </template>
+        <template v-else>
+          <span class="track-name">{{ t.label || t.lang }}</span>
+          <span class="track-lang">{{ t.lang }}</span>
+          <el-tag v-if="t.isDefault" size="small" type="success" class="tag-def">默认</el-tag>
+          <el-button link type="primary" size="small" @click="startEdit(t)">编辑</el-button>
+          <el-button link size="small" @click="onPreview(t)">预览</el-button>
+          <el-popconfirm title="确定删除该字幕？" width="220" @confirm="onDelete(t.id)">
+            <template #reference>
+              <el-button link type="danger" size="small">删除</el-button>
+            </template>
+          </el-popconfirm>
+        </template>
       </li>
       <li v-if="tracks.length === 0" class="subtitle-muted empty">暂无字幕，可上传 .srt / .vtt</li>
     </ul>
     <div class="subtitle-form">
-      <el-input
-        v-model="form.lang"
-        placeholder="语言 zh-Hans"
-        size="small"
-        maxlength="20"
-        show-word-limit
-        class="inp-lang"
-      />
+      <el-select v-model="form.lang" size="small" class="inp-lang" filterable allow-create placeholder="语言代码">
+        <el-option v-for="opt in LANG_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+      </el-select>
       <el-input
         v-model="form.label"
         placeholder="显示名（可选）"
@@ -42,6 +50,11 @@
         <el-button type="primary" size="small" :loading="uploading">上传字幕</el-button>
       </el-upload>
     </div>
+
+    <el-dialog v-model="previewVisible" title="字幕预览" width="600" :destroy-on-close="true">
+      <div v-if="previewLoading" class="subtitle-muted">加载中…</div>
+      <pre v-else class="preview-content">{{ previewContent }}</pre>
+    </el-dialog>
   </div>
 </template>
 
@@ -49,10 +62,25 @@
 import { ref, watch, onMounted } from 'vue';
 import type { UploadRequestOptions } from 'element-plus';
 import { ElMessage } from 'element-plus';
-import { getSubtitleListAPI, uploadSubtitleAPI, deleteSubtitleAPI } from '@/api/subtitle';
+import { getSubtitleListAPI, uploadSubtitleAPI, updateSubtitleAPI, deleteSubtitleAPI } from '@/api/subtitle';
+import { resolveSubtitleSrc } from '@/utils/subtitle-tracks';
+
+const LANG_OPTIONS = [
+  { label: '简体中文', value: 'zh-Hans' },
+  { label: '繁體中文', value: 'zh-Hant' },
+  { label: 'English', value: 'en' },
+  { label: '日本語', value: 'ja' },
+  { label: '한국어', value: 'ko' },
+  { label: 'Tiếng Việt', value: 'vi' },
+  { label: 'ภาษาไทย', value: 'th' },
+  { label: 'Bahasa Melayu', value: 'ms' },
+  { label: 'Bahasa Indonesia', value: 'id' },
+  { label: 'Español', value: 'es' },
+  { label: 'Português', value: 'pt' },
+  { label: 'Русский', value: 'ru' },
+];
 
 const props = defineProps<{
-  /** 分 P shortId，无则传数字 id 字符串 */
   resourceShortId: string;
 }>();
 
@@ -65,6 +93,14 @@ const form = ref({
   label: '',
   isDefault: false,
 });
+
+const editingId = ref<number | null>(null);
+const editForm = ref({ lang: '', label: '', isDefault: false });
+const saving = ref(false);
+
+const previewVisible = ref(false);
+const previewLoading = ref(false);
+const previewContent = ref('');
 
 const loadTracks = async () => {
   if (!props.resourceShortId) return;
@@ -132,10 +168,69 @@ const handleSubtitleUpload = async (opt: UploadRequestOptions) => {
     } else {
       ElMessage.error(res.data.msg || '上传失败');
     }
-  } catch (e: unknown) {
+  } catch {
     ElMessage.error('上传失败');
   } finally {
     uploading.value = false;
+  }
+};
+
+const startEdit = (track: SubtitleTrackItemType) => {
+  editingId.value = track.id;
+  editForm.value = {
+    lang: track.lang,
+    label: track.label,
+    isDefault: track.isDefault,
+  };
+};
+
+const cancelEdit = () => {
+  editingId.value = null;
+};
+
+const onSaveEdit = async (id: number) => {
+  const lang = editForm.value.lang.trim();
+  if (!lang) {
+    ElMessage.warning('请填写语言代码');
+    return;
+  }
+  saving.value = true;
+  try {
+    const res = await updateSubtitleAPI(id, {
+      lang: editForm.value.lang,
+      label: editForm.value.label,
+      isDefault: editForm.value.isDefault,
+    });
+    if (res.data.code === statusCode.OK) {
+      ElMessage.success('已更新');
+      editingId.value = null;
+      await loadTracks();
+    } else {
+      ElMessage.error(res.data.msg || '更新失败');
+    }
+  } catch {
+    ElMessage.error('更新失败');
+  } finally {
+    saving.value = false;
+  }
+};
+
+const onPreview = async (track: SubtitleTrackItemType) => {
+  const url = resolveSubtitleSrc(track.url);
+  previewVisible.value = true;
+  previewLoading.value = true;
+  previewContent.value = '';
+  try {
+    const res = await fetch(url);
+    if (res.ok) {
+      previewContent.value = await res.text();
+    } else {
+      previewContent.value = `加载失败 (HTTP ${res.status})`;
+    }
+  } catch {
+    previewContent.value = '加载失败：网络错误';
+  } finally {
+    previewLoading.value = false;
   }
 };
 
@@ -144,6 +239,9 @@ const onDelete = async (id: number) => {
     const res = await deleteSubtitleAPI(id);
     if (res.data.code === statusCode.OK) {
       ElMessage.success('已删除');
+      if (editingId.value === id) {
+        editingId.value = null;
+      }
       await loadTracks();
     } else {
       ElMessage.error(res.data.msg || '删除失败');
@@ -220,5 +318,18 @@ const onDelete = async (id: number) => {
 .inp-label {
   width: 160px;
   max-width: 45%;
+}
+
+.preview-content {
+  margin: 0;
+  max-height: 400px;
+  overflow: auto;
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-all;
+  background: var(--fill-1, #f5f5f5);
+  padding: 12px;
+  border-radius: 6px;
 }
 </style>
