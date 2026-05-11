@@ -502,7 +502,7 @@ const loadPart = async (part: number) => {
         const duration = Math.floor(player.video.duration || 0);
 
         await addHistoryAPI({
-          vid: props.videoInfo.vid,
+          vid: props.videoInfo.shortId || String(props.videoInfo.vid),
           part: props.part,
           time: -1,        // 已看完统一用 -1
           duration,        // 整数秒
@@ -530,7 +530,7 @@ const loadPart = async (part: number) => {
       if (Math.abs(current - lastSeekTime) > 10 && !isWatched() && !hasEnded.value) {
         const current = Math.floor(player.video.currentTime || 0);
         const duration = Math.floor(player.video.duration || 0);
-        addHistoryAPI({ vid: props.videoInfo.vid, part: props.part, time: current, duration, rid: getCurrentResourceShortId() });
+        addHistoryAPI({ vid: props.videoInfo.shortId || String(props.videoInfo.vid), part: props.part, time: current, duration, rid: getCurrentResourceShortId() });
       }
       lastSeekTime = current;
     });
@@ -839,7 +839,7 @@ const flushHistoryBeforePartChange = async (previousPart: number) => {
 
   try {
     await addHistoryAPI({
-      vid: props.videoInfo.vid,
+      vid: props.videoInfo.shortId || String(props.videoInfo.vid),
       part: previousPart,
       time: snapshotDuration > 0 && snapshotTime >= snapshotDuration ? -1 : snapshotTime,
       duration: snapshotDuration,
@@ -861,7 +861,7 @@ const uploadHistory = async () => {
   const currentTime = Math.floor(player.video.currentTime); // 当前进度取整
 
   await addHistoryAPI({
-    vid: props.videoInfo.vid,
+    vid: props.videoInfo.shortId || String(props.videoInfo.vid),
     part: props.part,
     time: currentTime >= duration ? -1 : currentTime, // 播放完了就上报 -1
     duration,
@@ -925,7 +925,7 @@ const reportOnLeave = () => {
   if (player && player.video && typeof player.video.currentTime === 'number' && !isWatched()) {
     const duration = Math.floor(player.video.duration || 0); // 总时长取整
     const currentTime = Math.floor(player.video.currentTime); // 当前进度取整
-    addHistoryAPI({ vid: props.videoInfo.vid, part: props.part, time: currentTime >= duration ? -1 : currentTime, duration, rid: getCurrentResourceShortId() });
+    addHistoryAPI({ vid: props.videoInfo.shortId || String(props.videoInfo.vid), part: props.part, time: currentTime >= duration ? -1 : currentTime, duration, rid: getCurrentResourceShortId() });
   }
 };
 if (typeof window !== 'undefined') {

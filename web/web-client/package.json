@@ -5,7 +5,7 @@
   "license": "MIT",
   "scripts": {
     "build": "nuxt build",
-    "dev": "set NODE_OPTIONS=--no-deprecation&& node --no-deprecation --disable-warning=DEP0060,DEP0180 node_modules/nuxt/bin/nuxt.mjs dev",
+    "dev": "set NODE_TLS_REJECT_UNAUTHORIZED=0&& set NODE_OPTIONS=--no-deprecation&& node --no-deprecation --disable-warning=DEP0060,DEP0180 node_modules/nuxt/bin/nuxt.mjs dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare"
