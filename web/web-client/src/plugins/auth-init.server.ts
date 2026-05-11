@@ -14,6 +14,7 @@ export default defineNuxtPlugin(async () => {
   const url = `${protocol}://${domain}/api/v1/auth/me`;
 
   try {
+    // NODE_TLS_REJECT_UNAUTHORIZED=0 已经全局禁用证书验证
     const res: any = await $fetch(url, { headers });
     if (res?.code === statusCode.OK && res?.data?.userInfo) {
       auth.initFromSSR({ status: 'auth', user: res.data.userInfo });

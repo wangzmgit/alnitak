@@ -126,7 +126,7 @@ const getQualityDisplayName = (qualityStr: string): string => {
     // 解析格式: "宽x高_码率k_帧率"
     const parts = qualityStr.split('_');
     const resolution = parts[0]; // "854x480"
-    const fpsStr = parts[parts.length - 1]; // "30"、"60"、"24"、"50" 等任意帧率值
+    const fpsStr = parts[parts.length - 1]!; // "30"、"60"、"24"、"50" 等任意帧率值
     const fps = parseInt(fpsStr, 10); // 转换为数字
 
     if (resolution.includes('x')) {
@@ -354,19 +354,18 @@ const initPlayer = async () => {
     | undefined;
   let artSubtitleMenu: Record<string, unknown> | undefined;
   if (embedSubTracks.length) {
-    let defI = embedSubTracks.findIndex((x) => x.isDefault);
-    if (defI < 0) defI = 0;
-    const first = embedSubTracks[defI];
+    const prefIdx = pickSubtitleTrackIndexByPreference(embedSubTracks);
+    const active = embedSubTracks[prefIdx]!;
     artSubtitleCfg = {
-      url: first.url,
+      url: active.url,
       type: 'vtt',
-      name: first.label,
+      name: active.label,
       style: EMBED_SUBTITLE_STYLE,
     };
     artSubtitleMenu = {
       width: 200,
       html: '字幕',
-      tooltip: first.label,
+      tooltip: active.label,
       icon:
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#2196f3" width="20" height="20">' +
         WPLAYER_SUB_SVG_OFF +
@@ -391,7 +390,7 @@ const initPlayer = async () => {
         ...embedSubTracks.map((st, idx) => ({
           html: st.label,
           url: st.url,
-          default: idx === defI,
+          default: idx === prefIdx,
         })),
       ],
       onSelect(item: { html?: string; url?: string }) {
@@ -408,7 +407,7 @@ const initPlayer = async () => {
     };
   }
 
-  const type = guessType(qualities[0].url, qualities[0]);
+  const type = guessType(qualities[0].url, qualities[0])!;
   const isDash = type === 'dash';
 
   // 读取本地循环播放初始状态
@@ -433,11 +432,18 @@ const initPlayer = async () => {
     hotkey: true,
     pip: true,
     controls: subtitleQuickControl ? [subtitleQuickControl] : [],
+
     subtitleOffset: !!artSubtitleCfg,
-    subtitle: artSubtitleCfg,
+
+    ...(artSubtitleCfg
+      ? {
+          subtitle: artSubtitleCfg,
+        }
+      : {}),
+
     theme: '#2196f3',
-    // DASH 模式下禁用 artplayer 的 loop（它会 seek+play 导致 AbortError），
-    // 改用原生 video.loop，dashjs 能正确处理
+
+    // DASH 模式下禁用 artplayer 的 loop
     loop: isDash ? false : loopInit,
   settings: [
     {

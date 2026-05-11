@@ -1,6 +1,7 @@
 import { globalConfig } from "./src/utils/global-config";
 import fs from "node:fs";
 import path from "node:path";
+import https from "node:https";
 
 // 当 globalConfig.https 为 true 时，开发服务器以 HTTPS 启动（Nuxt 需要文件路径字符串）
 const certDir = path.resolve(process.cwd(), "../../../../server/alnitak/server/conf");
@@ -11,6 +12,9 @@ const useHttps = process.env.NUXT_DEV_HTTP !== 'true' && globalConfig.https;
 const httpsConfig = useHttps && fs.existsSync(keyPath)
   ? { key: keyPath, cert: certPath }
   : undefined;
+
+// 代理到后端 HTTPS 时跳过自签证书验证
+const proxyAgent = new https.Agent({ rejectUnauthorized: false });
 
 export default defineNuxtConfig({
   compatibilityDate: '2026-05-09',
@@ -100,6 +104,7 @@ export default defineNuxtConfig({
         'dayjs/plugin/*.js',
         'lodash-unified',
         'vuedraggable',
+        'js-base64',
       ]
     },
     server: {
@@ -119,9 +124,10 @@ export default defineNuxtConfig({
       },
       proxy: {
         '/api': {
-          target: `http${globalConfig.https ? 's' : ''}://${globalConfig.domain}`,
+          target: `https://${globalConfig.domain}`,
           changeOrigin: true,
-          ws: true,
+          secure: false,
+          agent: proxyAgent,
           // 可选：需要去掉 /api 前缀时，设置 API_PROXY_REWRITE=remove 并解开下一行
           // rewrite: process.env.API_PROXY_REWRITE === 'remove' ? (path) => path.replace(/^\/api/, '') : undefined,
           // 网络不稳定时适当拉长代理超时
@@ -140,12 +146,6 @@ export default defineNuxtConfig({
                 res.writeHead(502, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ code: 502, msg: 'Proxy error: ' + err.message }));
               }
-            });
-            // WebSocket 代理错误处理
-            proxy.on('proxyReqWs', (proxyReq, _req, socket) => {
-              socket.on('error', () => {
-                // WebSocket 连接错误，静默忽略
-              });
             });
             proxy.on('proxyReq', (proxyReq, req, _res) => {
               // 仅对非 WebSocket 请求设置 keep-alive

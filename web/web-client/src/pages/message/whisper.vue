@@ -52,6 +52,8 @@ import { ElMessage } from 'element-plus';
 import { getUserBaseInfoAPI, getUserInfoAPI } from '@/api/user';
 import { onBeforeMount, onBeforeUnmount, reactive, ref, nextTick } from 'vue';
 import { getWhisperDetailsAPI, getWhisperListAPI, readWhisperAPI, sendWhisperAPI } from "@/api/msg-whisper";
+import { storageData } from "@/utils/storage-data";
+import { globalConfig } from "@/utils/global-config";
 
 definePageMeta({
   middleware: ['auth']
@@ -209,11 +211,12 @@ let SocketURL = "";
 let websocket: WebSocket | null = null;
 //初始化weosocket
 const initWebSocket = async () => {
-  // 始终使用当前页面的 host，走前端代理，避免暴露后端地址
-  const wsProtocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
-  SocketURL = `${wsProtocol}${window.location.host}/api/v1/message/ws?token=${storageData.get("token")}`;
+  const wsProtocol = globalConfig.https ? 'wss://' : 'ws://';
+  SocketURL = `${wsProtocol}${globalConfig.domain}/api/v1/message/ws?token=${storageData.get("token")}`;
   websocket = new WebSocket(SocketURL);
   websocket.onmessage = websocketOnmessage;
+  websocket.onerror = () => {};
+  websocket.onclose = () => {};
 }
 
 //数据接收
@@ -256,12 +259,16 @@ const websocketOnmessage = (e: any) => {
 //加载和卸载页面
 const route = useRoute();
 onBeforeMount(async () => {
-  if (route.query.target) {
-    msgForm.fid = Number(route.query.target);
+  try {
+    if (route.query.target) {
+      msgForm.fid = Number(route.query.target);
+    }
+    await getUserInfo();
+    await initWebSocket();
+    getMsgList();
+  } catch (e) {
+    console.error('[whisper] onBeforeMount error:', e);
   }
-  await getUserInfo();
-  await initWebSocket();
-  getMsgList();
 })
 
 onBeforeUnmount(() => {
