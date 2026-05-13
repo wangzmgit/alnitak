@@ -3,7 +3,10 @@
     <p class="reply-title">回复我的</p>
     <div class="reply-box">
       <el-scrollbar max-height="100%">
-        <ul class="reply-list">
+        <template v-if="!replyMessageList.length && !loading">
+          <el-empty description="暂无回复消息" />
+        </template>
+        <ul class="reply-list" v-else>
           <li class="reply-msg-item" v-for="(item, index) in replyMessageList" :key="index">
             <div class="item-left">
               <common-avatar class="avatar" :url="item.user.avatar" :size="45"></common-avatar>
@@ -44,10 +47,12 @@ import { ref, onBeforeMount } from "vue";
 import { ElPagination } from 'element-plus';
 import { formatTime } from "@/utils/format";
 import { getReplyMsgAPI } from '@/api/msg-reply';
+import { getResourceUrl } from '@/utils/resource';
 definePageMeta({
   middleware: ['auth']
 })
 
+const loading = ref(true);
 const page = ref(1);
 const total = ref(0);
 const pageSize = ref(10);
@@ -59,6 +64,7 @@ const getReplyMsgList = async () => {
     total.value = res.data.data.total;
     replyMessageList.value = res.data.data.messages;
   }
+  loading.value = false;
 }
 
 onBeforeMount(() => {

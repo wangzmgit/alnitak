@@ -44,6 +44,7 @@ body {
 @font-face {
   font-family: "HarmonyOS Regular";
   src: url("@/assets/fonts/HarmonyOS_Sans_SC_Regular.ttf");
+  font-display: swap;
 }
 
 a {

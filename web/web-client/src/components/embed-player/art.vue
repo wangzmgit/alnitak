@@ -433,7 +433,7 @@ const initPlayer = async () => {
     pip: true,
     controls: subtitleQuickControl ? [subtitleQuickControl] : [],
 
-    subtitleOffset: !!artSubtitleCfg,
+    subtitleOffset: false,
 
     ...(artSubtitleCfg
       ? {
@@ -709,5 +709,10 @@ onBeforeUnmount(() => {
   width: 100vw;
   margin: 0;
   padding: 0;
+}
+
+#artplayer :deep(.art-subtitle) {
+  bottom: 20px !important;
+  transition: none !important;
 }
 </style>

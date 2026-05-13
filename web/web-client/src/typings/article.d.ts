@@ -34,5 +34,6 @@ interface ArticleType {
 // 全部文章列表
 interface AllArticleType  {
   aid: number;
+  shortId?: string;
   title: string;
 }

@@ -3,7 +3,10 @@
     <p class="title">专栏管理</p>
     <div class="article-box">
       <el-scrollbar>
-        <ul class="article-list" v-infinite-scroll="scrollLoad">
+        <template v-if="!articleList.length && !initialLoading">
+          <el-empty description="暂无专栏" />
+        </template>
+        <ul class="article-list" v-infinite-scroll="scrollLoad" v-else>
           <li class="article-item" v-for="(item, index) in articleList" :key="index">
             <div class="content-wrapper">
               <div class="content-main">
@@ -39,7 +42,7 @@
                     </li>
                   </ul>
                   <div class="entry-footer-tags">
-                    <div v-if="item.tags" class="tag" v-for="tag in item.tags.split(',')">{{ tag }}</div>
+                    <div v-if="item.tags" class="tag" v-for="tag in item.tags.split(',')" :key="tag">{{ tag }}</div>
                   </div>
                 </div>
               </div>
@@ -71,6 +74,7 @@ definePageMeta({
   middleware: ['article']
 })
 
+const initialLoading = ref(true);
 const page = ref(1);
 const total = ref(0);
 const pageSize = 8;
@@ -89,6 +93,7 @@ const getUploadArticle = async () => {
       noMore.value = true;
     }
   }
+  initialLoading.value = false;
   loading.value = false;
 }
 

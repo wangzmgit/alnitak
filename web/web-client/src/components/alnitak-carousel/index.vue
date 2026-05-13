@@ -3,7 +3,7 @@
     <div ref="carouselContainer" class="carousel-container"
       :style="`width: ${data.containerWidth}%;transition: ${data.transition};transform: ${data.transform}`"
       @mouseover="manualSwitching(null, false)" @mouseleave="manualSwitching(null, true)">
-      <div class="carousel-item" :style="`width: ${data.itemWidth}% `" v-for="item in data.playList">
+      <div class="carousel-item" :style="`width: ${data.itemWidth}% `" v-for="(item, i) in data.playList" :key="i">
         <template v-if="item.url">
           <a :href="item.url" target="_blank" class="carousel-link">
         <img class="carousel-img" :src="getResourceUrl(item.img)" :alt="item.title" />
@@ -47,17 +47,17 @@
 </template>
 
 <script lang="ts" setup>
-import { nextTick, onBeforeMount, reactive, ref } from 'vue';
-import { getCarouselAPI } from "@/api/carousel";
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import ArrowLeft from "@/components/icons/ArrowLeftIcon.vue";
 import ArrowRight from "@/components/icons/ArrowRightIcon.vue";
 
 const props = withDefaults(defineProps<{
-  partitionId?: number | string
+  list?: CarouselType[]
 }>(), {
-  partitionId: 0
+  list: () => []
 })
 
+const carouselList = computed(() => props.list);
 const data = reactive<{
   carouselCount: number
   itemWidth: number
@@ -68,17 +68,15 @@ const data = reactive<{
   transition: string
   transform: string
 }>({
-  carouselCount: 0,//轮播图数量
+  carouselCount: 0,
   itemWidth: 100,
   containerWidth: 100,
   currentIndex: 0,
-  carouselTimer: null,//自动切换计时器
-  playList: [],//播放列表
+  carouselTimer: null,
+  playList: [],
   transition: "",
   transform: "",
 });
-
-const carouselList = ref<Array<CarouselType>>([]);
 
 const carouselContainer = ref<HTMLElement | null>(null);
 
@@ -211,14 +209,19 @@ const handelSequence = (data: any[], start: number) => {
   return [...data.slice(start, data.length), ...before];
 }
 
-onBeforeMount(async () => {
-  const res = await getCarouselAPI(props.partitionId);
-  if (res.data.code === statusCode.OK) {
-    if (res.data.data.carousels) {
-      carouselList.value = res.data.data.carousels;
-      initCarousel();
+onMounted(() => {
+  if (carouselList.value.length > 0) {
+    initCarousel();
+    if (data.carouselCount > 1) {
       startInterval();
     }
+  }
+})
+
+onBeforeUnmount(() => {
+  if (data.carouselTimer) {
+    clearInterval(data.carouselTimer);
+    data.carouselTimer = null;
   }
 })
 </script>

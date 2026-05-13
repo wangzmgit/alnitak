@@ -39,7 +39,7 @@
       </div>
       <div class="space-content">
         <div class="space-menu">
-          <nuxt-link v-for="item in menuList" :to="item.to" class="menu-item" :target="item.blank ? '_blank' : '_self'"
+          <nuxt-link v-for="item in menuList" :key="item.key" :to="item.to" class="menu-item" :target="item.blank ? '_blank' : '_self'"
             :class="getMenuName(route.name) === item.key ? 'menu-item-active' : ''">
             <span class="menu-icon">
               <component :is="item.icon" size="18"></component>

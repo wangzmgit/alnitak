@@ -9,7 +9,7 @@
     </div>
     <div class="video-box">
       <el-scrollbar>
-        <div v-if="videoList.length === 0" class="empty-tip">暂无视频，点击"添加视频"按钮添加</div>
+        <div v-if="videoList.length === 0 && !loading" class="empty-tip">暂无视频，点击"添加视频"按钮添加</div>
         <ul v-else class="video-list">
           <li v-for="(element, index) in videoList" :key="element.vid" class="video-item"
             draggable="true"
@@ -97,12 +97,22 @@ interface MyVideoItem {
   inOtherPlaylist: boolean; // 是否已在其他合集中
 }
 
+const loading = ref(true);
 const videoList = ref<PlaylistVideoItem[]>([]);
 
 const getVideoList = async () => {
   const res = await getPlaylistVideoListAPI(playlistId.value, 1, 200);
+  loading.value = false;
   if (res.data.code === statusCode.OK) {
-    videoList.value = res.data.data.videos || [];
+    videoList.value = (res.data.data.videos || []).map((v: any) => ({
+      vid: Number(v.shortId) || 0,
+      title: v.title,
+      cover: v.cover,
+      desc: v.desc,
+      duration: v.duration,
+      clicks: v.clicks,
+      createdAt: v.createdAt,
+    }));
   }
 }
 
@@ -175,7 +185,7 @@ const showAddDialog = async () => {
       ? (mapRes.data.data.videoPlaylistMap || {})
       : {};
     myVideos.value = videos.map((v: any) => {
-      const vid = v.vid;
+      const vid = Number(v.shortId) || 0;
       const belongsToPlaylistId = videoPlaylistMap[vid];
       const inCurrentPlaylist = existingVids.has(vid);
       // 已在其他合集中（不是当前合集）

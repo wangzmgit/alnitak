@@ -19,7 +19,7 @@
             <p class="danmaku-menu-title">禁用弹幕类型</p>
             <div class="danmaku-filter">
               <ul class="player-radio-group" @click="setDisableType">
-                <li class="radio-item" v-for="(item, index) in ['滚动', '顶部', '底部', '彩色']"
+                <li class="radio-item" v-for="(item, index) in ['滚动', '顶部', '底部', '彩色']" :key="index"
                   :style="disableDanmakuStyle(index)" :name="index">{{ item }}</li>
               </ul>
             </div>
@@ -49,13 +49,13 @@
               </div>
               <div class="color-btn" @click="setColor">
                 <div v-for="item in ['fff', 'e54256', 'ffe133', 'ff7204', 'a0ee00', '64dd17', '39ccff', 'd500f9',
-                  'fb7299', '9b9b9b']" :name="item" :style="`background-color: #${item}`">
+                  'fb7299', '9b9b9b']" :key="item" :name="item" :style="`background-color: #${item}`">
                 </div>
               </div>
               <p class="danmaku-menu-title">弹幕类型</p>
               <div class="danmaku-type">
                 <ul class="player-radio-group" @click="setType">
-                  <li class="radio-item" v-for="(item, index) in ['滚动', '顶部', '底部']" :style="danmakuTypeStyle(index)"
+                  <li class="radio-item" v-for="(item, index) in ['滚动', '顶部', '底部']" :key="index" :style="danmakuTypeStyle(index)"
                     :name="index">{{ item }}</li>
                 </ul>
               </div>
@@ -71,7 +71,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from "vue";
+import { ref, reactive, onBeforeMount } from "vue";
 import TextIcon from "@/components/icons/TextIcon.vue";
 import { SettingConfig } from "@icon-park/vue-next";
 import { requireLogin } from "@/utils/require-login";

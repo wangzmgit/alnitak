@@ -1,6 +1,6 @@
 <template>
   <div class="tabs-wrapper">
-    <div class="tab-item" :ref="el => setRefMap(item.key, el)" v-for="item in props.tabs" v-show="!item.hidden"
+    <div class="tab-item" :ref="el => setRefMap(item.key, el)" v-for="item in props.tabs" :key="item.key" v-show="!item.hidden"
       :class="[currentTab === item.key ? 'tab-item--active' : '', item.disabled ? 'tab-disabled' : '']"
       @click="tabChange(item.key, item.disabled)">
       {{ item.label }}

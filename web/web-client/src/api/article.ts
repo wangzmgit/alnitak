@@ -23,8 +23,8 @@ export const getArticleStatusAPI = (aid: number) => {
 }
 
 // 获取所有文章列表
-export const getAllArticleAPI = () => {
-  return request.get("v1/article/getAllArticleList");
+export const getAllArticleAPI = (page: number = 1, pageSize: number = 30) => {
+  return request.get(`v1/article/getAllArticleList?page=${page}&pageSize=${pageSize}`);
 }
 
 // 获取文章信息

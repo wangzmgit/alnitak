@@ -23,8 +23,8 @@ export const editVideoAPI = (editVideo: EditVideoType) => {
 }
 
 // 获取所有视频列表
-export const getAllVideoAPI = () => {
-  return request.get("v1/video/getAllVideoList");
+export const getAllVideoAPI = (page: number = 1, pageSize: number = 10) => {
+  return request.get(`v1/video/getAllVideoList?page=${page}&pageSize=${pageSize}`);
 }
 
 // 删除视频

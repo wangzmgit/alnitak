@@ -31,7 +31,7 @@
         <div class="danmaku-item" @click="handleItemClick(item)">
           <div class="time">{{ formatDanmakuTime(item.time) }}</div>
           <div class="text">{{ item.text }}</div>
-          <div class="send-time">{{ moment(item.createdAt).format('MM-DD HH:mm') }}</div>
+          <div class="send-time">{{ formatDate(item.createdAt) }}</div>
         </div>
       </el-tooltip>
     </el-scrollbar>
@@ -42,7 +42,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { Down as DownIcon } from "@icon-park/vue-next";
-import moment from 'moment';
 
 const props = withDefaults(defineProps<{
   height: number;
@@ -68,6 +67,15 @@ const formatDanmakuTime = (seconds: number) => {
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = Math.floor(seconds % 60);
   return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+};
+
+const formatDate = (dateStr: string) => {
+  const d = new Date(dateStr);
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const hh = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${mm}-${dd} ${hh}:${min}`;
 };
 
 // 切换弹幕列表显示状态

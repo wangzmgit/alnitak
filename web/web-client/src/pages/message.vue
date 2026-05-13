@@ -3,7 +3,7 @@
     <header-bar class="header-bar"></header-bar>
     <div class="msg-container">
       <div class="msg-menu-container">
-        <nuxt-link v-for="item in menuList" :to="item.to" class="menu-item"
+        <nuxt-link v-for="item in menuList" :key="item.key" :to="item.to" class="menu-item"
           :class="route.name === item.key ? 'menu-item-active' : ''">
           <span class="menu-title">{{ item.name }}</span>
         </nuxt-link>
@@ -129,6 +129,7 @@ onBeforeMount(() => {
     }
 
     .msg-router {
+      position: relative;
       width: calc(100% - 280px);
       height: 100%;
       margin-left: 280px;

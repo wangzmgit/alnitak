@@ -18,6 +18,7 @@
 import { reactive, onMounted, onBeforeUnmount } from 'vue';
 import { getHistoryVideoAPI } from '@/api/history';
 import HistoryVideoList from './components/HistoryVideoList.vue';
+import { throttle } from "@/utils/debounce";
 
 definePageMeta({
   middleware: ['auth']
@@ -73,13 +74,15 @@ const handleScroll = () => {
   }
 }
 
+const throttledScroll = throttle(handleScroll, 150);
+
 onMounted(() => {
   getHistoryList();
-  window.addEventListener('scroll', handleScroll);
+  window.addEventListener('scroll', throttledScroll);
 })
 
 onBeforeUnmount(() => {
-  window.removeEventListener('scroll', handleScroll);
+  window.removeEventListener('scroll', throttledScroll);
 })
 </script>
 

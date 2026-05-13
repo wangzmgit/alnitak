@@ -14,7 +14,7 @@
     </div>
     <div class="video-box">
       <el-scrollbar>
-        <ul class="video-list" v-infinite-scroll="scrollLoad">
+        <ul v-if="videoList.length" class="video-list" v-infinite-scroll="scrollLoad">
           <li class="video-item" v-for="(item, index) in videoList" :key="index">
             <div class="item-left">
               <div class="cover">
@@ -26,7 +26,7 @@
                 <span class="item-title unlinked">{{ item.title }}</span>
               </template>
               <template v-else>
-                <nuxt-link class="item-title" :to="`/watch?v=${item.shortId || String(item.vid)}`">{{ item.title }}</nuxt-link>
+                <nuxt-link class="item-title" :to="`/watch?v=${item.shortId}`">{{ item.title }}</nuxt-link>
               </template>
               <span class="desc">简介：{{ item.desc }}</span>
               <div class="desc">
@@ -75,6 +75,7 @@
             </div>
           </li>
         </ul>
+        <el-empty v-else-if="!initialLoading" description="暂无视频" />
       </el-scrollbar>
     </div>
     <client-only>
@@ -107,6 +108,7 @@ const total = ref(0);
 const pageSize = 8;
 const noMore = ref(false);
 const loading = ref(false);
+const initialLoading = ref(true);
 const videoList = ref<Array<ManuscriptVideoType>>([]);
 let silentRefreshTimer: number | null = null;
 const activeTab = ref<'published' | 'pending' | 'rejected' | 'transcoding' | 'transcode_failed'>('published');
@@ -135,6 +137,7 @@ const getUploadVideo = async () => {
       noMore.value = true;
     }
   }
+  initialLoading.value = false;
   loading.value = false;
 }
 
@@ -205,6 +208,7 @@ const changeTab = (tab: typeof tabs[number]['key']) => {
   total.value = 0;
   noMore.value = false;
   videoList.value = [];
+  initialLoading.value = true;
   expandedDetail.value = {};
   if (tab === 'transcoding') {
     startSilentRefresh();

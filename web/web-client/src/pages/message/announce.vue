@@ -3,7 +3,10 @@
     <p class="announce-title">站内公告</p>
     <div class="announce-box">
       <el-scrollbar max-height="100%">
-        <ul class="announce-list">
+        <template v-if="!announceList.length && !loading">
+          <el-empty description="暂无公告" />
+        </template>
+        <ul class="announce-list" v-else>
           <li class="announce-item" v-for="(item, index) in announceList" :key="index">
             <div class="title">
               <p class="item-title">{{ item.title }}</p>
@@ -33,6 +36,7 @@ definePageMeta({
   middleware: ['auth']
 })
 
+const loading = ref(true);
 const page = ref(1);
 const total = ref(0);
 const pageSize = ref(10);
@@ -43,6 +47,7 @@ const getAnnounceList = async () => {
   if (res.data.code === statusCode.OK) {
     announceList.value = res.data.data.announces;
   }
+  loading.value = false;
 }
 
 onBeforeMount(() => {

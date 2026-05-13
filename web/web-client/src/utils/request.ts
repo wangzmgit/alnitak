@@ -201,6 +201,11 @@ service.interceptors.response.use(async (res) => {
     return service.request(config);
   }
 
+  // 重试耗尽后，给用户一个友好提示
+  if (isRetryableError(error)) {
+    ElMessage.error('网络连接失败，请检查服务器状态');
+  }
+
   return Promise.reject(error);
 });
 

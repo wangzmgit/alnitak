@@ -18,7 +18,7 @@
     <button class="comment-submit" :class="isLoggedIn ? '' : 'submit-disabled'" @click="submitComment">发表评论</button>
   </div>
   <!-- 评论列表 -->
-  <div class="comment-container" v-for="(item, i) in commentList">
+  <div class="comment-container" v-for="(item, i) in commentList" :key="item.id">
     <div class="comment-avatar">
       <common-avatar :url="item.author.avatar" :size="40"></common-avatar>
     </div>
@@ -27,7 +27,7 @@
         <div class="user-name">{{ item.author.name }}</div>
       </div>
       <div class="comment-content-container">
-        <span class="comment-content" v-for="content in handleMention(item.content, item.atUserIds, item.atUsernames)">
+        <span class="comment-content" v-for="(content, ci) in handleMention(item.content, item.atUserIds, item.atUsernames)" :key="ci">
           <span v-if="!content.key">{{ content.value }}</span>
           <nuxt-link v-else class="at" :to="`/user/${content.key}`">{{ content.value }}</nuxt-link>
         </span>
@@ -54,7 +54,7 @@
     </div>
     <!-- 回复 -->
     <div class="reply-list" v-if="item.reply">
-      <div class="reply-item" v-for="(reply, j) in item.reply">
+      <div class="reply-item" v-for="(reply, j) in item.reply" :key="reply.id">
         <div class="reply-user-info">
           <div class="reply-avatar">
             <common-avatar :url="reply.author.avatar" :size="24"></common-avatar>
@@ -65,7 +65,7 @@
           <span v-if="reply.replyUserName">
             回复<nuxt-link class="at" :to="`/user/${reply.replyUserId}`">@{{ reply.replyUserName }}</nuxt-link> :
           </span>
-          <span class="reply-content" v-for="content in handleMention(reply.content, reply.atUserIds, reply.atUsernames)">
+          <span class="reply-content" v-for="(content, ci) in handleMention(reply.content, reply.atUserIds, reply.atUsernames)" :key="ci">
             <span v-if="!content.key">{{ content.value }}</span>
             <nuxt-link v-else class="at" :to="`/user/${content.key}`">{{ content.value }}</nuxt-link>
           </span>
@@ -123,6 +123,7 @@ import DislikeFillIcon from "@/components/icons/DislikeFillIcon.vue";
 import { scrollToViewCenter } from "@/utils/scroll";
 import { requireLogin } from "@/utils/require-login";
 import { useAuthStore } from "@/stores/auth-store";
+import { throttle } from "@/utils/debounce";
 
 const emit = defineEmits(["updateCount"])
 const props = defineProps<{
@@ -363,9 +364,11 @@ const reloadComments = () => {
   getCommentList();
 }
 
+const throttledLoading = throttle(lazyLoading, 150);
+
 onBeforeMount(() => {
   getCommentList();
-  window.addEventListener("scroll", lazyLoading, true);
+  window.addEventListener("scroll", throttledLoading, true);
 })
 
 watch(() => props.aid, reloadComments)
@@ -376,7 +379,7 @@ watch(isLoggedIn, () => {
 })
 
 onBeforeUnmount(() => {
-  window.removeEventListener("scroll", lazyLoading, true);
+  window.removeEventListener("scroll", throttledLoading, true);
 })
 </script>
 

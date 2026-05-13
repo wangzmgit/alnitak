@@ -8,15 +8,13 @@
       <div class="home-right" :style="`margin-left: ${menuFold ? '50px' : '220px'};`">
         <div class="home-recommended" :class="menuFold ? 'recommended-fold' : ''">
           <div class="recommended-top">
-            <div class="recommended-carousel">
+            <div v-if="carouselList.length" class="recommended-carousel">
               <div class="recommended-carousel-inner">
-                <client-only>
-                  <AlnitakCarousel></AlnitakCarousel>
-                </client-only>
+                <AlnitakCarousel :list="carouselList"></AlnitakCarousel>
               </div>
             </div>
             <div class="recommended-side" :class="menuFold ? 'side-fold' : ''">
-              <video-item v-for="item in videoList.slice(0, menuFold ? 6 : 4)" :info="item"></video-item>
+              <video-item v-for="item in videoList.slice(0, menuFold ? 6 : 4)" :key="item.vid" :info="item"></video-item>
             </div>
           </div>
           <div class="tab-bar">
@@ -24,7 +22,7 @@
             <span class="tab-item" :class="{ active: activeTab === 'latest' }" @click="switchTab('latest')">最近投稿</span>
           </div>
           <div class="recommended-grid" :class="menuFold ? 'grid-fold' : ''">
-            <video-item v-for="item in videoList.slice(menuFold ? 6 : 4)" :info="item"></video-item>
+            <video-item v-for="item in videoList.slice(menuFold ? 6 : 4)" :key="item.vid" :info="item"></video-item>
           </div>
         </div>
       </div>
@@ -36,6 +34,8 @@
 import { onMounted, onBeforeUnmount, ref } from 'vue';
 import VideoItem from '@/components/home-video-item/index.vue';
 import { asyncGetHotVideoAPI, getHotVideoAPI, getLatestVideoAPI } from "@/api/video";
+import { getCarouselAPI } from "@/api/carousel";
+import { throttle } from "@/utils/debounce";
 
 useHead({
   title: globalConfig.title
@@ -53,9 +53,17 @@ const activeTab = ref<'hot' | 'latest'>('hot');
 const page = ref(1);
 const pageSize = 16;
 const videoList = ref<VideoType[]>([])
-const { data } = await asyncGetHotVideoAPI(page.value, pageSize);
+const [hotResult, carouselResult] = await Promise.all([
+  asyncGetHotVideoAPI(page.value, pageSize),
+  getCarouselAPI(0),
+]);
+const { data } = hotResult;
 if ((data.value as any).code === statusCode.OK) {
   videoList.value = (data.value as any).data.videos;
+}
+const carouselList = ref<CarouselType[]>([]);
+if (carouselResult.data.code === statusCode.OK && carouselResult.data.data.carousels) {
+  carouselList.value = carouselResult.data.data.carousels;
 }
 
 const noMore = ref(false);
@@ -101,12 +109,14 @@ const lazyLoading = (e: Event) => {
   }
 }
 
+const throttledLoading = throttle(lazyLoading, 150);
+
 onMounted(() => {
-  window.addEventListener('scroll', lazyLoading, true);
+  window.addEventListener('scroll', throttledLoading, true);
 })
 
 onBeforeUnmount(() => {
-  window.removeEventListener('scroll', lazyLoading, true);
+  window.removeEventListener('scroll', throttledLoading, true);
 })
 </script>
 

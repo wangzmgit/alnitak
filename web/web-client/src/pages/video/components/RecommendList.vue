@@ -11,7 +11,7 @@
       </p>
     </div>
     
-    <div class="video-card" v-for="item in videoList">
+    <div class="video-card" v-for="item in videoList" :key="item.vid">
       <div class="card-box">
         <nuxt-link class="cover-box" :to="`/watch?v=${item.shortId || String(item.vid)}`">
           <img :src="getResourceUrl(item.cover)" alt="封面" />

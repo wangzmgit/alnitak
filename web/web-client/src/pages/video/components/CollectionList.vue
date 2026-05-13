@@ -10,7 +10,7 @@
       <div class="card-content">
         <el-scrollbar height="300px">
           <ul v-if="collectionList.length" class="group-list">
-            <li class="collection-item" v-for="item in collectionList" @click="collectionClick(item)">
+            <li class="collection-item" v-for="item in collectionList" :key="item.id" @click="collectionClick(item)">
               <div class="item-left"> <span class="name">{{ item.name }}</span>
                 <span class="open">[{{ item.open ? '公开' : '私有' }}]</span>
               </div>

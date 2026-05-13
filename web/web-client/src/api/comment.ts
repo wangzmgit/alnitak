@@ -41,13 +41,21 @@ export const deleteArticleCommentAPI = (commentId: number) => {
 }
 
 // 获取视频评论
-export const getVideoCommentListAPI = (vid: string | number, page: number, pageSize: number) => {
-  return request.get(`v1/comment/video/getCommentList?vid=${vid}&page=${page}&pageSize=${pageSize}`);
+export const getVideoCommentListAPI = (id: string | number, page: number, pageSize: number) => {
+  let idParam = '';
+  if (id) {
+    idParam = typeof id === 'number' ? `vid=${id}&` : `shortId=${id}&`;
+  }
+  return request.get(`v1/comment/video/getCommentList?${idParam}page=${page}&pageSize=${pageSize}`);
 }
 
 // 获取文章评论
-export const getArticleCommentListAPI = (aid: number, page: number, pageSize: number) => {
-  return request.get(`v1/comment/article/getCommentList?aid=${aid}&page=${page}&pageSize=${pageSize}`);
+export const getArticleCommentListAPI = (id: string | number, page: number, pageSize: number) => {
+  let idParam = '';
+  if (id) {
+    idParam = typeof id === 'number' ? `aid=${id}&` : `shortId=${id}&`;
+  }
+  return request.get(`v1/comment/article/getCommentList?${idParam}page=${page}&pageSize=${pageSize}`);
 }
 
 // 点赞视频评论

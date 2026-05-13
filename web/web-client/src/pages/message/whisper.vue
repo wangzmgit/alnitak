@@ -1,21 +1,25 @@
 <template>
-  <div class="msg">
+  <div class="whisper-wrap">
     <!--左边-->
     <div class="msg-left">
       <div class="left-top"></div>
-      <el-scrollbar max-height="calc(100% - 40px)">
+      <div class="left-scroll">
+        <el-empty v-if="!msgList.length && !initLoading" description="暂无私信" />
         <div class="msg-user-item" v-for="(item, index) in msgList" :key="index" @click="getMsgContent(item, index)">
           <common-avatar class="msg-avatar" :url="item.user.avatar" :size="45"></common-avatar>
           <span class="msg-name">{{ item.user.name }}</span>
           <span class="msg-date"> {{ formatRelativeTime(item.createdAt) }}</span>
           <div class="dot" v-if="!item.status"></div>
         </div>
-      </el-scrollbar>
+      </div>
     </div>
     <!--右侧-->
     <div class="msg-right">
       <div class="left-top right-top">{{ targetUser.name || "消息内容" }}</div>
-      <div ref="msgBox" class="msg-main" @scroll="lazyLoading">
+      <template v-if="!msgList.length && !initLoading">
+        <el-empty class="right-empty" description="暂无私信" />
+      </template>
+      <div v-else ref="msgBox" class="msg-main" @scroll="lazyLoading">
         <div class="content-container" v-for="(item, index) in msgDetails" :key="index">
           <!-- 自己发送的 -->
           <div v-if="item.fromId == userInfo?.uid">
@@ -67,6 +71,7 @@ const getUserInfo = async () => {
   }
 }
 
+const initLoading = ref(true);
 const msgList = ref<WhisperListType[]>([]);
 const msgDetails = ref<WhisperDetailsType[]>([]);
 const msgForm = reactive({
@@ -265,9 +270,11 @@ onBeforeMount(async () => {
     }
     await getUserInfo();
     await initWebSocket();
-    getMsgList();
+    await getMsgList();
   } catch (e) {
     console.error('[whisper] onBeforeMount error:', e);
+  } finally {
+    initLoading.value = false;
   }
 })
 
@@ -279,19 +286,48 @@ onBeforeUnmount(() => {
 </script>
 
 <style lang="scss" scoped>
-.msg {
+.whisper-wrap {
+  position: absolute;
+  top: 0;
+  left: 10px;
+  right: 60px;
+  bottom: 0;
   display: flex;
-  height: 100%;
   background-color: var(--bg-elev-1);
 }
 
 .msg-left {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   width: 230px;
   border-right: 1px solid var(--border-color);
 
   .left-top {
+    flex-shrink: 0;
     height: 40px;
     border-bottom: 1px solid var(--border-color);
+  }
+
+  .left-scroll {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background-color: var(--border-color);
+      outline: none;
+      border-radius: 2px;
+    }
+
+    &::-webkit-scrollbar-track {
+      box-shadow: none;
+      border-radius: 2px;
+    }
   }
 
   .msg-user-item {
@@ -339,9 +375,14 @@ onBeforeUnmount(() => {
 }
 
 .msg-right {
-  width: calc(100% - 220px);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  width: calc(100% - 230px);
 
   .right-top {
+    flex-shrink: 0;
+    height: 40px;
     color: var(--font-primary-1);
     text-align: center;
     font-size: 16px;
@@ -350,8 +391,9 @@ onBeforeUnmount(() => {
   }
 
   .msg-main {
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
-    height: calc(100% - 196px);
     background-color: var(--fill-1);
     border-bottom: 1px solid var(--border-color);
 
@@ -371,6 +413,14 @@ onBeforeUnmount(() => {
       border-radius: 2px;
     }
   }
+}
+
+.right-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 /**聊天部分 */
@@ -421,6 +471,7 @@ onBeforeUnmount(() => {
 }
 
 .msg-input {
+  flex-shrink: 0;
   height: 150px;
   padding: 10px;
   position: relative;

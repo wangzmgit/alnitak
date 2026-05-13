@@ -7,14 +7,12 @@
       </div>
       <div class="home-right" :style="`margin-left: ${menuFold ? '50px' : '220px'};`">
         <div class="home-recommended" :class="menuFold ? 'recommended-fold' : ''">
-          <div class="recommended-carousel">
+          <div v-if="carouselList.length" class="recommended-carousel">
             <div class="recommended-carousel-inner">
-              <client-only>
-                <AlnitakCarousel :partition-id="partitionId"></AlnitakCarousel>
-              </client-only>
+              <AlnitakCarousel :list="carouselList"></AlnitakCarousel>
             </div>
           </div>
-          <video-item v-for="item in videoList" :info="item"></video-item>
+          <video-item v-for="item in videoList" :key="item.vid" :info="item"></video-item>
         </div>
       </div>
     </div>
@@ -26,6 +24,8 @@ import { useRoute } from 'vue-router';
 import { onMounted, onBeforeUnmount, ref } from 'vue';
 import VideoItem from '@/components/home-video-item/index.vue';
 import { asyncGetVideoByPartitionAPI, getVideoByPartitionAPI } from "@/api/video";
+import { getCarouselAPI } from "@/api/carousel";
+import { throttle } from "@/utils/debounce";
 
 const route = useRoute();
 
@@ -40,9 +40,17 @@ const changeMenuFold = (val: boolean) => {
 // 获取分区
 const size = 10;
 const videoList = ref<VideoType[]>([])
-const { data } = await asyncGetVideoByPartitionAPI(size, partitionId);
+const [partitionResult, carouselResult] = await Promise.all([
+  asyncGetVideoByPartitionAPI(size, partitionId),
+  getCarouselAPI(partitionId),
+]);
+const { data } = partitionResult;
 if ((data.value as any).code === statusCode.OK) {
   videoList.value = (data.value as any).data.videos;
+}
+const carouselList = ref<CarouselType[]>([]);
+if (carouselResult.data.code === statusCode.OK && carouselResult.data.data.carousels) {
+  carouselList.value = carouselResult.data.data.carousels;
 }
 
 const noMore = ref(false);
@@ -71,12 +79,14 @@ const lazyLoading = (e: Event) => {
   }
 }
 
+const throttledLoading = throttle(lazyLoading, 150);
+
 onMounted(() => {
-  window.addEventListener('scroll', lazyLoading, true);
+  window.addEventListener('scroll', throttledLoading, true);
 })
 
 onBeforeUnmount(() => {
-  window.removeEventListener('scroll', lazyLoading, true);
+  window.removeEventListener('scroll', throttledLoading, true);
 })
 </script>
 
