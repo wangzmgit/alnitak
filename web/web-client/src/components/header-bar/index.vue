@@ -13,7 +13,7 @@
     </div>
     <div class="header-right">
       <!-- 用户头像 -->
-      <div v-if="uiLoggedIn" class="avatar-box">
+      <div v-if="isLoggedIn" class="avatar-box">
         <nuxt-link to="/space">
           <common-avatar :url="userInfo?.avatar" :size="40" :iconSize="22"></common-avatar>
         </nuxt-link>
@@ -128,10 +128,7 @@ import {
   Right as RightIcon, FolderFocusOne as CollectIcon,
   Theme as ThemeIcon, SunOne as SunIcon, Moon as MoonIcon
 } from '@icon-park/vue-next';
-import { useClientHydrated } from '@/composables/use-client-hydrated';
 import { useAuthStore } from '@/stores/auth-store';
-
-const { hydrated } = useClientHydrated();
 
 const route = useRoute();
 const isSearchPage = ref(route.name !== 'search-keywords');
@@ -184,7 +181,6 @@ const handelSearch = () => {
 const auth = useAuthStore();
 const isLoggedIn = computed(() => auth.isLoggedIn);
 const userInfo = computed(() => auth.user);
-const uiLoggedIn = computed(() => hydrated.value && isLoggedIn.value);
 
 const logout = async () => {
   await auth.logout();
