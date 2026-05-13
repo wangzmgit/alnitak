@@ -6,8 +6,17 @@ export default defineNuxtPlugin(async () => {
   if (process.client) return;
 
   const auth = useAuthStore();
-  const headers = useRequestHeaders(['cookie']);
-  
+  const headers: Record<string, string> = {};
+
+  const cookie = useRequestHeaders(['cookie']).cookie;
+  if (cookie) {
+    headers.cookie = cookie;
+    const token = cookie.split(';').find(c => c.trim().startsWith('token='))?.split('=')[1];
+    if (token) {
+      headers.authorization = `Bearer ${token}`;
+    }
+  }
+
   // SSR阶段直接请求后端（端口9001），避免代理问题
   const domain = globalConfig.domain;
   const protocol = globalConfig.https ? 'https' : 'http';
