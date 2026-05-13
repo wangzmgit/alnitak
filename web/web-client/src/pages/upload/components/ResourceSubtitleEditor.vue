@@ -14,7 +14,7 @@
           <el-button link size="small" @click="cancelEdit">取消</el-button>
         </template>
         <template v-else>
-          <span class="track-name">{{ t.label || t.lang }}</span>
+          <span v-if="t.label" class="track-name">{{ t.label }}</span>
           <span class="track-lang">{{ langLabelMap[t.lang] || t.lang }}</span>
           <el-tag v-if="t.isDefault" size="small" type="success" class="tag-def">默认</el-tag>
           <el-button link type="primary" size="small" @click="startEdit(t)">编辑</el-button>
