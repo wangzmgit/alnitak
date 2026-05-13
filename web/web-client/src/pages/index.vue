@@ -240,10 +240,11 @@ onBeforeUnmount(() => {
   display: grid;
   gap: 16px;
   margin-top: 16px;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
 }
 
 .grid-fold {
   grid-template-columns: repeat(5, 1fr);
 }
+
 </style>
