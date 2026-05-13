@@ -1,6 +1,21 @@
 import { getSubtitleListAPI } from '@/api/subtitle';
 import { statusCode } from '@/utils/status-code';
 
+const LANG_CODE_TO_LABEL: Record<string, string> = {
+  'zh-Hans': '简体中文',
+  'zh-Hant': '繁體中文',
+  'en': 'English',
+  'ja': '日本語',
+  'ko': '한국어',
+  'vi': 'Tiếng Việt',
+  'th': 'ภาษาไทย',
+  'ms': 'Bahasa Melayu',
+  'id': 'Bahasa Indonesia',
+  'es': 'Español',
+  'pt': 'Português',
+  'ru': 'Русский',
+};
+
 /** 控制台过滤前缀：[Alnitak:subtitle]，失败用 [Alnitak:subtitle:warn] */
 function subLog(stage: string, payload?: Record<string, unknown>) {
   if (payload && Object.keys(payload).length > 0) {
@@ -166,7 +181,7 @@ export async function hydrateTracksToWPlayerConfig(
       const src = await hydrateSubtitleSrcForTrack(t.url, blobCollector);
       out.push({
         src,
-        label: t.label || t.lang,
+        label: t.label || LANG_CODE_TO_LABEL[t.lang] || t.lang,
         srclang: t.lang,
         default: !!t.isDefault,
         kind: 'subtitles',
@@ -191,7 +206,7 @@ export async function hydrateTracksToWPlayerConfig(
 export function tracksToWPlayerConfig(tracks: SubtitleTrackItemType[]): WPlayerSubtitleConfigItem[] {
   return tracks.map((t) => ({
     src: resolveSubtitleSrc(t.url),
-    label: t.label || t.lang,
+    label: t.label || LANG_CODE_TO_LABEL[t.lang] || t.lang,
     srclang: t.lang,
     default: !!t.isDefault,
     kind: 'subtitles',

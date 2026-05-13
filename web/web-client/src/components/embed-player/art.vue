@@ -43,13 +43,12 @@ let embedSubtitleRevoke: (() => void) | null = null;
 /** CC/字幕底线栏快捷键：是否与上次保持一致 */
 const ARTPLAYER_CC_LS = 'artplayer-cc-visible';
 
-/** 字幕叠加层字号/字重（与站内 ::cue 接近；Artplayer 写入 $subtitle 行内样式） */
+/** 字幕叠加层字号/字重（Artplayer 写入 $subtitle 行内样式） */
 const EMBED_SUBTITLE_STYLE: Record<string, string> = {
   color: '#fff',
   'font-size': 'clamp(25px, 1.5vw + 17px, 37px)',
   'font-weight': '600',
   'line-height': '1.45',
-  /** 多层 text-shadow 模拟黑色描边，浅色背景下仍清晰 */
   'text-shadow': [
     '-3px 0 0 #000',
     '3px 0 0 #000',
@@ -329,6 +328,48 @@ const initPlayer = async () => {
     }
   }
 
+  function syncGearSubtitleToggle() {
+    if (!player || !embedSubTracks.length) return;
+    const idx = pickSubtitleTrackIndexByPreference(embedSubTracks);
+    try {
+      player.setting.update({
+        name: 'subtitle-setting',
+        width: 200,
+        html: '字幕',
+        tooltip: embedSubTracks[idx]?.label ?? '',
+        icon:
+          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#2196f3" width="20" height="20">' +
+          WPLAYER_SUB_SVG_OFF +
+          '</svg>',
+        selector: [
+          {
+            html: '显示',
+            tooltip: subtitleBarToggle.visible ? '隐藏' : '显示',
+            switch: subtitleBarToggle.visible,
+          },
+          ...embedSubTracks.map((st, i) => ({
+            html: st.label,
+            url: st.url,
+            default: i === idx,
+          })),
+        ],
+        onSelect(item: { html?: string; url?: string }) {
+          if (item.url && player) {
+            player.subtitle.switch(item.url, { name: item.html ?? '' });
+            const st = embedSubTracks.find((t) => t.url === item.url);
+            writeStoredSubtitlePreference({
+              label: ((item.html || st?.label) ?? '').trim(),
+              lang: (st?.srclang ?? '').trim(),
+            });
+          }
+          return item.html ?? '';
+        },
+      });
+    } catch {
+      /* setting.update may not be available */
+    }
+  }
+
   const subtitleQuickControl =
     embedSubTracks.length > 0
       ? {
@@ -345,24 +386,17 @@ const initPlayer = async () => {
             localStorage.setItem(ARTPLAYER_CC_LS, subtitleBarToggle.visible ? '1' : '0');
             if (next) applyPreferredEmbedSubtitleWhenShowing();
             syncSubtitleQuickControl();
+            syncGearSubtitleToggle();
           },
         }
       : null;
 
-  let artSubtitleCfg:
-    | { url: string; type: 'vtt'; name: string; style: Record<string, string> }
-    | undefined;
   let artSubtitleMenu: Record<string, unknown> | undefined;
   if (embedSubTracks.length) {
     const prefIdx = pickSubtitleTrackIndexByPreference(embedSubTracks);
     const active = embedSubTracks[prefIdx]!;
-    artSubtitleCfg = {
-      url: active.url,
-      type: 'vtt',
-      name: active.label,
-      style: EMBED_SUBTITLE_STYLE,
-    };
     artSubtitleMenu = {
+      name: 'subtitle-setting',
       width: 200,
       html: '字幕',
       tooltip: active.label,
@@ -374,7 +408,7 @@ const initPlayer = async () => {
         {
           html: '显示',
           tooltip: subtitleBarToggle.visible ? '隐藏' : '显示',
-          switch: true,
+          switch: subtitleBarToggle.visible,
           onSwitch(item: { tooltip?: string; switch: boolean }) {
             if (!player) return item.switch;
             item.tooltip = item.switch ? '隐藏' : '显示';
@@ -435,10 +469,8 @@ const initPlayer = async () => {
 
     subtitleOffset: false,
 
-    ...(artSubtitleCfg
-      ? {
-          subtitle: artSubtitleCfg,
-        }
+    ...(embedSubTracks.length
+      ? { subtitle: { style: EMBED_SUBTITLE_STYLE } }
       : {}),
 
     theme: '#2196f3',
