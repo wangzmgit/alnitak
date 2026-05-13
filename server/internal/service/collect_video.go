@@ -13,7 +13,10 @@ import (
 )
 
 func Collect(ctx *gin.Context, addCollectReq dto.AddCollectReq) error {
-	videoId := addCollectReq.Vid
+	videoId, err := ParseVideoID(addCollectReq.Vid)
+	if err != nil {
+		return errors.New("视频不存在")
+	}
 	video := GetVideoInfo(videoId)
 	if video.ID == 0 {
 		return errors.New("视频不存在")

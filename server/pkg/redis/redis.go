@@ -56,6 +56,17 @@ func (r *Redis) Incr(key string) {
 	}
 }
 
+// SetNX 原子性地"仅当 key 不存在时设置并带过期时间"，返回 true 表示成功占位，常用于限流/防刷。
+// 底层 Redis 错误时返回 false，宁可放行也不误伤用户。
+func (r *Redis) SetNX(key string, value interface{}, expiration time.Duration) bool {
+	ok, err := r.redisClient.SetNX(r.ctx, key, value, expiration).Result()
+	if err != nil {
+		zap.L().Error("Redis SetNX 操作失败", zap.String("key", key), zap.Error(err))
+		return false
+	}
+	return ok
+}
+
 func (r *Redis) Keys(key string) []string {
 	val, err := r.redisClient.Keys(r.ctx, key).Result()
 	if err != nil {

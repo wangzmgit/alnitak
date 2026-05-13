@@ -23,6 +23,9 @@ node_modules
 *.jks
 *.bak
 
+# Uploaded user content
+server/upload/subtitle/
+
 # Server runtime data and temp files
 server/data/
 server/**/.minio.sys/

@@ -20,6 +20,7 @@ import (
 func main() {
 	env := flag.String("env", "prod", "dev/prod")
 	clearCache := flag.Bool("clear-cache", false, "是否清空所有Redis缓存")
+	migrateDanmaku := flag.Bool("migrate-danmaku", false, "迁移弹幕和历史记录的resource_short_id")
 	// 保留 -api 仅兼容旧命令行；API 与 Casbin 规则已在 InitDefaultData→SyncApiData 中每次启动自动同步
 	_ = flag.Bool("api", false, "兼容旧参数（无额外效果）")
 	flag.Parse()
@@ -51,6 +52,13 @@ func main() {
 	if *clearCache {
 		global.Redis.FlushDB()
 		zap.L().Info("已清空所有Redis缓存", zap.String("module", "cache"))
+	}
+
+	// 如果指定了migrate-danmaku参数，执行弹幕和历史记录的resource_short_id迁移
+	if *migrateDanmaku {
+		zap.L().Info("开始迁移弹幕和历史记录的resource_short_id...", zap.String("module", "migrate"))
+		service.MigrateAllDanmakuAndHistoryResourceShortID()
+		zap.L().Info("迁移完成", zap.String("module", "migrate"))
 	}
 
 	initialize.InitCacheData()

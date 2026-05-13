@@ -158,10 +158,8 @@ func DeleteArticle(ctx *gin.Context, id uint) error {
 		return errors.New("内容不存在")
 	}
 
-	// 删除关联的评论
-	if err := global.Mysql.Where("cid = ? and type = 1", id).Delete(&model.Comment{}).Error; err != nil {
-		utils.ErrorLog("删除文章关联评论失败", "article", err.Error())
-	}
+	// 删除关联的评论及级联点赞/点赞消息/回复消息
+	CleanupContentComments(id, global.CONTENT_TYPE_ARTICLE)
 
 	// 删除关联的收藏记录
 	if err := global.Mysql.Where("aid = ?", id).Delete(&model.CollectArticle{}).Error; err != nil {
@@ -171,6 +169,11 @@ func DeleteArticle(ctx *gin.Context, id uint) error {
 	// 删除关联的点赞记录
 	if err := global.Mysql.Where("aid = ?", id).Delete(&model.LikeArticle{}).Error; err != nil {
 		utils.ErrorLog("删除文章关联点赞记录失败", "article", err.Error())
+	}
+
+	// 删除关联的@消息
+	if err := global.Mysql.Where("cid = ? AND `type` = ?", id, global.CONTENT_TYPE_ARTICLE).Delete(&model.AtMessage{}).Error; err != nil {
+		utils.ErrorLog("删除文章关联AT消息失败", "article", err.Error())
 	}
 
 	if err := global.Mysql.Where("id = ?", id).Delete(&model.Article{}).Error; err != nil {
@@ -185,9 +188,19 @@ func DeleteArticle(ctx *gin.Context, id uint) error {
 }
 
 // 获取所有的文章列表
-func GetAllArticleList(ctx *gin.Context) (articles []vo.AllArticleResp) {
+func GetAllArticleList(ctx *gin.Context, page, pageSize int) (total int64, articles []vo.AllArticleResp) {
 	userId := ctx.GetUint("userId")
-	global.Mysql.Model(&model.Article{}).Select("`id`,`title`").Where("uid = ?", userId).Scan(&articles)
+	global.Mysql.Model(&model.Article{}).Where("uid = ?", userId).Count(&total)
+	global.Mysql.Model(&model.Article{}).Select("`id`,`short_id`,`title`").
+		Where("uid = ?", userId).
+		Order("created_at DESC").
+		Limit(pageSize).Offset((page - 1) * pageSize).Scan(&articles)
+
+	for i := range articles {
+		if articles[i].ShortID == "" {
+			articles[i].ShortID = utils.UintToString(articles[i].ID)
+		}
+	}
 
 	return
 }
@@ -288,10 +301,8 @@ func GetArticleListManage(articleListReq dto.ArticleListReq) (total int64, artic
 
 // 删除文章(后台管理)
 func DeleteArticleManage(ctx *gin.Context, id uint) error {
-	// 删除关联的评论
-	if err := global.Mysql.Where("cid = ? and type = 1", id).Delete(&model.Comment{}).Error; err != nil {
-		utils.ErrorLog("删除文章关联评论失败", "article", err.Error())
-	}
+	// 删除关联的评论及级联点赞/点赞消息/回复消息
+	CleanupContentComments(id, global.CONTENT_TYPE_ARTICLE)
 
 	// 删除关联的收藏记录
 	if err := global.Mysql.Where("aid = ?", id).Delete(&model.CollectArticle{}).Error; err != nil {
@@ -301,6 +312,11 @@ func DeleteArticleManage(ctx *gin.Context, id uint) error {
 	// 删除关联的点赞记录
 	if err := global.Mysql.Where("aid = ?", id).Delete(&model.LikeArticle{}).Error; err != nil {
 		utils.ErrorLog("删除文章关联点赞记录失败", "article", err.Error())
+	}
+
+	// 删除关联的@消息
+	if err := global.Mysql.Where("cid = ? AND `type` = ?", id, global.CONTENT_TYPE_ARTICLE).Delete(&model.AtMessage{}).Error; err != nil {
+		utils.ErrorLog("删除文章关联AT消息失败", "article", err.Error())
 	}
 
 	if err := global.Mysql.Where("id = ?", id).Delete(&model.Article{}).Error; err != nil {

@@ -7,11 +7,13 @@ const (
 )
 
 type DanmakuResp struct {
-    ID        uint      `json:"id"`
-    Uid       uint      `json:"uid"`
-    Time      float32   `json:"time"`
-    Type      int       `json:"type"`
-    Color     string    `json:"color"`
-    Text      string    `json:"text"`
-    CreatedAt time.Time `json:"createdAt"` 
+    ID               uint      `json:"id"`
+    Uid              uint      `json:"uid"`
+    Time             float32   `json:"time"`
+    Type             int       `json:"type"`
+    Color            string    `json:"color"`
+    Text             string    `json:"text"`
+    Part             uint      `json:"part"`
+    ResourceShortID  string    `json:"resourceShortId"`
+    CreatedAt        time.Time `json:"createdAt"` 
 }

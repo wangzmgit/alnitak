@@ -10,7 +10,7 @@ const (
 )
 
 type VideoResp struct {
-	ID           uint           `json:"vid"`
+	ID           uint           `json:"vid,omitempty"`
 	ShortID      string         `json:"shortId"`
 	Uid          uint           `json:"uid"`
 	Title        string         `json:"title"`
@@ -59,7 +59,7 @@ type UploadVideoResp struct {
 }
 
 type AllVideoResp struct {
-	ID      uint   `json:"vid"`
+	ID      uint   `json:"-"`
 	ShortID string `json:"shortId"`
 	Title   string `json:"title"`
 	Cover   string `json:"cover"`

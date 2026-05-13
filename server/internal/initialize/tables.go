@@ -27,6 +27,8 @@ func InitTables() {
 	global.Mysql.AutoMigrate(&model.VideoIndexFile{}) // 视频播放索引文件表
 	global.Mysql.AutoMigrate(&model.Review{})         // 视频审核表
 	global.Mysql.AutoMigrate(&model.Comment{})        // 评论回复表
+	global.Mysql.AutoMigrate(&model.CommentLike{})   // 评论点赞表
+	global.Mysql.AutoMigrate(&model.CommentDislike{}) // 评论点踩表
 	global.Mysql.AutoMigrate(&model.LikeVideo{})      // 视频点赞表
 	global.Mysql.AutoMigrate(&model.LikeArticle{})    // 文章点赞表
 	global.Mysql.AutoMigrate(&model.CollectVideo{})   // 视频收藏表
@@ -49,6 +51,12 @@ func InitTables() {
 	global.Mysql.AutoMigrate(&model.PGCMedia{})       // PGC媒体表（media层）
 	global.Mysql.AutoMigrate(&model.PGCContent{})     // PGC内容表
 	global.Mysql.AutoMigrate(&model.PGCEpisode{})     // PGC剧集表
+	global.Mysql.AutoMigrate(&model.SubtitleTrack{})  // 分P字幕轨
+	// 认证相关表
+	global.Mysql.AutoMigrate(&model.AuthType{})      // 认证类型配置表
+	global.Mysql.AutoMigrate(&model.UserAuth{})       // 用户认证记录表
+	// 初始化默认认证类型
+	service.InitDefaultAuthTypes()
 
 	// 历史数据补齐：为旧的 season 记录回填 media_id
 	backfillPGCMedia()

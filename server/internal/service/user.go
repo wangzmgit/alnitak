@@ -403,12 +403,15 @@ func DeleteUser(ctx *gin.Context, id uint) error {
 		// 删除视频的所有关联资源
 		global.Mysql.Where("vid = ?", video.ID).Delete(&model.Resource{})
 		global.Mysql.Where("vid = ?", video.ID).Delete(&model.VideoIndexFile{})
-		global.Mysql.Where("cid = ? and type = 0", video.ID).Delete(&model.Comment{})
-		global.Mysql.Where("vid = ?", video.ID).Delete(&model.Danmaku{})
+		// 评论级联（含 comment_like / msg_like type=3 / msg_like type=0 / msg_reply）
+		CleanupContentComments(video.ID, global.CONTENT_TYPE_VIDEO)
+		if video.ShortID != "" {
+			global.Mysql.Where("video_short_id = ?", video.ShortID).Delete(&model.Danmaku{})
+		}
 		global.Mysql.Where("vid = ?", video.ID).Delete(&model.CollectVideo{})
 		global.Mysql.Where("vid = ?", video.ID).Delete(&model.LikeVideo{})
 		global.Mysql.Where("vid = ?", video.ID).Delete(&model.History{})
-		global.Mysql.Where("vid = ?", video.ID).Delete(&model.AtMessage{})
+		global.Mysql.Where("cid = ? and `type` = ?", video.ID, global.CONTENT_TYPE_VIDEO).Delete(&model.AtMessage{})
 		// 删除视频本身
 		global.Mysql.Where("id = ?", video.ID).Delete(&model.Video{})
 	}
@@ -417,7 +420,9 @@ func DeleteUser(ctx *gin.Context, id uint) error {
 	var articles []model.Article
 	global.Mysql.Where("uid = ?", id).Find(&articles)
 	for _, article := range articles {
-		global.Mysql.Where("cid = ? and type = 1", article.ID).Delete(&model.Comment{})
+		// 评论级联清理
+		CleanupContentComments(article.ID, global.CONTENT_TYPE_ARTICLE)
+		global.Mysql.Where("cid = ? and `type` = ?", article.ID, global.CONTENT_TYPE_ARTICLE).Delete(&model.AtMessage{})
 		global.Mysql.Where("aid = ?", article.ID).Delete(&model.CollectArticle{})
 		global.Mysql.Where("aid = ?", article.ID).Delete(&model.LikeArticle{})
 		// 删除文章本身
@@ -506,10 +511,6 @@ func GetUserBaseInfo(userId uint) (user vo.UserInfoResp) {
 		// 存到redis
 		cache.SetUserInfo(user)
 	}
-
-	// 过滤掉敏感信息
-	user.Email = ""
-	user.Phone = ""
 
 	// 查询粉丝数量（实时查询，不缓存）
 	global.Mysql.Model(&model.Relation{}).

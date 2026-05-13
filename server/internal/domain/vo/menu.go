@@ -1,6 +1,8 @@
 package vo
 
 import (
+	"sort"
+
 	"interastral-peace.com/alnitak/internal/domain/model"
 )
 
@@ -39,6 +41,9 @@ func MenuListToMenuTree(menus []model.Menu, parentId uint) []MenuResp {
 			res = append(res, newMenus)
 		}
 	}
+	sort.Slice(res, func(i, j int) bool {
+		return res[i].Sort < res[j].Sort
+	})
 	return res
 }
 

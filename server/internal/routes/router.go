@@ -84,8 +84,8 @@ func CollectRoutes(r *gin.Engine) *gin.Engine {
 		clientGroup := v1.Group("client")
 		clientGroup.Use(middleware.Auth())
 		clientGroup.POST("log", api.ClientLog)
-		// 登录注册相关路由路由
-		CollectAuthRoutes(v1)
+		// 用户认证相关路由
+		CollectUserAuthRoutes(v1)
 		// 用户相关路由
 		CollectUserRoutes(v1)
 		// 验证相关路由
@@ -137,6 +137,7 @@ func CollectRoutes(r *gin.Engine) *gin.Engine {
 
 	// 获取静态文件
 	r.GET("/api/image/:file", api.GetImgFile)
+	r.GET("/api/subtitle/:file", middleware.OptionalAuth(), api.GetSubtitleFile)
 	// 后台静态页（如 PGC 管理）
 	r.Static("/admin", "./static/admin")
 

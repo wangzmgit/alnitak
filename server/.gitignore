@@ -9,5 +9,9 @@
 !/upload/video/.gitkeep
 !/upload/image/.gitkeep
 
+# Compiled binaries
+*.exe
+
 # Local AI assistant config (do not commit)
 .claude/
+CLAUDE.md

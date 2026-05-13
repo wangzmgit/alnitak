@@ -332,12 +332,18 @@ func GetPlaylistVideoList(ctx *gin.Context, playlistID uint, page, pageSize int)
 	global.Mysql.Model(&model.PlaylistVideo{}).Where("playlist_id = ?", playlistID).Count(&total)
 
 	global.Mysql.Table("playlist_video").
-		Select("video.id as vid, video.title, video.cover, video.duration, video.clicks, video.desc, video.created_at").
+		Select("video.id as vid, video.short_id, video.title, video.cover, video.duration, video.clicks, video.desc, video.created_at").
 		Joins("LEFT JOIN video ON playlist_video.vid = video.id").
 		Where("playlist_video.playlist_id = ? AND playlist_video.deleted_at IS NULL AND video.deleted_at IS NULL", playlistID).
 		Order("playlist_video.sort ASC").
 		Limit(pageSize).Offset((page - 1) * pageSize).
 		Scan(&list)
+
+	for i := range list {
+		if list[i].ShortID == "" {
+			list[i].ShortID = utils.UintToString(list[i].Vid)
+		}
+	}
 
 	return
 }
@@ -423,11 +429,11 @@ func GetPlaylistVideoListWithParts(ctx *gin.Context, videoId uint) gin.H {
 		// 没有合集，返回当前视频的分P列表
 		resources := GetVideoResources(videoId)
 		currentParts := make([]gin.H, 0)
-		for _, r := range resources {
+		for i, r := range resources {
 			currentParts = append(currentParts, gin.H{
-				"ID":       r.ID,
-				"Title":    r.Title,
-				"Duration": r.Duration,
+				"p":        i + 1,
+				"title":    r.Title,
+				"duration": r.Duration,
 			})
 		}
 		return gin.H{
@@ -448,7 +454,7 @@ func GetPlaylistVideoListWithParts(ctx *gin.Context, videoId uint) gin.H {
 	// 3. 获取合集视频列表
 	_, rawVideos := GetPlaylistVideoList(ctx, first.ID, 1, 200)
 
-	// 4. 展开多分P视频
+// 4. 展开多分P视频
 	videos := make([]gin.H, 0)
 	for _, v := range rawVideos {
 		// 获取该视频的资源列表
@@ -456,41 +462,47 @@ func GetPlaylistVideoListWithParts(ctx *gin.Context, videoId uint) gin.H {
 
 		if len(resources) > 1 {
 			// 多分P，展开为多项
-			for _, r := range resources {
+			for i, r := range resources {
 				videos = append(videos, gin.H{
-					"vid":        v.Vid,
-					"title":      v.Title,
-					"cover":      v.Cover,
-					"duration":   r.Duration,
-					"clicks":     v.Clicks,
-					"desc":       v.Desc,
-					"resourceId": r.ID,
-					"partTitle":  r.Title,
+					"vid":         v.Vid,
+					"shortId":     v.ShortID,
+					"resourceRid": r.ShortID, // 资源的 shortId，用于精确匹配分P
+					"title":       v.Title,
+					"cover":       v.Cover,
+					"duration":    r.Duration,
+					"clicks":      v.Clicks,
+					"desc":        v.Desc,
+					"p":           i + 1,
+					"partTitle":   r.Title,
 				})
 			}
 		} else if len(resources) == 1 {
 			// 单分P
 			videos = append(videos, gin.H{
-				"vid":        v.Vid,
-				"title":      v.Title,
-				"cover":      v.Cover,
-				"duration":   resources[0].Duration,
-				"clicks":     v.Clicks,
-				"desc":       v.Desc,
-				"resourceId": resources[0].ID,
-				"partTitle":  nil,
+				"vid":         v.Vid,
+				"shortId":     v.ShortID,
+				"resourceRid": resources[0].ShortID, // 资源的 shortId
+				"title":       v.Title,
+				"cover":       v.Cover,
+				"duration":    resources[0].Duration,
+				"clicks":      v.Clicks,
+				"desc":        v.Desc,
+				"p":           1,
+				"partTitle":   nil,
 			})
 		} else {
 			// 无资源
 			videos = append(videos, gin.H{
-				"vid":        v.Vid,
-				"title":      v.Title,
-				"cover":      v.Cover,
-				"duration":   0,
-				"clicks":     v.Clicks,
-				"desc":       v.Desc,
-				"resourceId": nil,
-				"partTitle":  nil,
+				"vid":         v.Vid,
+				"shortId":     v.ShortID,
+				"resourceRid": nil,
+				"title":       v.Title,
+				"cover":       v.Cover,
+				"duration":    0,
+				"clicks":      v.Clicks,
+				"desc":        v.Desc,
+				"p":           nil,
+				"partTitle":   nil,
 			})
 		}
 	}
@@ -498,11 +510,11 @@ func GetPlaylistVideoListWithParts(ctx *gin.Context, videoId uint) gin.H {
 	// 5. 获取当前视频的分P列表
 	currentParts := make([]gin.H, 0)
 	currentResources := GetVideoResources(videoId)
-	for _, r := range currentResources {
+	for i, r := range currentResources {
 		currentParts = append(currentParts, gin.H{
-			"resourceId": r.ID,
-			"title":      r.Title,
-			"duration":   r.Duration,
+			"p":        i + 1,
+			"title":    r.Title,
+			"duration": r.Duration,
 		})
 	}
 

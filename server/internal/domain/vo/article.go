@@ -63,6 +63,7 @@ type ReviewArticleListResp struct {
 }
 
 type AllArticleResp struct {
-	ID    uint   `json:"aid"`
-	Title string `json:"title"`
+	ID      uint   `json:"aid"`
+	ShortID string `json:"shortId"`
+	Title   string `json:"title"`
 }

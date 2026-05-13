@@ -94,6 +94,28 @@ func ParseVideoID(raw string) (uint, error) {
 	return video.ID, nil
 }
 
+// ParseResourceID 兼容对外 shortId（随机不透明串）与数字自增 id。
+func ParseResourceID(raw string) (uint, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return 0, errors.New("资源ID不能为空")
+	}
+
+	if utils.IsAllASCIIDigits(raw) {
+		id := utils.StringToUint(raw)
+		if id == 0 {
+			return 0, errors.New("资源不存在")
+		}
+		return id, nil
+	}
+
+	var resource model.Resource
+	if err := global.Mysql.Where("short_id = ?", raw).First(&resource).Error; err != nil || resource.ID == 0 {
+		return 0, errors.New("资源不存在")
+	}
+	return resource.ID, nil
+}
+
 func GetVideoStatus(ctx *gin.Context, vid uint) (video vo.VideoStatusResp, err error) {
 	userId := ctx.GetUint("userId")
 	global.Mysql.Model(&model.Video{}).Select(vo.VIDEO_STATUS_FIELD).Where("id = ? and uid = ?", vid, userId).Scan(&video)
@@ -819,6 +841,13 @@ func GetUploadVideoList(ctx *gin.Context, page, pageSize int, category string) (
 		Offset((page - 1) * pageSize).
 		Scan(&videos)
 
+	// 确保 shortId 有值
+	for i := range videos {
+		if videos[i].ShortID == "" {
+			videos[i].ShortID = utils.UintToString(videos[i].ID)
+		}
+	}
+
 	// 更新播放量数据并收集需要返回转码进度的视频
 	transcodingVideoIDs := make([]uint, 0)
 	for i := 0; i < len(videos); i++ {
@@ -1019,14 +1048,14 @@ func deleteVideoAndRelatedData(id, ownerUid uint, video *model.Video) error {
 		utils.ErrorLog("删除视频关联资源失败", "video", err.Error())
 	}
 
-	// 删除关联的评论
-	if err := global.Mysql.Where("cid = ? and type = 0", id).Delete(&model.Comment{}).Error; err != nil {
-		utils.ErrorLog("删除视频关联评论失败", "video", err.Error())
-	}
+	// 删除关联的评论及级联点赞/点赞消息/回复消息
+	CleanupContentComments(id, global.CONTENT_TYPE_VIDEO)
 
 	// 删除关联的弹幕
-	if err := global.Mysql.Where("vid = ?", id).Delete(&model.Danmaku{}).Error; err != nil {
-		utils.ErrorLog("删除视频关联弹幕失败", "video", err.Error())
+	if video.ShortID != "" {
+		if err := global.Mysql.Where("video_short_id = ?", video.ShortID).Delete(&model.Danmaku{}).Error; err != nil {
+			utils.ErrorLog("删除视频关联弹幕失败", "video", err.Error())
+		}
 	}
 
 	// 删除关联的收藏记录
@@ -1123,9 +1152,19 @@ func GetVideoById(ctx *gin.Context, videoId uint) (vo.VideoResp, error) {
 }
 
 // 获取所有的视频列表
-func GetAllVideoList(ctx *gin.Context) (videos []vo.AllVideoResp) {
+func GetAllVideoList(ctx *gin.Context, page, pageSize int) (total int64, videos []vo.AllVideoResp) {
 	userId := ctx.GetUint("userId")
-	global.Mysql.Model(&model.Video{}).Select("`id`,`title`,`cover`").Where("uid = ?", userId).Scan(&videos)
+	global.Mysql.Model(&model.Video{}).Where("uid = ?", userId).Count(&total)
+	global.Mysql.Model(&model.Video{}).Select("`id`,`title`,`cover`,`short_id`").
+		Where("uid = ?", userId).
+		Order("created_at DESC").
+		Limit(pageSize).Offset((page - 1) * pageSize).Scan(&videos)
+
+	for i := range videos {
+		if videos[i].ShortID == "" {
+			videos[i].ShortID = utils.UintToString(videos[i].ID)
+		}
+	}
 
 	return
 }
@@ -1147,10 +1186,11 @@ func GetVideoByUser(ctx *gin.Context, userId uint, page, pageSize int) (total in
 	return
 }
 
-// 获取视频列表(后台管理)
+// 获取视频列表(后台管理) - 仅展示 UGC 内容，PGC 内容由独立管理入口管理
 func GetVideoListManage(videoListReq dto.VideoListReq) (total int64, videos []vo.VideoInfoManageResp) {
-	global.Mysql.Model(&model.Video{}).Where("status = ?", global.AUDIT_APPROVED).Count(&total)
-	global.Mysql.Model(&model.Video{}).Where("status = ?", global.AUDIT_APPROVED).
+	baseWhere := "status = ? AND pgc_attached = ?"
+	global.Mysql.Model(&model.Video{}).Where(baseWhere, global.AUDIT_APPROVED, false).Count(&total)
+	global.Mysql.Model(&model.Video{}).Where(baseWhere, global.AUDIT_APPROVED, false).
 		Order("created_at DESC").
 		Limit(videoListReq.PageSize).Offset((videoListReq.Page - 1) * videoListReq.PageSize).Scan(&videos)
 
@@ -1166,8 +1206,9 @@ func GetVideoListManage(videoListReq dto.VideoListReq) (total int64, videos []vo
 
 // 获取处理失败的视频列表（后台管理）
 func GetFailedVideoList(videoListReq dto.VideoListReq) (total int64, videos []vo.VideoInfoManageResp) {
-	global.Mysql.Model(&model.Video{}).Where("status = ?", global.PROCESSING_FAIL).Count(&total)
-	global.Mysql.Model(&model.Video{}).Where("status = ?", global.PROCESSING_FAIL).
+	baseWhere := "status = ? AND pgc_attached = ?"
+	global.Mysql.Model(&model.Video{}).Where(baseWhere, global.PROCESSING_FAIL, false).Count(&total)
+	global.Mysql.Model(&model.Video{}).Where(baseWhere, global.PROCESSING_FAIL, false).
 		Order("created_at DESC").
 		Limit(videoListReq.PageSize).Offset((videoListReq.Page - 1) * videoListReq.PageSize).Scan(&videos)
 
@@ -1183,8 +1224,8 @@ func GetFailedVideoList(videoListReq dto.VideoListReq) (total int64, videos []vo
 // 获取处理中视频列表（后台管理）
 func GetProcessingVideoList(videoListReq dto.VideoListReq) (total int64, videos []vo.VideoInfoManageResp) {
 	processingStatuses := []int{global.CREATED_VIDEO, global.VIDEO_PROCESSING, global.SUBMIT_REVIEW}
-	global.Mysql.Model(&model.Video{}).Where("status IN ?", processingStatuses).Count(&total)
-	global.Mysql.Model(&model.Video{}).Where("status IN ?", processingStatuses).
+	global.Mysql.Model(&model.Video{}).Where("status IN ? AND pgc_attached = ?", processingStatuses, false).Count(&total)
+	global.Mysql.Model(&model.Video{}).Where("status IN ? AND pgc_attached = ?", processingStatuses, false).
 		Order("created_at DESC").
 		Limit(videoListReq.PageSize).Offset((videoListReq.Page - 1) * videoListReq.PageSize).Scan(&videos)
 
@@ -1517,19 +1558,17 @@ func ReTranscodeVideo(ctx *gin.Context, videoId uint) error {
 	for _, rf := range rfInfos {
 		dirsToClean[rf.vf.DirName] = true
 	}
-	// 收集旧目录、删除旧 VideoIndexFile 和软删除旧资源（Unscoped 确保能找到已软删除的记录）
+	// 收集旧目录、删除旧 VideoIndexFile 与旧资源（Unscoped 确保能找到已软删除的记录）
+	// 注意：这里必须硬删除旧 resource。用户侧数据（弹幕/历史/收藏/点赞）全部通过 short_id 或 vid 关联，
+	// 新资源复用原 ShortID 即可保住绑定；按 resource.id 关联的 video_index_file / video_file_ref 本就由转码重建。
+	// 如果软删除，旧行仍占用 UNIQUE(short_id) 索引，新资源 Create 时会报 Duplicate entry (Error 1062)。
 	for _, resource := range resources {
 		var indexFile model.VideoIndexFile
 		if err := global.Mysql.Unscoped().Where("resource_id = ?", resource.ID).First(&indexFile).Error; err == nil && indexFile.DirName != "" {
 			dirsToClean[indexFile.DirName] = true
 		}
 		global.Mysql.Unscoped().Where("resource_id = ?", resource.ID).Delete(&model.VideoIndexFile{})
-		if resource.DeletedAt.Valid {
-			// 已经软删除过的，硬删除避免持续累积垃圾记录
-			global.Mysql.Unscoped().Delete(&resource)
-		} else {
-			global.Mysql.Delete(&resource)
-		}
+		global.Mysql.Unscoped().Delete(&resource)
 	}
 
 	// 清理旧转码文件
@@ -1562,11 +1601,10 @@ func ReTranscodeVideo(ctx *gin.Context, videoId uint) error {
 				continue
 			}
 
-			// 创建新的资源记录
-			rSid, errSid := AllocateUniqueResourceShortID()
-			if errSid != nil {
-				utils.ErrorLog("分配分P shortId 失败", "video", errSid.Error())
-				continue
+			// 复用原资源的 ShortID，确保历史记录/弹幕等绑定到 shortId 的数据不受影响
+			shortID := rf.resource.ShortID
+			if shortID == "" {
+				shortID, _ = AllocateUniqueResourceShortID()
 			}
 			newResource := model.Resource{
 				Vid:       videoId,
@@ -1576,7 +1614,7 @@ func ReTranscodeVideo(ctx *gin.Context, videoId uint) error {
 				Status:    global.VIDEO_PROCESSING,
 				Duration:  utils.SecFromFloat(info.Duration),
 				FileID:    rf.vf.ID,
-				ShortID:   rSid,
+				ShortID:   shortID,
 			}
 			if err := global.Mysql.Create(&newResource).Error; err != nil {
 				utils.ErrorLog("创建新资源记录失败", "transcoding", err.Error())

@@ -15,12 +15,10 @@ import (
 
 const refreshCookieName = "refresh_token"
 
-// 设置 refresh_token 的 HttpOnly Cookie（阶段 B：strict SSR 的基础）
+// 设置 refresh_token 的 HttpOnly Cookie
 func setRefreshCookie(ctx *gin.Context, refreshToken string) {
-	// 兼容开发环境：本地 HTTP 不强制 Secure，线上 HTTPS 自动 Secure
 	secure := ctx.Request.TLS != nil
 	ctx.SetSameSite(http.SameSiteLaxMode)
-	// 7 天（需与后端 refresh token 过期策略保持一致）
 	maxAge := 7 * 24 * 60 * 60
 	ctx.SetCookie(refreshCookieName, refreshToken, maxAge, "/", "", secure, true)
 }
@@ -33,14 +31,12 @@ func clearRefreshCookie(ctx *gin.Context) {
 
 // 注册
 func Register(ctx *gin.Context) {
-	// 获取参数
 	var registerReq dto.RegisterReq
 	if err := ctx.Bind(&registerReq); err != nil {
 		resp.FailWithMessage(ctx, "请求参数有误")
 		return
 	}
 
-	// 参数校验
 	if !utils.VerifyEmail(registerReq.Email) {
 		resp.FailWithMessage(ctx, "邮箱格式错误")
 		return
@@ -61,34 +57,7 @@ func Register(ctx *gin.Context) {
 		return
 	}
 
-	// 返回
 	resp.Ok(ctx)
-}
-
-// checkCaptchaAndLimit 统一处理人机验证和登录尝试次数限制
-// 返回 true 表示需要人机验证（已写响应），调用方应直接 return
-func checkCaptchaAndLimit(ctx *gin.Context, email, captchaId string) bool {
-	// 如果人机验证通过，删除登录尝试次数
-	if captchaId != "" {
-		if cache.GetCaptchaStatus(captchaId) == global.CAPTCHA_STATUS_PASS {
-			cache.DelLoginTryCount(email)
-			cache.DelCaptchaStatus(captchaId)
-		}
-	}
-
-	// 读取登录尝试次数，超过3次进行滑块验证
-	if cache.GetLoginTryCount(email) >= 3 {
-		newCaptchaId := cache.CreateCaptchaStatus()
-		resp.Result(ctx, -1, gin.H{"captchaId": newCaptchaId}, "需要人机验证")
-		return true
-	}
-	return false
-}
-
-// sendLoginResponse 统一写登录成功响应（设 Cookie + 返回 token）
-func sendLoginResponse(ctx *gin.Context, accessToken, refreshToken string, userId uint) {
-	setRefreshCookie(ctx, refreshToken)
-	resp.OkWithData(ctx, gin.H{"token": accessToken, "refreshToken": refreshToken, "userId": userId})
 }
 
 // 登录
@@ -109,7 +78,17 @@ func Login(ctx *gin.Context) {
 		return
 	}
 
-	if checkCaptchaAndLimit(ctx, loginReq.Email, loginReq.CaptchaId) {
+	if utils.VerifyStringLength(loginReq.CaptchaId, ">", 0) {
+		if cache.GetCaptchaStatus(loginReq.CaptchaId) == global.CAPTCHA_STATUS_PASS {
+			cache.DelLoginTryCount(loginReq.Email)
+			cache.DelCaptchaStatus(loginReq.CaptchaId)
+		}
+	}
+
+	loginTryCount := cache.GetLoginTryCount(loginReq.Email)
+	if loginTryCount >= 3 {
+		captchaId := cache.CreateCaptchaStatus()
+		resp.Result(ctx, -1, gin.H{"captchaId": captchaId}, "需要人机验证")
 		return
 	}
 
@@ -119,7 +98,8 @@ func Login(ctx *gin.Context) {
 		return
 	}
 
-	sendLoginResponse(ctx, accessToken, refreshToken, userId)
+	setRefreshCookie(ctx, refreshToken)
+	resp.OkWithData(ctx, gin.H{"token": accessToken, "refreshToken": refreshToken, "userId": userId})
 }
 
 // 邮箱登录
@@ -135,7 +115,17 @@ func EmailLogin(ctx *gin.Context) {
 		return
 	}
 
-	if checkCaptchaAndLimit(ctx, loginReq.Email, loginReq.CaptchaId) {
+	if utils.VerifyStringLength(loginReq.CaptchaId, ">", 0) {
+		if cache.GetCaptchaStatus(loginReq.CaptchaId) == global.CAPTCHA_STATUS_PASS {
+			cache.DelLoginTryCount(loginReq.Email)
+			cache.DelCaptchaStatus(loginReq.CaptchaId)
+		}
+	}
+
+	loginTryCount := cache.GetLoginTryCount(loginReq.Email)
+	if loginTryCount >= 3 {
+		captchaId := cache.CreateCaptchaStatus()
+		resp.Result(ctx, -1, gin.H{"captchaId": captchaId}, "需要人机验证")
 		return
 	}
 
@@ -145,13 +135,13 @@ func EmailLogin(ctx *gin.Context) {
 		return
 	}
 
-	sendLoginResponse(ctx, accessToken, refreshToken, userId)
+	setRefreshCookie(ctx, refreshToken)
+	resp.OkWithData(ctx, gin.H{"token": accessToken, "refreshToken": refreshToken, "userId": userId})
 }
 
 // 刷新token
 func UpdateToken(ctx *gin.Context) {
 	var tokenReq dto.TokenReq
-	// 兼容：既支持 body.refreshToken（旧前端），也支持从 HttpOnly Cookie 读取（阶段 B）
 	_ = ctx.ShouldBindJSON(&tokenReq)
 	if tokenReq.RefreshToken == "" {
 		if v, err := ctx.Cookie(refreshCookieName); err == nil {
@@ -169,18 +159,15 @@ func UpdateToken(ctx *gin.Context) {
 		return
 	}
 
-	// refreshToken 可能被轮换，写回 cookie
 	if refreshToken != "" {
 		setRefreshCookie(ctx, refreshToken)
 	}
 
-	// 返回给前端
 	resp.OkWithData(ctx, gin.H{"token": accessToken, "refreshToken": refreshToken, "userId": userId})
 }
 
-// 当前会话用户信息（支持 Authorization 或 refresh_token Cookie）
+// 当前会话用户信息
 func Me(ctx *gin.Context) {
-	// 1) 优先使用 Authorization access token（兼容旧模式）
 	if tokenString := ctx.GetHeader("Authorization"); tokenString != "" {
 		token, claims, err := jwt_parse.ParseToken(tokenString)
 		if err == nil && token != nil && token.Valid && claims.TokenType == 0 {
@@ -190,7 +177,6 @@ func Me(ctx *gin.Context) {
 		}
 	}
 
-	// 2) 使用 refresh_token Cookie 做严格校验（阶段 B）
 	rt, err := ctx.Cookie(refreshCookieName)
 	if err != nil || rt == "" {
 		resp.Result(ctx, 2000, nil, "需要登录")
@@ -208,7 +194,6 @@ func Me(ctx *gin.Context) {
 	}
 
 	user := service.GetUserInfo(userId)
-	// 保持兼容：仍返回 token 字段，便于老前端继续工作；阶段 B 前端可忽略
 	resp.OkWithData(ctx, gin.H{"userInfo": user, "token": accessToken, "refreshToken": refreshToken, "userId": userId})
 }
 
@@ -224,21 +209,17 @@ func Logout(ctx *gin.Context) {
 
 	service.Logout(ctx, tokenReq)
 	clearRefreshCookie(ctx)
-
-	// 返回给前端
 	resp.Ok(ctx)
 }
 
 // 重置密码检查
 func ResetPwdCheck(ctx *gin.Context) {
-	// 获取参数
 	var modifyPwdCheckReq dto.ModifyPwdCheckReq
 	if err := ctx.Bind(&modifyPwdCheckReq); err != nil {
 		resp.FailWithMessage(ctx, "请求参数有误")
 		return
 	}
 
-	// 参数校验
 	if !utils.VerifyEmail(modifyPwdCheckReq.Email) {
 		resp.FailWithMessage(ctx, "邮箱格式错误")
 		return
@@ -251,12 +232,12 @@ func ResetPwdCheck(ctx *gin.Context) {
 	}
 
 	switch cache.GetCaptchaStatus(modifyPwdCheckReq.CaptchaId) {
-	case global.CAPTCHA_STATUS_ABSENT: // 如果未进行人机验证
+	case global.CAPTCHA_STATUS_ABSENT:
 		captchaId := cache.CreateCaptchaStatus()
 		resp.Result(ctx, -1, gin.H{"captchaId": captchaId}, "需要人机验证")
 		return
 	case global.CAPTCHA_STATUS_PASS:
-		cache.DelCaptchaStatus(modifyPwdCheckReq.CaptchaId) // 删除人机验证状态
+		cache.DelCaptchaStatus(modifyPwdCheckReq.CaptchaId)
 	}
 
 	if err := service.ResetPwdCheck(ctx, modifyPwdCheckReq.Email); err != nil {
@@ -264,7 +245,6 @@ func ResetPwdCheck(ctx *gin.Context) {
 		return
 	}
 
-	// 返回给前端
 	resp.Ok(ctx)
 }
 
@@ -276,7 +256,6 @@ func ModifyPwd(ctx *gin.Context) {
 		return
 	}
 
-	// 参数校验
 	if !utils.VerifyEmail(modifyPwdReq.Email) {
 		resp.FailWithMessage(ctx, "邮箱格式错误")
 		return
@@ -297,6 +276,235 @@ func ModifyPwd(ctx *gin.Context) {
 		return
 	}
 
-	// 返回给前端
 	resp.Ok(ctx)
+}
+
+// ========== 认证类型 API ==========
+
+// AddAuthType 添加认证类型
+func AddAuthType(c *gin.Context) {
+	var req dto.AddAuthTypeReq
+	if err := c.ShouldBind(&req); err != nil {
+		resp.FailWithMessage(c, "参数有误")
+		return
+	}
+
+	if err := service.AddAuthType(c, req); err != nil {
+		resp.FailWithMessage(c, err.Error())
+		return
+	}
+
+	resp.Ok(c)
+}
+
+// EditAuthType 编辑认证类型
+func EditAuthType(c *gin.Context) {
+	var req dto.EditAuthTypeReq
+	if err := c.ShouldBind(&req); err != nil {
+		resp.FailWithMessage(c, "参数有误")
+		return
+	}
+
+	if err := service.EditAuthType(c, req); err != nil {
+		resp.FailWithMessage(c, err.Error())
+		return
+	}
+
+	resp.Ok(c)
+}
+
+// DeleteAuthType 删除认证类型
+func DeleteAuthType(c *gin.Context) {
+	id := utils.StringToUint(c.Param("id"))
+	if id == 0 {
+		resp.FailWithMessage(c, "参数有误")
+		return
+	}
+
+	if err := service.DeleteAuthType(c, id); err != nil {
+		resp.FailWithMessage(c, err.Error())
+		return
+	}
+
+	resp.Ok(c)
+}
+
+// GetAuthTypeList 获取认证类型列表（公开）
+func GetAuthTypeList(c *gin.Context) {
+	category := c.Query("category")
+	list := service.GetAuthTypeList(category)
+	resp.OkWithData(c, gin.H{"list": list})
+}
+
+// GetAllAuthTypeList 获取所有认证类型列表（管理用）
+func GetAllAuthTypeList(c *gin.Context) {
+	page := utils.StringToInt(c.Query("page"))
+	pageSize := utils.StringToInt(c.Query("pageSize"))
+	if pageSize > 30 {
+		pageSize = 30
+	}
+	if pageSize <= 0 {
+		pageSize = 10
+	}
+	if page <= 0 {
+		page = 1
+	}
+
+	total, list := service.GetAllAuthTypeList(page, pageSize)
+	resp.OkWithData(c, gin.H{
+		"total": total,
+		"list":  list,
+	})
+}
+
+// GetAuthTypeByID 获取认证类型详情
+func GetAuthTypeByID(c *gin.Context) {
+	id := utils.StringToUint(c.Param("id"))
+	if id == 0 {
+		resp.FailWithMessage(c, "参数有误")
+		return
+	}
+
+	authType, err := service.GetAuthTypeByID(id)
+	if err != nil {
+		resp.FailWithMessage(c, err.Error())
+		return
+	}
+
+	resp.OkWithData(c, authType)
+}
+
+// ========== 用户认证 API ==========
+
+// AddUserAuth 添加用户认证
+func AddUserAuth(c *gin.Context) {
+	var req dto.AddUserAuthReq
+	if err := c.ShouldBind(&req); err != nil {
+		resp.FailWithMessage(c, "参数有误")
+		return
+	}
+
+	if err := service.AddUserAuth(c, req); err != nil {
+		resp.FailWithMessage(c, err.Error())
+		return
+	}
+
+	resp.Ok(c)
+}
+
+// EditUserAuth 编辑用户认证
+func EditUserAuth(c *gin.Context) {
+	var req dto.EditUserAuthReq
+	if err := c.ShouldBind(&req); err != nil {
+		resp.FailWithMessage(c, "参数有误")
+		return
+	}
+
+	if err := service.EditUserAuth(c, req); err != nil {
+		resp.FailWithMessage(c, err.Error())
+		return
+	}
+
+	resp.Ok(c)
+}
+
+// DeleteUserAuth 删除用户认证
+func DeleteUserAuth(c *gin.Context) {
+	var req dto.DeleteUserAuthReq
+	if err := c.ShouldBind(&req); err != nil {
+		resp.FailWithMessage(c, "参数有误")
+		return
+	}
+
+	if err := service.DeleteUserAuth(c, req); err != nil {
+		resp.FailWithMessage(c, err.Error())
+		return
+	}
+
+	resp.Ok(c)
+}
+
+// GetUserAuthList 获取用户认证列表（公开，用户自己查看）
+func GetUserAuthList(c *gin.Context) {
+	uid := utils.StringToUint(c.Query("uid"))
+	if uid == 0 {
+		resp.FailWithMessage(c, "参数有误")
+		return
+	}
+
+	list := service.GetUserAuthList(uid)
+	resp.OkWithData(c, gin.H{"list": list})
+}
+
+// GetUserAuthListWithUser 获取用户认证列表（管理用，带用户信息）
+func GetUserAuthListWithUser(c *gin.Context) {
+	page := utils.StringToInt(c.Query("page"))
+	pageSize := utils.StringToInt(c.Query("pageSize"))
+	authTypeID := utils.StringToUint(c.Query("authTypeId"))
+
+	if pageSize > 30 {
+		pageSize = 30
+	}
+	if pageSize <= 0 {
+		pageSize = 10
+	}
+	if page <= 0 {
+		page = 1
+	}
+
+	total, list := service.GetUserAuthListWithUser(page, pageSize, authTypeID)
+	resp.OkWithData(c, gin.H{
+		"total": total,
+		"list":  list,
+	})
+}
+
+// GetUserAuthByID 获取用户认证详情
+func GetUserAuthByID(c *gin.Context) {
+	id := utils.StringToUint(c.Param("id"))
+	if id == 0 {
+		resp.FailWithMessage(c, "参数有误")
+		return
+	}
+
+	userAuth, err := service.GetUserAuthByID(id)
+	if err != nil {
+		resp.FailWithMessage(c, err.Error())
+		return
+	}
+
+	resp.OkWithData(c, userAuth)
+}
+
+// GetUserAuthByUid 获取指定用户的认证信息
+func GetUserAuthByUid(c *gin.Context) {
+	uid := utils.StringToUint(c.Param("uid"))
+	if uid == 0 {
+		resp.FailWithMessage(c, "参数有误")
+		return
+	}
+
+	list, err := service.GetUserAuthByUid(uid)
+	if err != nil {
+		resp.FailWithMessage(c, "获取失败")
+		return
+	}
+
+	resp.OkWithData(c, gin.H{"list": list})
+}
+
+// GetUserPrimaryAuth 获取用户主要认证（用于前端展示）
+func GetUserPrimaryAuth(c *gin.Context) {
+	uid := utils.StringToUint(c.Query("uid"))
+	if uid == 0 {
+		resp.FailWithMessage(c, "参数有误")
+		return
+	}
+
+	auth := service.GetUserPrimaryAuth(uid)
+	if auth == nil {
+		resp.OkWithData(c, gin.H{"auth": nil})
+		return
+	}
+	resp.OkWithData(c, gin.H{"auth": auth})
 }

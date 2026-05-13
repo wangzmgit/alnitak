@@ -36,6 +36,7 @@ const (
 	CONTENT_TYPE_VIDEO    = 0
 	CONTENT_TYPE_ARTICLE  = 1
 	CONTENT_TYPE_PLAYLIST = 2
+	CONTENT_TYPE_COMMENT  = 3 // 评论
 )
 
 // ========== PGC内容类型 ==========

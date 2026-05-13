@@ -91,10 +91,20 @@ func GetVideoById(ctx *gin.Context) {
 
 // 获取所有的视频列表
 func GetAllVideoList(ctx *gin.Context) {
-	videos := service.GetAllVideoList(ctx)
+	page := utils.StringToInt(ctx.Query("page"))
+	pageSize := utils.StringToInt(ctx.Query("pageSize"))
+
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 30
+	}
+
+	total, videos := service.GetAllVideoList(ctx, page, pageSize)
 
 	// 返回给前端
-	resp.OkWithData(ctx, gin.H{"videos": videos})
+	resp.OkWithData(ctx, gin.H{"total": total, "videos": videos})
 }
 
 // 编辑视频信息

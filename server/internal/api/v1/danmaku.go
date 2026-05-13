@@ -20,9 +20,19 @@ func GetDanmaku(ctx *gin.Context) {
 		resp.FailWithMessage(ctx, "参数有误")
 		return
 	}
-	part := utils.StringToUint(ctx.Query("part"))
 
-	danmaku, err := service.GetDanmaku(ctx, vid, part)
+	part := utils.StringToUint(ctx.Query("part"))
+	rid := ctx.Query("rid")
+
+	// 优先通过 rid 获取弹幕，支持回退到 part
+	danmaku, err := service.GetDanmakuByRid(ctx, vid, rid, part)
+	if err == nil && len(danmaku) > 0 {
+		resp.OkWithData(ctx, gin.H{"danmaku": danmaku})
+		return
+	}
+
+	// 回退到旧的按 part 查询逻辑
+	danmaku, err = service.GetDanmaku(ctx, vid, part)
 	if err != nil {
 		resp.FailWithMessage(ctx, err.Error())
 		return

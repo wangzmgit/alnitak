@@ -121,3 +121,12 @@ const ARTICLE_CLICKS_KEY = "article_clicks_key:"
 
 // 文章量过期时间  n 小时
 const ARTICLE_CLICKS_EXPIRATION_TIME = time.Hour * time.Duration(24)
+
+// 视频分享防刷标识符
+const SHARE_VIDEO_LIMIT_KEY = "share_video_limit_key:"
+
+// 文章分享防刷标识符
+const SHARE_ARTICLE_LIMIT_KEY = "share_article_limit_key:"
+
+// 分享计数冷却时间（同一用户对同一目标的最短间隔）n 小时
+const SHARE_LIMIT_EXPIRATION_TIME = time.Hour * time.Duration(1)

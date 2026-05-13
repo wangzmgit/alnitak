@@ -9,6 +9,7 @@ import (
 func GetVideoOnlineConnect(ctx *gin.Context) {
 	raw := ctx.Query("vid")
 	clientId := ctx.Query("clientId")
+	rid := ctx.Query("rid") // 资源短ID，用于精准推送弹幕
 	if raw == "" || clientId == "" {
 		return
 	}
@@ -20,5 +21,5 @@ func GetVideoOnlineConnect(ctx *gin.Context) {
 	}
 
 	// 升级为websocket长链接
-	service.GetVideoOnlineConnect(ctx, videoId, clientId)
+	service.GetVideoOnlineConnect(ctx, videoId, clientId, rid)
 }

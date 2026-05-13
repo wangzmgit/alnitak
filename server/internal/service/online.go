@@ -1,6 +1,7 @@
 package service
 
 import (
+	"strconv"
 	"sync"
 
 	"github.com/gin-gonic/gin"
@@ -17,33 +18,43 @@ var (
 )
 
 // 处理ws请求
-func GetVideoOnlineConnect(ctx *gin.Context, videoId uint, clientId string) {
+func GetVideoOnlineConnect(ctx *gin.Context, videoId uint, clientId string, rid string) {
 	conn, err := ws.CreateWsConn(ctx.Writer, ctx.Request)
 	if err != nil {
 		utils.ErrorLog("升级websocket失败", "online", err.Error())
 		return
 	}
 
-	// 把与客户端的链接添加到客户端链接池中
-	addVideoOnlineClient(clientId, videoId, conn)
+	// 把与客户端的链接添加到客户端链接池中（使用 vid+rid 作为分组key）
+	groupId := groupVideoRid(videoId, rid)
+	addVideoOnlineClient(clientId, groupId, conn)
 
 	// 获取该客户端的消息通道（带缓冲，避免发送阻塞）
-	m, exist := getVideoOnlineMsgChannel(clientId, videoId)
+	m, exist := getVideoOnlineMsgChannel(clientId, groupId)
 	if !exist {
 		m = make(chan interface{}, 10)
-		addVideoOnlineMsgChannel(clientId, videoId, m)
+		addVideoOnlineMsgChannel(clientId, groupId, m)
 	}
 
 	// 设置客户端关闭ws链接回调函数
 	conn.SetCloseHandler(func(code int, text string) error {
-		deleteVideoOnlineClient(clientId, videoId)
+		deleteVideoOnlineClient(clientId, groupId)
 		return nil
 	})
 
 	// 广播房间人数
-	BroadcastNumber(videoId)
+	BroadcastNumber(groupId)
 
-	ws.WsHandler(conn, clientId, videoId, m, deleteVideoOnlineClient)
+	ws.WsHandler(conn, clientId, groupId, m, deleteVideoOnlineClient)
+}
+
+// groupVideoRid 生成群组ID（vid + rid）
+func groupVideoRid(videoId uint, rid string) string {
+	vidStr := strconv.FormatUint(uint64(videoId), 10)
+	if rid == "" {
+		return vidStr
+	}
+	return vidStr + "_" + rid
 }
 
 func addVideoOnlineClient(id, groupId interface{}, conn *websocket.Conn) {

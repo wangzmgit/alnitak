@@ -60,7 +60,11 @@ func resolveStreamDir(ctx *gin.Context, key, file string) (dir string, ok bool) 
 // 获取视频文件
 func GetVideoFile(ctx *gin.Context) {
 	quality := ctx.Query("quality")
-	resourceId := utils.StringToUint(ctx.Query("resourceId"))
+	resourceId, parseErr := service.ParseResourceID(ctx.Query("resourceId"))
+	if parseErr != nil {
+		resp.FailWithMessage(ctx, parseErr.Error())
+		return
+	}
 	format := ctx.DefaultQuery("format", "m3u8") // m3u8 / mpd / dash / m3u8video / m3u8audio
 
 	file, err := service.GetVideoFile(ctx, resourceId, quality, format)
@@ -209,6 +213,38 @@ func GetImgFile(ctx *gin.Context) {
 	}
 
 	// 设置缓存头，告知浏览器缓存5小时（与OSS签名过期时间一致）
+	ctx.Header("Cache-Control", "public, max-age=18000, must-revalidate")
+	ctx.Redirect(http.StatusFound, redirect)
+}
+
+// GetSubtitleFile GET /api/subtitle/:file（file 为 snowflake.vtt，须已在 subtitle_track 中登记；策略与 GetImgFile 一致）
+func GetSubtitleFile(ctx *gin.Context) {
+	file := ctx.Param("file")
+	localPath, objectKey, ok := service.GetSubtitleTrackForFileServe(ctx, file)
+	if !ok {
+		ctx.Status(http.StatusNotFound)
+		return
+	}
+
+	ctx.Header("Access-Control-Allow-Origin", "*")
+	ctx.Header("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS")
+	if ctx.Request.Method == http.MethodOptions {
+		ctx.Status(http.StatusOK)
+		return
+	}
+
+	if global.Config.Storage.OssType == "local" {
+		ctx.Header("Cache-Control", "public, max-age=1800, must-revalidate")
+		ctx.Header("Content-Type", "text/vtt; charset=utf-8")
+		ctx.File(localPath)
+		return
+	}
+
+	// OSS：与图片路由相同，302 到公开 URL / 预签名 URL（播放端须在 <video crossorigin> + 存储 CORS）
+	redirect := global.GetOssUrl(objectKey)
+	if global.Config.Log.Mode == "dev" {
+		fmt.Println("redirect subtitle", redirect, objectKey)
+	}
 	ctx.Header("Cache-Control", "public, max-age=18000, must-revalidate")
 	ctx.Redirect(http.StatusFound, redirect)
 }

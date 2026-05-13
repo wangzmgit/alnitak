@@ -42,6 +42,16 @@ func CollectVideoRoutes(r *gin.RouterGroup) {
 		videoAuth.POST("getProcessingVideoList", api.GetProcessingVideoList)
 		// 重新转码视频（后台管理专用）
 		videoAuth.POST("reTranscodeVideo", api.ReTranscodeVideo)
+		// 字幕（UGC 稿件作者）
+		videoAuth.POST("subtitle/upload", middleware.Ban(), api.PostSubtitleUpload)
+		videoAuth.PUT("subtitle/:id", middleware.Ban(), api.PutSubtitle)
+		videoAuth.DELETE("subtitle/:id", middleware.Ban(), api.DeleteSubtitle)
+	}
+
+	videoPublicOpt := videoGroup.Group("")
+	videoPublicOpt.Use(middleware.OptionalAuth())
+	{
+		videoPublicOpt.GET("subtitle/list", api.GetSubtitleList)
 	}
 
 	// 获取视频信息

@@ -134,10 +134,20 @@ func DeleteArticle(ctx *gin.Context) {
 
 // 获取所有的文章列表
 func GetAllArticleList(ctx *gin.Context) {
-	articles := service.GetAllArticleList(ctx)
+	page := utils.StringToInt(ctx.Query("page"))
+	pageSize := utils.StringToInt(ctx.Query("pageSize"))
+
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 30 {
+		pageSize = 10
+	}
+
+	total, articles := service.GetAllArticleList(ctx, page, pageSize)
 
 	// 返回给前端
-	resp.OkWithData(ctx, gin.H{"articles": articles})
+	resp.OkWithData(ctx, gin.H{"total": total, "articles": articles})
 }
 
 // 获取用户文章

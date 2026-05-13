@@ -57,21 +57,19 @@ func CreatePGCContent(req dto.CreatePGCReq) (uint64, error) {
 	}
 
 	if len(req.Episodes) > 0 {
-		vids := make([]uint, 0, len(req.Episodes))
-		for _, episode := range req.Episodes {
-			vids = append(vids, episode.VID)
-		}
+		positiveVids := uniquePositiveVidsFromEpisodeReq(req.Episodes)
+		if len(positiveVids) > 0 {
+			var count int64
+			if err := global.Mysql.Model(&model.Video{}).
+				Where("id IN ?", positiveVids).
+				Count(&count).Error; err != nil {
+				utils.ErrorLog("校验视频存在失败", "pgc", err.Error())
+				return 0, errors.New("校验视频失败")
+			}
 
-		var count int64
-		if err := global.Mysql.Model(&model.Video{}).
-			Where("id IN ?", vids).
-			Count(&count).Error; err != nil {
-			utils.ErrorLog("校验视频存在失败", "pgc", err.Error())
-			return 0, errors.New("校验视频失败")
-		}
-
-		if count != int64(len(vids)) {
-			return 0, errors.New("部分视频不存在")
+			if count != int64(len(positiveVids)) {
+				return 0, errors.New("部分视频不存在")
+			}
 		}
 
 		episodeMap := make(map[int]bool)
@@ -89,7 +87,7 @@ func CreatePGCContent(req dto.CreatePGCReq) (uint64, error) {
 	var totalEp, currEp int
 	if len(req.Episodes) > 0 {
 		totalEp = len(req.Episodes)
-		currEp = len(req.Episodes)
+		currEp = countEpisodeReqWithBoundVideo(req.Episodes)
 	} else {
 		currEp = 0
 		if req.PlannedTotalEpisodes != nil {
@@ -149,7 +147,7 @@ func CreatePGCContent(req dto.CreatePGCReq) (uint64, error) {
 
 	for _, episode := range req.Episodes {
 		publishTime := episode.PublishTime
-		if publishTime == "" {
+		if episode.VID > 0 && publishTime == "" {
 			publishTime = getVideoPublishTime(episode.VID)
 		}
 		pgcEpisode := &model.PGCEpisode{
@@ -170,11 +168,7 @@ func CreatePGCContent(req dto.CreatePGCReq) (uint64, error) {
 
 	// 审核链路隔离：被绑定为 PGC 剧集的视频不再走 UGC 的「视频审核」队列
 	if len(req.Episodes) > 0 {
-		vids := make([]uint, 0, len(req.Episodes))
-		for _, ep := range req.Episodes {
-			vids = append(vids, ep.VID)
-		}
-		if err := markVideosAsPGCAttached(tx, vids); err != nil {
+		if err := markVideosAsPGCAttached(tx, uniquePositiveVidsFromEpisodeReq(req.Episodes)); err != nil {
 			return 0, err
 		}
 	}
@@ -450,12 +444,24 @@ func approvePGCLinkedData(tx *gorm.DB, pgcID uint64) ([]uint, error) {
 		utils.ErrorLog("查询PGC关联视频失败", "pgc", err.Error())
 		return nil, errors.New("更新失败")
 	}
-	if len(vids) == 0 {
+	positive := make([]uint, 0, len(vids))
+	seen := make(map[uint]struct{}, len(vids))
+	for _, id := range vids {
+		if id == 0 {
+			continue
+		}
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		positive = append(positive, id)
+	}
+	if len(positive) == 0 {
 		return []uint{}, nil
 	}
 
 	if err := tx.Model(&model.Video{}).
-		Where("id IN ?", vids).
+		Where("id IN ?", positive).
 		Where("status NOT IN ?", []int{global.VIDEO_PROCESSING, global.PROCESSING_FAIL, global.CREATED_VIDEO}).
 		Update("status", global.AUDIT_APPROVED).Error; err != nil {
 		utils.ErrorLog("更新PGC关联视频状态失败", "pgc", err.Error())
@@ -463,13 +469,13 @@ func approvePGCLinkedData(tx *gorm.DB, pgcID uint64) ([]uint, error) {
 	}
 
 	if err := tx.Model(&model.Resource{}).
-		Where("vid IN ?", vids).
+		Where("vid IN ?", positive).
 		Where("status IN ?", []int{global.WAITING_REVIEW, global.SUBMIT_REVIEW}).
 		Update("status", global.AUDIT_APPROVED).Error; err != nil {
 		utils.ErrorLog("更新PGC关联资源状态失败", "pgc", err.Error())
 		return nil, errors.New("更新失败")
 	}
-	return vids, nil
+	return positive, nil
 }
 
 func UpdatePGCEpisodeStatus(pgcID uint64, episodeID uint64, status int) error {
@@ -488,6 +494,17 @@ func UpdatePGCEpisodeStatus(pgcID uint64, episodeID uint64, status int) error {
 	}
 	if err := global.Mysql.Model(&model.PGCEpisode{}).Where("id = ? AND pgc_id = ?", episodeID, pgcID).Update("status", status).Error; err != nil {
 		return errors.New("更新失败")
+	}
+	var currEp int64
+	if err := global.Mysql.Model(&model.PGCEpisode{}).
+		Where("pgc_id = ? AND status = ? AND vid > ?", pgcID, global.PGCEpisodeNormal, 0).
+		Count(&currEp).Error; err != nil {
+		return errors.New("更新集数失败")
+	}
+	if err := global.Mysql.Model(&model.PGCContent{}).
+		Where("pgc_id = ?", pgcID).
+		UpdateColumn("current_episodes", int(currEp)).Error; err != nil {
+		return errors.New("更新集数失败")
 	}
 	return nil
 }
@@ -682,20 +699,22 @@ func AddPGCEpisode(pgcID uint64, episode dto.EpisodeReq) error {
 		return errors.New("查询失败")
 	}
 
-	var count int64
-	if err := global.Mysql.Model(&model.Video{}).
-		Where("id = ?", episode.VID).
-		Count(&count).Error; err != nil {
-		utils.ErrorLog("查询视频失败", "pgc", err.Error())
-		return errors.New("查询视频失败")
-	}
+	if episode.VID > 0 {
+		var count int64
+		if err := global.Mysql.Model(&model.Video{}).
+			Where("id = ?", episode.VID).
+			Count(&count).Error; err != nil {
+			utils.ErrorLog("查询视频失败", "pgc", err.Error())
+			return errors.New("查询视频失败")
+		}
 
-	if count == 0 {
-		return errors.New("视频不存在")
+		if count == 0 {
+			return errors.New("视频不存在")
+		}
 	}
 
 	publishTime := episode.PublishTime
-	if publishTime == "" {
+	if episode.VID > 0 && publishTime == "" {
 		publishTime = getVideoPublishTime(episode.VID)
 	}
 
@@ -742,7 +761,7 @@ func AddPGCEpisode(pgcID uint64, episode dto.EpisodeReq) error {
 
 	var currEp int64
 	if err := tx.Model(&model.PGCEpisode{}).
-		Where("pgc_id = ? AND status = ?", pgcID, global.PGCEpisodeNormal).
+		Where("pgc_id = ? AND status = ? AND vid > ?", pgcID, global.PGCEpisodeNormal, 0).
 		Count(&currEp).Error; err != nil {
 		utils.ErrorLog("统计PGC当前集数失败", "pgc", err.Error())
 		return errors.New("更新集数失败")
@@ -755,8 +774,10 @@ func AddPGCEpisode(pgcID uint64, episode dto.EpisodeReq) error {
 		return errors.New("更新集数失败")
 	}
 
-	if err := markVideosAsPGCAttached(tx, []uint{episode.VID}); err != nil {
-		return err
+	if episode.VID > 0 {
+		if err := markVideosAsPGCAttached(tx, []uint{episode.VID}); err != nil {
+			return err
+		}
 	}
 
 	if err := tx.Commit().Error; err != nil {
@@ -767,6 +788,96 @@ func AddPGCEpisode(pgcID uint64, episode dto.EpisodeReq) error {
 
 	utils.InfoLog("添加PGC剧集成功", "pgc")
 
+	return nil
+}
+
+// BindPGCEpisodeVideo 将占位剧集绑定到已存在的视频（vid>0）。
+func BindPGCEpisodeVideo(pgcID uint64, episodeID uint64, req dto.BindPGCEpisodeVideoReq) error {
+	if pgcID == 0 || episodeID == 0 {
+		return errors.New("参数不能为空")
+	}
+	if req.VID == 0 {
+		return errors.New("视频ID不能为空")
+	}
+	var ep model.PGCEpisode
+	if err := global.Mysql.Where("id = ? AND pgc_id = ?", episodeID, pgcID).First(&ep).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("剧集不存在")
+		}
+		return errors.New("查询失败")
+	}
+	if ep.VID == req.VID {
+		return nil
+	}
+	if ep.VID > 0 {
+		return errors.New("该剧集已绑定视频，请先解绑或不使用该接口")
+	}
+
+	var count int64
+	if err := global.Mysql.Model(&model.Video{}).Where("id = ?", req.VID).Count(&count).Error; err != nil {
+		return errors.New("查询视频失败")
+	}
+	if count == 0 {
+		return errors.New("视频不存在")
+	}
+
+	publishTime := req.PublishTime
+	if publishTime == "" {
+		publishTime = getVideoPublishTime(req.VID)
+	}
+	duration := ep.Duration
+	if req.Duration != nil {
+		duration = *req.Duration
+	}
+
+	tx := global.Mysql.Begin()
+	committed := false
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+			utils.ErrorLog("绑定PGC剧集视频panic", "pgc", "")
+			return
+		}
+		if !committed {
+			tx.Rollback()
+		}
+	}()
+
+	if err := tx.Model(&model.PGCEpisode{}).
+		Where("id = ? AND pgc_id = ?", episodeID, pgcID).
+		Updates(map[string]interface{}{
+			"vid":          req.VID,
+			"duration":     duration,
+			"publish_time": publishTime,
+			"status":       global.PGCEpisodeNormal,
+		}).Error; err != nil {
+		utils.ErrorLog("绑定PGC剧集视频失败", "pgc", err.Error())
+		return errors.New("绑定失败")
+	}
+
+	var currEp int64
+	if err := tx.Model(&model.PGCEpisode{}).
+		Where("pgc_id = ? AND status = ? AND vid > ?", pgcID, global.PGCEpisodeNormal, 0).
+		Count(&currEp).Error; err != nil {
+		utils.ErrorLog("统计PGC当前集数失败", "pgc", err.Error())
+		return errors.New("更新集数失败")
+	}
+	if err := tx.Model(&model.PGCContent{}).
+		Where("pgc_id = ?", pgcID).
+		UpdateColumn("current_episodes", int(currEp)).Error; err != nil {
+		utils.ErrorLog("更新PGC内容集数失败", "pgc", err.Error())
+		return errors.New("更新集数失败")
+	}
+
+	if err := markVideosAsPGCAttached(tx, []uint{req.VID}); err != nil {
+		return err
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		utils.ErrorLog("提交事务失败", "pgc", err.Error())
+		return errors.New("绑定失败")
+	}
+	committed = true
 	return nil
 }
 
@@ -900,7 +1011,7 @@ func DeletePGCEpisode(pgcID uint64, episodeID uint64) error {
 
 	var currEp int64
 	if err := tx.Model(&model.PGCEpisode{}).
-		Where("pgc_id = ? AND status = ?", pgcID, global.PGCEpisodeNormal).
+		Where("pgc_id = ? AND status = ? AND vid > ?", pgcID, global.PGCEpisodeNormal, 0).
 		Count(&currEp).Error; err != nil {
 		utils.ErrorLog("统计PGC当前集数失败", "pgc", err.Error())
 		return errors.New("更新集数失败")
@@ -1136,9 +1247,9 @@ func GetPGCPlayPanelByVideo(vid uint, seasonID uint64) (*model.PGCContent, []mod
 	}
 
 	var episodes []model.PGCEpisode
-	// 播放页剧集面板展示该 season 下的全部剧集（由前端按需标识状态）
+	// 播放面板仅展示已绑定视频且可参与播放的剧集（vid=0 的占位集不出现在用户播放列表）
 	if err := global.Mysql.
-		Where("pgc_id = ?", activeSeasonID).
+		Where("pgc_id = ? AND vid > ? AND status = ?", activeSeasonID, 0, global.PGCEpisodeNormal).
 		Order("episode_number ASC, id ASC").
 		Find(&episodes).Error; err != nil {
 		utils.ErrorLog("PGC面板查询剧集列表失败", "pgc", err.Error())
