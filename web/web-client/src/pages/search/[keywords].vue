@@ -156,9 +156,8 @@ import { getVideoInfoAPI, searchVideoAPI } from '@/api/video';
 import { searchArticleAPI } from '@/api/article';
 import { searchUserAPI } from '@/api/user';
 import { getPGCDetailWithEpisodesAPI, searchPGCAPI } from '@/api/pgc';
-import HeaderBar from '@/components/header-bar/index.vue';
 import VideoItem from './components/VideoItem.vue';
-import CommonAvatar from '@/components/common-avatar/index.vue';
+import { throttle } from "@/utils/debounce";
 import { Search as SearchIcon } from '@icon-park/vue-next';
 import { removeHtml } from '@/utils/format';
 import { getResourceUrl } from '@/utils/resource';
@@ -550,16 +549,18 @@ watch(
   },
 );
 
+const throttledLoading = throttle(lazyLoading, 150);
+
 onMounted(() => {
   hydrated.value = true;
   syncKeywordsFromRoute();
   readFiltersFromRoute();
   loadVideos(true);
-  window.addEventListener('scroll', lazyLoading, true);
+  window.addEventListener('scroll', throttledLoading, true);
 });
 
 onBeforeUnmount(() => {
-  window.removeEventListener('scroll', lazyLoading, true);
+  window.removeEventListener('scroll', throttledLoading, true);
 });
 </script>
 

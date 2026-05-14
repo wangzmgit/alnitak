@@ -25,7 +25,6 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import CoverUploader from "@/components/cover-uploader/index.vue";
 import { editCollectionAPI } from "@/api/collection";
 
 const emit = defineEmits(["editFinish"]);

@@ -72,8 +72,7 @@ interface VideoType extends BaseVideoType {
 
 // 全部视频列表
 interface AllVideoType {
-  vid: number;
-  shortId?: string;
+  shortId: string;
   title: string;
 }
 

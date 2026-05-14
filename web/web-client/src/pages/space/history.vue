@@ -9,13 +9,20 @@
         class="date-title">更早</span>
       <history-video-list :video-list="historyList.earlier"></history-video-list>
     </div>
+    <div v-if="historyParams.loading" class="loading">加载中...</div>
+    <div v-if="historyParams.noMore" class="no-more">没有更多了</div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { reactive } from 'vue';
+import { reactive, onMounted, onBeforeUnmount } from 'vue';
 import { getHistoryVideoAPI } from '@/api/history';
 import HistoryVideoList from './components/HistoryVideoList.vue';
+import { throttle } from "@/utils/debounce";
+
+definePageMeta({
+  middleware: ['auth']
+})
 
 
 const historyList = reactive<{
@@ -34,6 +41,8 @@ const historyParams = reactive({
   loading: false,
 })
 const getHistoryList = async () => {
+  if (historyParams.loading || historyParams.noMore) return;
+  
   historyParams.loading = true;
   const res = await getHistoryVideoAPI(historyParams.page, historyParams.pageSize);
   if (res.data.code === statusCode.OK) {
@@ -52,8 +61,28 @@ const getHistoryList = async () => {
   historyParams.loading = false;
 }
 
-onBeforeMount(() => {
+const handleScroll = () => {
+  const scrollHeight = document.documentElement.scrollHeight;
+  const scrollTop = document.documentElement.scrollTop;
+  const clientHeight = document.documentElement.clientHeight;
+  
+  if (scrollTop + clientHeight >= scrollHeight - 100) {
+    if (!historyParams.loading && !historyParams.noMore) {
+      historyParams.page++;
+      getHistoryList();
+    }
+  }
+}
+
+const throttledScroll = throttle(handleScroll, 150);
+
+onMounted(() => {
   getHistoryList();
+  window.addEventListener('scroll', throttledScroll);
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('scroll', throttledScroll);
 })
 </script>
 
@@ -71,6 +100,12 @@ onBeforeMount(() => {
     display: block;
     font-size: 16px;
     margin: 10px 10px;
+  }
+  
+  .loading, .no-more {
+    text-align: center;
+    padding: 20px;
+    color: var(--font-primary-3);
   }
 }
 </style>

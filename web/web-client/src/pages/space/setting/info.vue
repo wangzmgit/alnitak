@@ -42,8 +42,6 @@ import moment from "moment";
 import { ref, onBeforeMount } from "vue";
 import { ElMessage } from 'element-plus';
 import { getUserInfoAPI, editUserInfoAPI } from '@/api/user';
-import CommonAvatar from "@/components/common-avatar/index.vue";
-import ImageCropper from "@/components/image-cropper/index.vue";
 import AvatarCropper from "@/components/image-cropper/components/AvatarCropper.vue";
 
 const userInfo = ref<UserInfoType>({

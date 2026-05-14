@@ -1,14 +1,29 @@
 import { useAuthStore } from '@/stores/auth-store';
 import { statusCode } from '@/utils/status-code';
+import { globalConfig } from '@/utils/global-config';
 
 export default defineNuxtPlugin(async () => {
   if (process.client) return;
 
   const auth = useAuthStore();
-  const headers = useRequestHeaders(['cookie']);
-  const url = `${useRequestURL().origin}/api/v1/auth/me`;
+  const headers: Record<string, string> = {};
+
+  const cookie = useRequestHeaders(['cookie']).cookie;
+  if (cookie) {
+    headers.cookie = cookie;
+    const token = cookie.split(';').find(c => c.trim().startsWith('token='))?.split('=')[1];
+    if (token) {
+      headers.authorization = `Bearer ${token}`;
+    }
+  }
+
+  // SSR阶段直接请求后端（端口9001），避免代理问题
+  const domain = globalConfig.domain;
+  const protocol = globalConfig.https ? 'https' : 'http';
+  const url = `${protocol}://${domain}/api/v1/auth/me`;
 
   try {
+    // NODE_TLS_REJECT_UNAUTHORIZED=0 已经全局禁用证书验证
     const res: any = await $fetch(url, { headers });
     if (res?.code === statusCode.OK && res?.data?.userInfo) {
       auth.initFromSSR({ status: 'auth', user: res.data.userInfo });

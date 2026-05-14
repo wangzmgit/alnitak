@@ -1,7 +1,7 @@
 <template>
   <div class="video-box">
     <ul ref="videoListRef" class="video-list" v-infinite-scroll="scrollLoad">
-      <li class="video-item" v-for="item in videoList">
+      <li class="video-item" v-for="item in videoList" :key="item.vid">
         <nuxt-link class="cover" :to="`/watch?v=${item.shortId || String(item.vid)}`">
           <img class="img" :src="getResourceUrl(item.cover)" />
         </nuxt-link>

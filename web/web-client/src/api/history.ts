@@ -6,9 +6,11 @@ export const addHistoryAPI = (addHistory: AddHistoryType) => {
 }
 
 // 获取播放进度
-export const getHistoryProgressAPI = (vid: number, part?: number) => {
+export const getHistoryProgressAPI = (vid: string | number, part?: number, rid?: string) => {
   let url = `v1/history/video/getProgress?vid=${vid}`;
-  if (part !== undefined && part !== null) {
+  if (rid) {
+    url += `&rid=${rid}`;
+  } else if (part) {
     url += `&part=${part}`;
   }
   return request.get(url);

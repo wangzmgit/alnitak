@@ -43,7 +43,6 @@
 import { isEmail } from "@/utils/verify";
 import { loginAPI, emailLoginAPI } from "@/api/auth";
 import type { AxiosResponse } from "axios";
-import BaseTabs from "@/components/base-tabs/index.vue";
 import { sendEmailCodeAPI } from "@/api/code";
 import { saveCredentials } from "@/stores/auth-store";
 

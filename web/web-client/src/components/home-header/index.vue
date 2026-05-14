@@ -137,17 +137,18 @@ const auth = useAuthStore();
 const isLoggedIn = computed(() => auth.isLoggedIn);
 const userInfo = computed(() => auth.user);
 
-// 左侧菜单
-const MENU_FOLD_KEY = 'menu-fold-state';
-const menuFold = ref(false);
-
+// 左侧菜单（用 cookie 持久化，SSR 阶段即可读取，避免首屏闪烁）
+const menuFoldCookie = useCookie<boolean>('menu-fold-state', {
+  default: () => false,
+  maxAge: 60 * 60 * 24 * 365,
+  path: '/',
+});
+const menuFold = ref(menuFoldCookie.value);
 
 const foldClick = () => {
   menuFold.value = !menuFold.value;
+  menuFoldCookie.value = menuFold.value;
   emits("changeFold", menuFold.value);
-  try {
-    localStorage.setItem(MENU_FOLD_KEY, String(menuFold.value));
-  } catch {}
 }
 
 // 退出登录
@@ -187,16 +188,12 @@ const setTheme = (mode: ThemeMode) => {
   try { localStorage.setItem(THEME_KEY, mode); } catch {}
 };
 
-onMounted(() => {
-  // 读取保存的折叠状态并通知父组件
-  try {
-    const savedFold = localStorage.getItem(MENU_FOLD_KEY);
-    if (savedFold === 'true') {
-      menuFold.value = true;
-      emits("changeFold", true);
-    }
-  } catch {}
+// 初始化时通知父组件当前折叠状态
+if (menuFold.value) {
+  emits("changeFold", true);
+}
 
+onMounted(() => {
   // 读取主题设置
   let mode: ThemeMode = 'light';
   try {

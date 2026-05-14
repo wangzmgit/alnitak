@@ -2,7 +2,7 @@
   <div class="collection">
     <p class="collection-title">收藏夹</p>
     <ul class="collection-list">
-      <li class="collection-item" v-for="(item, index) in collectionList">
+      <li class="collection-item" v-for="(item, index) in collectionList" :key="item.id">
         <div class="cover">
           <img v-if="item.cover" :src="item.cover" alt="视频封面">
         </div>
@@ -41,6 +41,10 @@ import { ref, reactive, onBeforeMount } from 'vue';
 import { MoreOne as MoreIcon } from '@icon-park/vue-next';
 import CollectionModal from "./components/CollectionModal.vue";
 import { getCollectionListAPI, deleteCollectionAPI } from '@/api/collection';
+
+definePageMeta({
+  middleware: ['auth']
+})
 
 const collectionList = ref<CollectionType[]>([]);
 const getCollectionList = async () => {

@@ -15,7 +15,10 @@ const getRedirectUrl = () => {
 
 // 统一凭证写入，避免多处重复
 const saveCredentials = (data: { token?: string; refreshToken?: string; userId?: number | string | null }) => {
-  if (data.token) storageData.set('token', data.token, 60);
+  if (data.token) {
+    storageData.set('token', data.token, 60);
+    Cookies.set('token', data.token, { expires: 1 }); // 供 SSR 读取
+  }
   if (data.refreshToken) storageData.set('refreshToken', data.refreshToken, 7 * 24 * 60);
   if (data.userId != null) Cookies.set('user_id', String(data.userId));
 };
@@ -24,6 +27,7 @@ const saveCredentials = (data: { token?: string; refreshToken?: string; userId?:
 const clearCredentials = () => {
   storageData.remove('token');
   storageData.remove('refreshToken');
+  Cookies.remove('token');
   Cookies.remove('user_id');
 };
 

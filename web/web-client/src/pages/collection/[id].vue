@@ -63,7 +63,6 @@
 <script setup lang="ts">
 import { onBeforeMount, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import HeaderBar from '@/components/header-bar/index.vue';
 import { getCollectionInfoAPI, getCollectVideoAPI } from '@/api/collection';
 import { MoreOne as MoreIcon } from '@icon-park/vue-next';
 import { getUserInfoAPI } from '@/api/user';

@@ -15,7 +15,7 @@ import Hls from "hls.js";
 import * as dashjs from "dashjs";
 import Wplayer from 'wplayer-next';
 import { ref, shallowRef, onBeforeMount, watch, onMounted, onBeforeUnmount, computed } from 'vue';
-import { getDanmakuAPI, sendDanmakuAPI } from "@/api/danmaku";
+import { sendDanmakuAPI } from "@/api/danmaku";
 import DanmakuSend from "./components/DanmakuSend.vue";
 import { getResourceQualityApi, getVideoFileUrl, getVideoFileUrlDash, getVideoFileUrlDashUnified } from "@/api/video";
 import { addHistoryAPI } from "@/api/history";
@@ -30,6 +30,7 @@ import {
   type HlsPlayerState,
   type PlaybackState,
 } from "@/utils/hls-player";
+import { fetchAndApplySubtitles } from "@/utils/subtitle-tracks";
 
 // ===== 组件属性定义 =====
 const props = withDefaults(defineProps<{
@@ -40,6 +41,25 @@ const props = withDefaults(defineProps<{
   part: 1,
   progress: null
 })
+
+const emit = defineEmits<{
+  danmakuSent: []
+}>()
+
+// 获取当前分P的资源ShortID
+const getCurrentResourceShortId = () => {
+  const resource = props.videoInfo?.resources?.[props.part - 1];
+  return resource?.shortId;
+}
+
+/** 指定分 P 的 resourceShortId（用于字幕与历史 rid；无 shortId 时用数字 id 兼容后端 ParseResourceID） */
+const getResourceShortIdForPart = (partNum: number): string | undefined => {
+  const r = props.videoInfo?.resources?.[partNum - 1];
+  if (!r) return undefined;
+  if (r.shortId) return String(r.shortId);
+  if (r.id != null) return String(r.id);
+  return undefined;
+}
 
 // ===== 播放器与弹幕相关变量 =====
 let player: any = null;
@@ -53,6 +73,11 @@ const hasEnded = ref(false);
 let dashUnifiedMode = false;
 let dashQualityMap: Map<string, number> = new Map(); // 清晰度显示名 → dash.js Representation 索引
 
+/** DASH 片尾兜底：与 dash 调度/缓冲的秒级容差，过小易误判未完结 */
+const DASH_NEAR_END_SEC = 0.45;
+const DASH_VERIFY_END_SEC = 0.35;
+const DASH_END_FALLBACK_DELAY_MS = 220;
+
 // ===== HLS 清晰度切换时保存播放状态（HLS 模式下 Wplayer 仍会创建新 video 元素） =====
 let lastPlaybackState: { time: number; playing: boolean } = { time: 0, playing: false };
 const danmakuSendRef = ref<InstanceType<typeof DanmakuSend> | null>(null);
@@ -60,11 +85,16 @@ const auth = useAuthStore();
 const isLoggedIn = computed(() => auth.isLoggedIn);
 const options: PlayerOptionsType = {
   container: null,
+  autoplay: localStorage.getItem('wplayer-autoplay') !== '0',
+  setting: true,
+  lang: 'zh-cn',
   video: {
     quality: [],
     defaultQuality: 0,
     pic: '',
     type: 'customHls',
+    // wplayer-next：初始为空，分 P 加载后由 player.updateSubtitles 写入（见 vendor/wplayer-next/src/js/subtitle.js）
+    subtitles: [],
     customType: {
       customHls: function (video: HTMLVideoElement) {
         const savedVolumeState = getSavedVolumeState();
@@ -124,7 +154,7 @@ const options: PlayerOptionsType = {
               autoSwitchBitrate: { video: false, audio: false },
             },
           },
-          debug: { logLevel: 3 },
+          debug: { logLevel: import.meta.dev ? 3 : 0 },
         });
         dash.value.initialize(video, video.src, false);
 
@@ -137,12 +167,14 @@ const options: PlayerOptionsType = {
           // 设置用户偏好的初始清晰度（forceReplace=true：此时尚未播放，立即切到目标清晰度）
           if (dashUnifiedMode) {
             const dashIndex = dashQualityMap.get(defaultQuality.value);
-            console.log('[DASH] 初始清晰度设置:', {
-              defaultQuality: defaultQuality.value,
-              dashIndex,
-              dashQualityMap: Object.fromEntries(dashQualityMap),
-              representations: dash.value.getRepresentationsByType?.('video'),
-            });
+            if (import.meta.dev) {
+              console.log('[DASH] 初始清晰度设置:', {
+                defaultQuality: defaultQuality.value,
+                dashIndex,
+                dashQualityMap: Object.fromEntries(dashQualityMap),
+                representations: dash.value.getRepresentationsByType?.('video'),
+              });
+            }
             if (dashIndex !== undefined) {
               dash.value.setRepresentationForTypeByIndex('video', dashIndex, true);
             }
@@ -169,6 +201,26 @@ const options: PlayerOptionsType = {
           setTimeout(() => { dashLoopReplaying = false; }, 500);
         };
 
+        // 与 embed-player 一致：用标记区分「原生 ended 已走过」与「仅 dash playbackEnded」，
+        // 避免漏派发（原先依赖 video.ended 在部分 MPD/时序下会误判导致 Wplayer 收不到 ended）
+        let dashEndedHandled = false;
+        video.addEventListener('ended', () => {
+          dashEndedHandled = true;
+        });
+
+        // 极少数情况下 native ended 与 playbackEnded 都不驱动业务层：用片尾 timeupdate 再补一次
+        let dashEndedFallbackTicking = false;
+        const resetDashEndedFallback = () => {
+          dashEndedFallbackTicking = false;
+        };
+        video.addEventListener('seeked', () => {
+          const d = video.duration;
+          if (Number.isFinite(d) && d > 0 && video.currentTime < d - 1) {
+            resetDashEndedFallback();
+            dashEndedHandled = false;
+          }
+        });
+
         // 拦截原生 ended：循环模式下阻止 Wplayer 的 pause()，改用 dash.js API 重播
         video.addEventListener('ended', (e) => {
           if (player && player.setting && player.setting.loop) {
@@ -177,16 +229,33 @@ const options: PlayerOptionsType = {
           }
         }, true); // capture 阶段先于 Wplayer handler
 
-        // playbackEnded 兜底（SegmentBase 可能不触发原生 ended）
+        // playbackEnded 兜底（SegmentBase 等可能不触发原生 ended）
         dash.value.on('playbackEnded', () => {
           if (player && player.setting && player.setting.loop) {
             dashLoopReplay();
             return;
           }
-          // 非循环：兜底派发 ended 事件
-          if (!video.ended) {
-            video.dispatchEvent(new Event('ended'));
+          if (dashEndedHandled) {
+            dashEndedHandled = false;
+            return;
           }
+          video.dispatchEvent(new Event('ended'));
+        });
+
+        video.addEventListener('timeupdate', () => {
+          if (player?.setting?.loop || hasEnded.value || dashEndedFallbackTicking) return;
+          const d = video.duration;
+          if (!Number.isFinite(d) || d <= 0) return;
+          if (video.currentTime < d - DASH_NEAR_END_SEC) return;
+          dashEndedFallbackTicking = true;
+          window.setTimeout(() => {
+            dashEndedFallbackTicking = false;
+            if (player?.setting?.loop || hasEnded.value) return;
+            const dur = video.duration;
+            if (!Number.isFinite(dur) || dur <= 0) return;
+            if (video.currentTime < dur - DASH_VERIFY_END_SEC) return;
+            video.dispatchEvent(new Event('ended'));
+          }, DASH_END_FALLBACK_DELAY_MS);
         });
 
         dash.value.on('error', (e: any) => {
@@ -197,6 +266,7 @@ const options: PlayerOptionsType = {
   },
   danmaku: {
     data: [],
+    bottom: '52px',
   }
 }
 
@@ -217,15 +287,81 @@ const initFilterConfig = () => {
 
 // ===== 进度续播相关 =====
 let pendingSeek: number | null = null;
+// 标记当前 player 实例是否已经完成 loadedmetadata（可安全 seek）
+let playerReady = false;
+
+const doSeek = (time: number) => {
+  if (!player) return false;
+  try {
+    player.seek(time);
+    return true;
+  } catch (e) {
+    console.warn('[video-player] seek 失败:', e);
+    return false;
+  }
+};
+
+/** 已知 duration 时将续播秒数限制在 [0, duration-ε]，避免 seek 越界 */
+const clampResumeSeconds = (seconds: number, video: HTMLVideoElement): number => {
+  const d = video.duration;
+  if (!Number.isFinite(d) || d <= 0) return Math.max(0, seconds);
+  const safeEnd = Math.max(0, d - 0.35);
+  return Math.min(Math.max(0, seconds), safeEnd);
+};
+
+/** 每次 Wplayer 重新创建后：用当前 props 续播进度入队（progress 未变时 watch 不会触发） */
+const queueProgressRestoreForNewPlayer = () => {
+  const p = props.progress;
+  if (p != null && p > 0) {
+    pendingSeek = p;
+  } else {
+    pendingSeek = null;
+  }
+};
+
+const attachPlayerReadyAndProgressFlush = (partNum: number) => {
+  if (!player) return;
+  /** loadedmetadata / canplay 都可能触发 flush，避免重复 fetchAndApply（第二次会 revoke 第一次的 blob，多轨字幕全挂） */
+  let subtitlesHookFired = false;
+  const flushPendingSeek = () => {
+    playerReady = true;
+    onReadyCallbacks.forEach(cb => cb());
+    onReadyCallbacks.length = 0;
+    if (pendingSeek != null && pendingSeek > 0 && player.video) {
+      doSeek(clampResumeSeconds(pendingSeek, player.video));
+    }
+    pendingSeek = null;
+    if (!subtitlesHookFired) {
+      subtitlesHookFired = true;
+      void fetchAndApplySubtitles(getResourceShortIdForPart(partNum), player);
+    }
+  };
+  player.on('loadedmetadata', () => {
+    flushPendingSeek();
+  });
+  player.on('canplay', () => {
+    if (!playerReady || pendingSeek != null) {
+      flushPendingSeek();
+    }
+  });
+};
 
 // ===== 监听 progress 属性变化，自动 seek =====
 watch(
   () => props.progress,
   (val) => {
-    if (val != null && player) {
-      player.seek(val);
+    if (val == null || val <= 0) {
       pendingSeek = null;
-    } else if (val != null) {
+      return;
+    }
+    if (playerReady) {
+      if (player?.video) {
+        doSeek(clampResumeSeconds(val, player.video));
+      } else {
+        doSeek(val);
+      }
+      pendingSeek = null;
+    } else {
       pendingSeek = val;
     }
   },
@@ -244,14 +380,35 @@ let timer: number | null = null;
 let hasReportedWatched = false; // 是否已上报过“已看完”
 const onReadyCallbacks: Array<() => void> = [];
 const setOnReady = (cb: () => void) => {
+  onReadyCallbacks.length = 0;
   onReadyCallbacks.push(cb);
 };
 
 // ===== 本地已看完标记工具函数 =====
 const getWatchedKey = () => `video-watched-${props.videoInfo.vid}-${props.part}`;
+const getWatchedKeyForPart = (partNum: number) =>
+  `video-watched-${props.videoInfo.vid}-${partNum}`;
 const isWatched = () => localStorage.getItem(getWatchedKey()) === '1';
 const setWatched = () => localStorage.setItem(getWatchedKey(), '1');
 const clearWatched = () => localStorage.removeItem(getWatchedKey());
+
+/** 片尾容差：离开末尾超过该秒数视为重新播放，恢复进度上报 */
+const REPLAY_LEAVE_END_SEC = 0.55;
+
+const videoLeftEndAfterWatched = (v: HTMLVideoElement) => {
+  const d = v.duration;
+  if (!Number.isFinite(d) || d <= 0) return false;
+  return v.currentTime < d - REPLAY_LEAVE_END_SEC;
+};
+
+/** 已标记看完的本轮播放结束后，用户不刷新再次播放时需恢复上报 */
+const resetReportingAfterReplay = (v: HTMLVideoElement) => {
+  if (!videoLeftEndAfterWatched(v)) return;
+  if (!hasEnded.value && !isWatched() && !hasReportedWatched) return;
+  hasEnded.value = false;
+  hasReportedWatched = false;
+  clearWatched();
+};
 
 // ===== 分集切换与播放器实例化 =====
 // 添加播放结束回调
@@ -264,6 +421,8 @@ const setOnEnded = (callback: () => void) => {
 const loadPart = async (part: number) => {
   // 重置播放结束标记
   hasEnded.value = false;
+  // 新实例未 ready，允许下次 pendingSeek 消费
+  playerReady = false;
 
   const el = document.getElementById('dplayer');
   if (el) {
@@ -274,7 +433,10 @@ const loadPart = async (part: number) => {
     }
     /* === 播放器销毁与重建实例化片段 start === */
     if (player) player.destroy();
+    // 复用同一 options 时上一分 P 的 subtitles 会污染新实例，导致轨加载失败、CC 一直 disabled
+    options.video.subtitles = [];
     options.container = el;
+    options.autoplay = localStorage.getItem('wplayer-autoplay') !== '0';
     player = new Wplayer(options);
     /* === 播放器销毁与重建实例化片段 end === */
     hasReportedWatched = false;
@@ -310,6 +472,8 @@ const loadPart = async (part: number) => {
       // 非统一模式（HLS 或降级 DASH）：保存清晰度偏好
       player.on('quality_start', (quality: PlayerQualityType) => {
         localStorage.setItem('default-video-quality', quality.name);
+        // 切清晰度会更换 video 元素，需用 WPlayer.updateSubtitles 重新挂载 data-wplayer-subtitle 轨
+        void fetchAndApplySubtitles(getResourceShortIdForPart(part), player);
       });
 
       // HLS 模式下 Wplayer 仍会创建新 video 元素，需要保存播放状态用于恢复
@@ -326,12 +490,13 @@ const loadPart = async (part: number) => {
     }
     filterDanmaku({ disableLeave, disableType });
 
-    if (player && typeof player.play === 'function') {
+    if (player && typeof player.play === 'function' && options.autoplay) {
       player.play();
     }
 
     // 监听播放完成事件，上报已看完并终止定时上报
     player.on('ended', async () => {
+      if (hasEnded.value) return;
       hasEnded.value = true; // 标记为已结束
 
       try {
@@ -339,10 +504,11 @@ const loadPart = async (part: number) => {
         const duration = Math.floor(player.video.duration || 0);
 
         await addHistoryAPI({
-          vid: props.videoInfo.vid,
+          vid: props.videoInfo.shortId || String(props.videoInfo.vid),
           part: props.part,
           time: -1,        // 已看完统一用 -1
           duration,        // 整数秒
+          rid: getCurrentResourceShortId(),
         });
       } catch (error) {
         console.error('上报播放完成失败:', error);
@@ -360,14 +526,24 @@ const loadPart = async (part: number) => {
     // 监听进度条大跨度跳转
     let lastSeekTime = 0;
     player.on('seeked', () => {
+      const v = player.video;
+      if (v) resetReportingAfterReplay(v);
       const current = player.video.currentTime;
       if (Math.abs(current - lastSeekTime) > 10 && !isWatched() && !hasEnded.value) {
         const current = Math.floor(player.video.currentTime || 0);
         const duration = Math.floor(player.video.duration || 0);
-        addHistoryAPI({ vid: props.videoInfo.vid, part: props.part, time: current, duration });
+        addHistoryAPI({ vid: props.videoInfo.shortId || String(props.videoInfo.vid), part: props.part, time: current, duration, rid: getCurrentResourceShortId() });
       }
       lastSeekTime = current;
     });
+
+    player.on('play', () => {
+      const v = player?.video;
+      if (v) resetReportingAfterReplay(v);
+    });
+
+    queueProgressRestoreForNewPlayer();
+    attachPlayerReadyAndProgressFlush(part);
   }
 }
 
@@ -442,9 +618,10 @@ const loadResource = async (part: number) => {
     return;
   }
 
+  const rid = resource.shortId || resource.id;  // 优先使用 shortId
   const requestTs = Date.now();
 
-  const res = await getResourceQualityApi(resource.id)
+  const res = await getResourceQualityApi(rid)
   if (res.data.code === statusCode.OK && res.data.data.quality?.length > 0) {
     // 复制并根据分辨率宽度 & 帧率从高到低排序
     const qualities = [...res.data.data.quality] as string[]
@@ -462,12 +639,12 @@ const loadResource = async (part: number) => {
     const useDash = supportsDashJs() && serverSupportsDash
     const qualityOrderFromServer = (res.data.data.qualityOrder as string[]) || []
 
-    // 当前视频不包含上次保存的清晰度名时，回退到本视频的最高档，并同步更新 localStorage
+    // 当前视频不包含上次保存的清晰度名时，回退到本视频的最高档（不记住选择，避免影响其他视频）
     const qualityNames = qualities.map((q) => getQualityDisplayName(q))
     if (!qualityNames.includes(defaultQuality.value)) {
       const highestName = qualityNames[0] || '720p'
       defaultQuality.value = highestName
-      localStorage.setItem('default-video-quality', highestName)
+      // 不更新 localStorage，避免影响其他视频
     }
 
     if (useDash && qualityOrderFromServer.length > 0) {
@@ -478,7 +655,7 @@ const loadResource = async (part: number) => {
         dashQualityMap.set(getQualityDisplayName(q), index)
       })
 
-      const unifiedMpdUrl = getVideoFileUrlDashUnified(resource.id, requestTs)
+      const unifiedMpdUrl = getVideoFileUrlDashUnified(rid, requestTs)
       options.video.quality = qualities.map((item, index) => {
         const name = getQualityDisplayName(item)
         if (name === defaultQuality.value) {
@@ -493,7 +670,7 @@ const loadResource = async (part: number) => {
       options.video.quality = qualities.map((item, index) => {
         const name = getQualityDisplayName(item)
         if (name === defaultQuality.value) options.video.defaultQuality = index
-        return { name, url: getVideoFileUrlDash(resource.id, item, requestTs) }
+        return { name, url: getVideoFileUrlDash(rid, item, requestTs) }
       })
       options.video.type = 'customDash'
     } else {
@@ -502,7 +679,7 @@ const loadResource = async (part: number) => {
       options.video.quality = qualities.map((item, index) => {
         const name = getQualityDisplayName(item)
         if (name === defaultQuality.value) options.video.defaultQuality = index
-        return { name, url: getVideoFileUrl(resource.id, item, requestTs) }
+        return { name, url: getVideoFileUrl(rid, item, requestTs) }
       })
       options.video.type = 'customHls'
     }
@@ -531,6 +708,46 @@ const supportsDashJs = (): boolean => {
 const originalDanmaku = shallowRef<DanmakuType[]>([]);
 const setDanmaku = (data: DanmakuType[]) => {
   originalDanmaku.value = data;
+  // 更新弹幕数量统计
+  danmakuSendRef.value?.updateDanmakuCount(data.length);
+}
+// 本地刚发出、正在等 ws 回广播的弹幕键（避免自己的弹幕被当成他人弹幕二次渲染）
+const recentlySent = new Map<string, number>();
+// 把 time 按 0.1s 取整，规避后端 float32 往返精度差异，保证发送端构造的 key 能匹配 ws 回广播的 key
+const makeDanmakuKey = (d: { time?: number; text?: string; color?: string; type?: number | string }) =>
+  `${Math.round((d.time ?? 0) * 10)}|${d.text ?? ''}|${d.color ?? ''}|${d.type ?? ''}`;
+
+// 追加单条弹幕到播放器（不触发 wplayer 的 reload/seek，避免卡顿 + 丢掉在飞的弹幕）
+const addDanmaku = (danmaku: DanmakuType) => {
+  // 1. 同步本地数据源与计数
+  originalDanmaku.value = [...originalDanmaku.value, danmaku];
+  danmakuSendRef.value?.updateDanmakuCount(originalDanmaku.value.length);
+
+  if (!player || !player.danmaku) return;
+
+  // 2. 同步 wplayer 的 options.data，确保后续 reload/resize 不会漏掉
+  const dataRef = player.danmaku.options && player.danmaku.options.data;
+  if (Array.isArray(dataRef)) dataRef.push(danmaku);
+
+  // 3. 若是自己刚发出的那条 ws 回广播：player.danmaku.send 已经插入 dan 并绘制过了，跳过渲染
+  const key = makeDanmakuKey(danmaku);
+  if (recentlySent.has(key)) {
+    recentlySent.delete(key);
+    return;
+  }
+
+  // 4. 他人的弹幕：只绘制接近当前时刻的，过时的直接丢弃（防止跑完又冒一条）
+  const dan = player.danmaku.dan;
+  if (!Array.isArray(dan)) return;
+  const nowT = player.video?.currentTime ?? 0;
+  const dTime = danmaku.time ?? 0;
+  // 已错过 > 0.5s 的历史弹幕：只留在 options.data 供后续 reload 用，不再补绘
+  if (dTime < nowT - 0.5) return;
+
+  const idx = player.danmaku.danIndex ?? 0;
+  let i = idx;
+  while (i < dan.length && (dan[i]?.time ?? 0) <= dTime) i++;
+  dan.splice(i, 0, danmaku);
 }
 // 弹幕显示改变
 const changeShow = (val: boolean) => {
@@ -554,11 +771,29 @@ const sendDanmaku = (danmakuForm: DrawDanmakuType) => {
   player.danmaku.send(danmakuForm, async (danmaku: AddDanmakuType) => {
     danmaku.vid = props.videoInfo.vid;
     danmaku.part = props.part;
-    const res = await sendDanmakuAPI(danmaku);
+    // 附带 rid 用于精准绑定
+    const currentRid = props.videoInfo.resources?.[props.part - 1]?.shortId;
+    if (currentRid) {
+      danmaku.rid = currentRid;
+    }
+    // 后端要求 vid 为字符串
+    const danmakuData = {
+      ...danmaku,
+      vid: String(danmaku.vid)
+    };
+
+    // 记录本地已绘制的 key，让 ws 回广播到这条时跳过重复渲染（30s 后自动过期清理）
+    const echoKey = makeDanmakuKey(danmaku);
+    recentlySent.set(echoKey, Date.now());
+    setTimeout(() => recentlySent.delete(echoKey), 30000);
+
+    const res = await sendDanmakuAPI(danmakuData);
     if (res.data.code !== statusCode.OK) {
       ElMessage.error(res.data.msg);
+      // 发送失败：ws 不会回广播，主动清理占位
+      recentlySent.delete(echoKey);
     }
-  })
+  });
 }
 
 //过滤弹幕
@@ -591,6 +826,32 @@ const isDisableType = (item: DanmakuType, disableType: Array<number>) => {
 }
 
 // ===== 历史记录上报 =====
+/** 串行化分 P 切换：避免连续切换时在上一个 loadPart 未完成时用错画面做快照 */
+let partSwitchTail: Promise<void> = Promise.resolve();
+
+const flushHistoryBeforePartChange = async (previousPart: number) => {
+  if (!props.videoInfo?.resources?.length) return;
+  if (!player?.video || typeof player.video.currentTime !== 'number') return;
+  if (localStorage.getItem(getWatchedKeyForPart(previousPart)) === '1') return;
+
+  const v = player.video;
+  const snapshotTime = Math.floor(v.currentTime);
+  const snapshotDuration = Math.floor(v.duration || 0);
+  const rid = props.videoInfo.resources[previousPart - 1]?.shortId;
+
+  try {
+    await addHistoryAPI({
+      vid: props.videoInfo.shortId || String(props.videoInfo.vid),
+      part: previousPart,
+      time: snapshotDuration > 0 && snapshotTime >= snapshotDuration ? -1 : snapshotTime,
+      duration: snapshotDuration,
+      ...(rid ? { rid } : {}),
+    });
+  } catch (e) {
+    console.error('[video-player] 分P切换前进度上报失败:', e);
+  }
+};
+
 const uploadHistory = async () => {
   // 如果视频已播放结束，不再上报进度
   if (hasEnded.value) {
@@ -602,25 +863,32 @@ const uploadHistory = async () => {
   const currentTime = Math.floor(player.video.currentTime); // 当前进度取整
 
   await addHistoryAPI({
-    vid: props.videoInfo.vid,
+    vid: props.videoInfo.shortId || String(props.videoInfo.vid),
     part: props.part,
     time: currentTime >= duration ? -1 : currentTime, // 播放完了就上报 -1
     duration,
+    rid: getCurrentResourceShortId(),
   });
 }
 
 
-// ===== 分集切换监听 =====
-watch(() => props.part, (newPart, oldPart) => {
-  if (newPart !== oldPart) {
-    // 切换前上报当前进度（如果未播放完）
-    if (!hasEnded.value && !isWatched()) {
-      uploadHistory();
-    }
-    // 加载新分集
-    loadPart(newPart);
+// ===== 分集切换监听（快照上一 P 进度后再 loadPart，链式串行防竞态） =====
+watch(
+  () => props.part,
+  (newPart, oldPart) => {
+    if (newPart === oldPart) return;
+    const prev = oldPart;
+    const next = newPart;
+    partSwitchTail = partSwitchTail
+      .catch(() => {})
+      .then(async () => {
+        if (prev !== undefined) {
+          await flushHistoryBeforePartChange(prev);
+        }
+        await loadPart(next);
+      });
   }
-});
+);
 
 onMounted(async () => {
   const quality = localStorage.getItem('default-video-quality');
@@ -634,17 +902,7 @@ onMounted(async () => {
   initFilterConfig();
   await loadPart(props.part);
 
-  if (player) {
-    player.on('loadedmetadata', () => {
-      onReadyCallbacks.forEach(cb => cb());
-      onReadyCallbacks.length = 0;
-      // loadedmetadata 兜底 seek
-      if (pendingSeek != null) {
-        player.seek(pendingSeek);
-        pendingSeek = null;
-      }
-    });
-  }
+  // loadedmetadata / canplay 与续播 flush 已在 loadPart 内按实例绑定
 
   // 定时上报历史进度，若已看完则停止上报
   timer = window.setInterval(() => {
@@ -669,7 +927,7 @@ const reportOnLeave = () => {
   if (player && player.video && typeof player.video.currentTime === 'number' && !isWatched()) {
     const duration = Math.floor(player.video.duration || 0); // 总时长取整
     const currentTime = Math.floor(player.video.currentTime); // 当前进度取整
-    addHistoryAPI({ vid: props.videoInfo.vid, part: props.part, time: currentTime >= duration ? -1 : currentTime, duration });
+    addHistoryAPI({ vid: props.videoInfo.shortId || String(props.videoInfo.vid), part: props.part, time: currentTime >= duration ? -1 : currentTime, duration, rid: getCurrentResourceShortId() });
   }
 };
 if (typeof window !== 'undefined') {
@@ -704,6 +962,7 @@ defineExpose({
   setOnReady,
   uploadHistory,
   setDanmaku,
+  addDanmaku,
   setOnEnded
 })
 </script>
@@ -730,6 +989,11 @@ defineExpose({
       width: 100vw;
       height: 100vh;
       z-index: 9999;
+    }
+
+    /* CC：无轨时为 disabled（默认很淡）；有轨后 wplayer 会去掉 disabled 并可点 */
+    :deep(.wplayer-subtitles-quick.wplayer-subtitles-quick-disabled) {
+      opacity: 0.72 !important;
     }
   }
 

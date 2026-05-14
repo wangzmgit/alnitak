@@ -3,7 +3,7 @@
     <header-bar class="header-bar"></header-bar>
     <div class="upload-container">
       <div class="upload-menu-container">
-        <nuxt-link v-for="item in menuList" :to="item.to" class="menu-item" v-show="item.show"
+        <nuxt-link v-for="item in menuList" :key="item.key" :to="item.to" class="menu-item" v-show="item.show"
           :class="route.name === item.key ? 'menu-item-active' : ''">
           <span class="menu-icon">
             <component :is="item.icon" size="18" :strokeWidth="3"></component>
@@ -20,7 +20,6 @@
 
 <script setup lang="ts">
 import { h, ref, onBeforeMount } from "vue";
-import HeaderBar from '@/components/header-bar/index.vue';
 import VideoIcon from "@/components/icons/VideoIcon.vue";
 import CommentIcon from "@/components/icons/CommentIcon.vue";
 import UploadIcon from "@/components/icons/UploadIcon.vue";

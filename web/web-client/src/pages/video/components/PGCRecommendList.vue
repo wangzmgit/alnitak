@@ -25,7 +25,7 @@
 import { asyncGetPGCRecommendByVideoAPI } from "@/api/pgc";
 
 const props = defineProps<{
-  vid: number;
+  vid: number | string;
 }>();
 
 const videoList = ref<PGCRecommendItem[]>([])

@@ -14,7 +14,7 @@
     </div>
     <div class="video-box">
       <el-scrollbar>
-        <ul class="video-list" v-infinite-scroll="scrollLoad">
+        <ul v-if="videoList.length" class="video-list" v-infinite-scroll="scrollLoad">
           <li class="video-item" v-for="(item, index) in videoList" :key="index">
             <div class="item-left">
               <div class="cover">
@@ -26,7 +26,7 @@
                 <span class="item-title unlinked">{{ item.title }}</span>
               </template>
               <template v-else>
-                <nuxt-link class="item-title" :to="`/watch?v=${item.shortId || String(item.vid)}`">{{ item.title }}</nuxt-link>
+                <nuxt-link class="item-title" :to="`/watch?v=${item.shortId}`">{{ item.title }}</nuxt-link>
               </template>
               <span class="desc">简介：{{ item.desc }}</span>
               <div class="desc">
@@ -67,6 +67,7 @@
                 <template #dropdown>
                   <el-dropdown-menu>
                     <el-dropdown-item @click="modifyVideo(item.vid)">编辑</el-dropdown-item>
+                    <el-dropdown-item @click="openSubtitleManage(item.vid)">字幕管理</el-dropdown-item>
                     <el-dropdown-item @click="deleteVideo(item, index)">删除稿件</el-dropdown-item>
                   </el-dropdown-menu>
                 </template>
@@ -74,6 +75,7 @@
             </div>
           </li>
         </ul>
+        <el-empty v-else-if="!initialLoading" description="暂无视频" />
       </el-scrollbar>
     </div>
     <client-only>
@@ -84,6 +86,7 @@
         <el-button type="danger" class="delete-btn" @click="submitDelete">确认删除</el-button>
       </el-dialog>
     </client-only>
+    <subtitle-manage-dialog :vid="subtitleManageVid" @close="subtitleManageVid = null" />
   </div>
 </template>
 
@@ -96,12 +99,16 @@ import { reviewCode } from '@/utils/review-code';
 import { statusCode } from '@/utils/status-code';
 import { formatTime } from '@/utils/format';
 import { getResourceUrl } from '@/utils/resource';
+import SubtitleManageDialog from '@/components/subtitle/SubtitleManageDialog.vue';
+
+const subtitleManageVid = ref<number | null>(null);
 
 const page = ref(1);
 const total = ref(0);
 const pageSize = 8;
 const noMore = ref(false);
 const loading = ref(false);
+const initialLoading = ref(true);
 const videoList = ref<Array<ManuscriptVideoType>>([]);
 let silentRefreshTimer: number | null = null;
 const activeTab = ref<'published' | 'pending' | 'rejected' | 'transcoding' | 'transcode_failed'>('published');
@@ -130,6 +137,7 @@ const getUploadVideo = async () => {
       noMore.value = true;
     }
   }
+  initialLoading.value = false;
   loading.value = false;
 }
 
@@ -200,6 +208,7 @@ const changeTab = (tab: typeof tabs[number]['key']) => {
   total.value = 0;
   noMore.value = false;
   videoList.value = [];
+  initialLoading.value = true;
   expandedDetail.value = {};
   if (tab === 'transcoding') {
     startSilentRefresh();
@@ -303,6 +312,10 @@ const showReason = async (vid: number) => {
 //前往修改视频
 const modifyVideo = (vid: number) => {
   navigateTo({ name: "upload-video", query: { vid: vid } });
+}
+
+const openSubtitleManage = (vid: number) => {
+  subtitleManageVid.value = vid;
 }
 
 onBeforeMount(() => {

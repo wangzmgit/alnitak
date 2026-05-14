@@ -72,7 +72,7 @@ type PGCSeason = { pgc_id: string; title?: string };
 type PGCEpisode = { id: number; ep_id?: number; episode_number: number; title: string; vid: number };
 
 const props = defineProps<{
-  vid: number;
+  vid: number | string;
   initialSeasons?: any[];
   initialEpisodes?: any[];
   initialActiveSeasonId?: string;

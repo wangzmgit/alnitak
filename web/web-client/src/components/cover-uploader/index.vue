@@ -28,7 +28,6 @@ import { ElMessage } from "element-plus";
 import { isUrl } from "@/utils/verify";
 import { globalConfig } from "@/utils/global-config";
 import { Upload as UploadIcon } from "@icon-park/vue-next";
-import ImageCropper from "@/components/image-cropper/index.vue";
 import CoverCropper from "@/components/image-cropper/components/CoverCropper.vue";
 
 const emits = defineEmits(["finish"]);

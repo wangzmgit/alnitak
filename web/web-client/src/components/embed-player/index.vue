@@ -17,6 +17,7 @@ import {
   getSavedVolumeState,
   type HlsPlayerState,
 } from '@/utils/hls-player';
+import { fetchAndApplySubtitles } from '@/utils/subtitle-tracks';
 
 const props = defineProps<{
   videoInfo: VideoType;
@@ -102,7 +103,7 @@ const getQualityDisplayName = (qualityStr: string): string => {
   return qualityStr.split('_')[0] || qualityStr;
 };
 
-const getQualities = (qualityList: string[], resourceId: number, qualityOrderFromServer: string[] = []) => {
+const getQualities = (qualityList: string[], resourceId: number | string, qualityOrderFromServer: string[] = []) => {
   // 主站同款排序
   const sorted = [...qualityList].sort((a, b) => {
     const wa = parseInt(a.split('x')[0], 10);
@@ -195,13 +196,14 @@ const initPlayer = async () => {
     (window as any).Hls = Hls;
   }
 
-  const res = await getResourceQualityApi(resource.id);
+  const rid = resource.shortId || resource.id;
+  const res = await getResourceQualityApi(rid);
   let qualities: any[] = [];
   let supportDash = false;
   if (res.data.code === 200 && res.data.data.quality?.length > 0) {
     const qualityOrderFromServer = (res.data.data.qualityOrder as string[]) || [];
     const serverSupportsDash = res.data.data.supportsDash === true;
-    const result = getQualities(res.data.data.quality, resource.id, serverSupportsDash ? qualityOrderFromServer : []);
+    const result = getQualities(res.data.data.quality, rid, serverSupportsDash ? qualityOrderFromServer : []);
     qualities = result.qualities;
     supportDash = result.supportDash;
   } else {
@@ -212,11 +214,14 @@ const initPlayer = async () => {
   /* === 播放器实例化片段 start === */
   player = new Wplayer({
     container,
+    setting: true,
+    lang: 'zh-cn',
     video: {
       quality: qualities,
       defaultQuality: 0,
       autoplay: shouldAutoplay,
       controls: ["play", "progress", "volume", "quality", "fullscreen"],
+      subtitles: [],
       type: supportDash ? 'customDash' : 'customHls',
       customType: {
         customHls: function (video: HTMLVideoElement) {
@@ -294,7 +299,7 @@ const initPlayer = async () => {
         },
       },
     },
-    danmaku: { show: true },
+    danmaku: { show: true, bottom: '52px' },
     preload: "auto",
     volume: shouldMuted ? 0 : 0.8,
     muted: shouldMuted,
@@ -330,6 +335,9 @@ const initPlayer = async () => {
         lastPlaybackState = { time: player.video.currentTime, playing: !player.video.paused };
       }
     });
+    player.on('quality_start', () => {
+      void fetchAndApplySubtitles(String(rid), player);
+    });
   }
 
   // 强制设置 video 元素属性，确保自动静音播放生效
@@ -347,6 +355,7 @@ const initPlayer = async () => {
   player.on('loadedmetadata', () => {
     console.log('[embed-player] player loadedmetadata');
     injectDanmaku();
+    void fetchAndApplySubtitles(String(rid), player);
   });
 
   // 加载弹幕
@@ -394,5 +403,9 @@ watch(
   width: 100vw;
   margin: 0;
   padding: 0;
+
+  :deep(.wplayer-subtitles-quick.wplayer-subtitles-quick-disabled) {
+    opacity: 0.72 !important;
+  }
 }
 </style> 

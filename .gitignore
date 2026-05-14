@@ -10,6 +10,7 @@ node_modules
 
 # Local AI assistant config (do not commit)
 .claude/
+.cursor/
 
 web/admin-client/src/utils/global-config.ts
 web/mobile-client/src/utils/global-config.ts
