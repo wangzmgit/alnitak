@@ -674,7 +674,18 @@ customType: {
     });
   }
 
-  // 监听 ready 事件，安全地开始播放
+  // 信息面板打开时点击外部关闭（标题/UP 浮层 z-index 9999 会盖住 [x] 按钮）
+  player.on('info', (show: boolean) => {
+    if (!show) return;
+    const closeHandler = (e: MouseEvent) => {
+      const infoEl = player?.container?.querySelector('.art-info');
+      if (infoEl && !infoEl.contains(e.target as Node)) {
+        player.info.show = false;
+        document.removeEventListener('click', closeHandler);
+      }
+    };
+    setTimeout(() => document.addEventListener('click', closeHandler), 0);
+  });
   player.on('ready', () => {
     if (embedSubTracks.length && player?.subtitle !== undefined) {
       player.subtitle.show = subtitleBarToggle.visible;
