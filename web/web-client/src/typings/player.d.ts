@@ -2,6 +2,7 @@ interface PlayerOptionsType {
   container: HTMLElement | null;
   video: PlayerVideoOptionsType;
   danmaku: PlayerDanmakuType;
+  autoplay?: boolean;
   /** 显示齿轮设置（内嵌「字幕」轨切换，wplayer-next） */
   setting?: boolean;
   /** 控制 i18n，如 zh-cn */

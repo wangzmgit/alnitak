@@ -454,7 +454,7 @@ const initPlayer = async () => {
     quality: qualities,
     type,
     isLive: false,
-    autoplay: true,
+    autoplay: localStorage.getItem('artplayer-autoplay') !== '0',
     muted: false,
     volume: 0.8,
     fullscreen: true,
@@ -478,6 +478,23 @@ const initPlayer = async () => {
     // DASH 模式下禁用 artplayer 的 loop
     loop: isDash ? false : loopInit,
   settings: [
+    {
+      html: '自动播放',
+      icon: '<svg viewBox="0 0 24 24" width="20" height="20" fill="#2196f3"><path d="M8 5v14l11-7z"/></svg>',
+      switch: localStorage.getItem('artplayer-autoplay') !== '0',
+      onSwitch(item: any): boolean {
+        const newValue = !item.switch;
+        localStorage.setItem('artplayer-autoplay', newValue ? '1' : '0');
+        if (player) {
+          player.option.autoplay = newValue;
+          if (newValue && player.video?.paused) {
+            player.play();
+          }
+        }
+        return newValue;
+      },
+      name: 'autoplay-setting',
+    },
     {
       html: '循环播放',
       icon: '<svg viewBox="0 0 1024 1024" width="20" height="20"><path d="M512 64C264.6 64 64 264.6 64 512h64c0-211.7 172.3-384 384-384s384 172.3 384 384-172.3 384-384 384c-70.7 0-137.2-19.2-194.1-52.6l90.1-90.1c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-144 144c-12.5 12.5-12.5 32.8 0 45.3l144 144c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3l-90.1-90.1C374.8 924.8 443.2 944 512 944c247.4 0 448-200.6 448-448S759.4 64 512 64z" fill="#2196f3"/></svg>',
@@ -666,12 +683,11 @@ customType: {
       }
     }
     syncSubtitleQuickControl();
-    const playPromise = player.play();
-    if (playPromise !== undefined) {
-      playPromise.catch((error: any) => {
-        if (error.name !== 'AbortError' && error.name !== 'NotAllowedError') {
-        }
-      });
+    if (player.option.autoplay) {
+      const playPromise = player.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {});
+      }
     }
   });
 

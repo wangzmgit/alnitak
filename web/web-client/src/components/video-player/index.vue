@@ -85,6 +85,7 @@ const auth = useAuthStore();
 const isLoggedIn = computed(() => auth.isLoggedIn);
 const options: PlayerOptionsType = {
   container: null,
+  autoplay: localStorage.getItem('wplayer-autoplay') !== '0',
   setting: true,
   lang: 'zh-cn',
   video: {
@@ -435,6 +436,7 @@ const loadPart = async (part: number) => {
     // 复用同一 options 时上一分 P 的 subtitles 会污染新实例，导致轨加载失败、CC 一直 disabled
     options.video.subtitles = [];
     options.container = el;
+    options.autoplay = localStorage.getItem('wplayer-autoplay') !== '0';
     player = new Wplayer(options);
     /* === 播放器销毁与重建实例化片段 end === */
     hasReportedWatched = false;
@@ -488,7 +490,7 @@ const loadPart = async (part: number) => {
     }
     filterDanmaku({ disableLeave, disableType });
 
-    if (player && typeof player.play === 'function') {
+    if (player && typeof player.play === 'function' && options.autoplay) {
       player.play();
     }
 

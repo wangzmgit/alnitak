@@ -11155,13 +11155,13 @@ __metadata:
 
 "wplayer-next@file:./vendor/wplayer-next::locator=alnitak-web%40workspace%3A.":
   version: 1.0.5
-  resolution: "wplayer-next@file:./vendor/wplayer-next#./vendor/wplayer-next::hash=4660b2&locator=alnitak-web%40workspace%3A."
+  resolution: "wplayer-next@file:./vendor/wplayer-next#./vendor/wplayer-next::hash=29dac7&locator=alnitak-web%40workspace%3A."
   dependencies:
     "@commitlint/config-conventional": "npm:^19.1.0"
     balloon-css: "npm:^1.0.3"
     promise-polyfill: "npm:8.3.0"
     vitepress: "npm:^1.0.1"
-  checksum: 10c0/dfc599dc08391b66c2cb924867b5175df5ee1411eaa7e68b747e960f16413e72db5b3caa6789c6a9dfd47f16595d6cb0f0bf08e7e37321e383e139df42dd576a
+  checksum: 10c0/d13aade7e098282908b1928dd9eda045547deee7103d9b4ffbfb5bb325ff685d8afeb2e0066df726069a22b6de623b32b6aa021f42feac1f06966b31055d4028
   languageName: node
   linkType: hard
 
