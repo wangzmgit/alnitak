@@ -26,11 +26,11 @@
                       </li>
                     </ul>
                     <div class="entry-footer-tags">
-                      <div v-if="item.tags" class="tag" v-for="tag in item.tags.split(',')">{{ tag }}</div>
+                      <div v-if="item.tags" class="tag" v-for="tag in item.tags.split(',')" :key="tag">{{ tag }}</div>
                     </div>
                   </div>
                 </div>
-                <img v-if="item.cover" class="cover" :src="getResourceUrl(item.cover)" alt="封面">
+                <oss-image v-if="item.cover" class="cover" :src="item.cover" alt="封面" />
               </nuxt-link>
             </li>
           </ul>
@@ -44,16 +44,16 @@
 
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount, ref } from 'vue';
-import HomeSidebar from '@/components/home-sidebar/index.vue';
-import HomeHeader from "@/components/home-header/index.vue";
 import { PreviewOpen } from '@icon-park/vue-next';
 import { asyncGetRandomArticleAPI, getRandomArticleAPI } from '@/api/article';
+import { throttle } from "@/utils/debounce";
 
 definePageMeta({
   middleware: ['article']
 })
 
-const menuFold = ref(false);
+const menuFoldCookie = useCookie<boolean>('menu-fold-state', { default: () => false });
+const menuFold = ref(menuFoldCookie.value);
 const changeMenuFold = (val: boolean) => {
   menuFold.value = val;
 }
@@ -100,12 +100,14 @@ const lazyLoading = (e: Event) => {
   }
 }
 
+const throttledLoading = throttle(lazyLoading, 150);
+
 onMounted(() => {
-  window.addEventListener('scroll', lazyLoading, true);
+  window.addEventListener('scroll', throttledLoading, true);
 })
 
 onBeforeUnmount(() => {
-  window.removeEventListener('scroll', lazyLoading, true);
+  window.removeEventListener('scroll', throttledLoading, true);
 })
 </script>
 

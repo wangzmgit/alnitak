@@ -41,7 +41,7 @@ import { h, onBeforeMount, onBeforeUnmount, reactive, ref, computed } from 'vue'
 import { Refresh } from "@vicons/ionicons5";
 import useLoading from '@/hooks/loading-hooks';
 import { statusCode } from '@/utils/status-code';
-import { getVideoListAPI, getFailedVideoListAPI, getProcessingVideoListAPI, deleteVideoAPI, reTranscodeVideoAPI } from '@/api/video';
+import { getVideoListAPI, getFailedVideoListAPI, getProcessingVideoListAPI, deleteVideoAPI, reTranscodeVideoAPI, reUploadVideoAPI } from '@/api/video';
 import type { DataTableColumns } from 'naive-ui';
 import { getResourceUrl } from '@/utils/resource';
 import usePartition from '@/hooks/partition-hooks';
@@ -95,6 +95,17 @@ const reTranscodeVideo = async (row: VideoType) => {
   const res = await reTranscodeVideoAPI(row.vid);
   if (res.data.code === statusCode.OK) {
     message.success('重新转码任务已提交');
+    await refreshAfterReTranscode();
+  } else {
+    message.error(res.data.msg);
+  }
+}
+
+// 重新上传OSS（转码成功但上传失败时重置上传）
+const reUploadVideo = async (row: VideoType) => {
+  const res = await reUploadVideoAPI(row.vid);
+  if (res.data.code === statusCode.OK) {
+    message.success('重新上传任务已提交');
     await refreshAfterReTranscode();
   } else {
     message.error(res.data.msg);
@@ -240,34 +251,87 @@ const publishedColumns: DataTableColumns<VideoType> = [
   }
 ]
 
+const ossTypeLabels: Record<string, string> = {
+  aliyun: '阿里云OSS',
+  minio: 'MinIO',
+  cloudflare: 'Cloudflare R2',
+  local: '本地存储',
+}
+
+const uploadProgressLabel = (info: UploadProgressInfo | undefined): string => {
+  if (!info) return '';
+  const ossName = ossTypeLabels[info.ossType] || info.ossType;
+  if (info.status === 'local') return '本地存储，无需上传';
+  if (info.status === 'uploading') return `上传至 ${ossName}`;
+  if (info.status === 'success') return 'OSS 上传完成';
+  if (info.status === 'fail') return 'OSS 上传失败';
+  return '';
+}
+
 // 处理中列
 const processingColumns: DataTableColumns<VideoType> = [
   {
     type: 'expand',
     renderExpand: row => {
+      const transcodingParts: any[] = [];
       const details = row.transcodingDetails || [];
-      if (details.length === 0) {
-        return h('div', { style: 'padding: 8px 4px; color: var(--n-text-color-3);' }, '暂无清晰度进度明细');
-      }
-      return h('div', { style: 'padding: 6px 0;' }, details.map(item => {
-        const isWaiting = item.status === 'waiting';
-        const statusLabel = isWaiting ? '排队中' : (
-          item.status === 'processing' ? `${Math.round(item.progress || 0)}%` : ''
+      if (details.length > 0) {
+        transcodingParts.push(
+          h('div', { style: 'font-size: 13px; font-weight: 600; margin-bottom: 8px;' }, '转码进度')
         );
-        return h('div', { style: 'margin-bottom: 10px;' }, [
-          h('div', { style: 'margin-bottom: 4px; font-size: 12px; display: flex; align-items: center; gap: 8px;' }, [
-            `${item.resourceTitle || `资源#${item.resourceId}`} / ${item.quality}`,
-            isWaiting ? h(NTag, { size: 'tiny', type: 'default' }, { default: () => '排队中' }) : null,
-          ]),
+        transcodingParts.push(...details.map(item => {
+          const isWaiting = item.status === 'waiting';
+          return h('div', { style: 'margin-bottom: 10px;' }, [
+            h('div', { style: 'margin-bottom: 4px; font-size: 12px; display: flex; align-items: center; gap: 8px;' }, [
+              `${item.resourceTitle || `资源#${item.resourceId}`} / ${item.quality}`,
+              isWaiting ? h(NTag, { size: 'tiny', type: 'default' }, { default: () => '排队中' }) : null,
+            ]),
+            h(NProgress, {
+              percentage: isWaiting ? 0 : Math.round(item.progress || 0),
+              processing: item.status === 'processing',
+              status: item.status === 'fail' ? 'error' : (item.status === 'success' ? 'success' : 'default'),
+              showIndicator: true,
+              indicatorPlacement: 'inside',
+            })
+          ]);
+        }));
+      }
+
+      // 上传进度
+      const up = row.uploadProgress;
+      if (up && up.status && up.status !== 'local') {
+        transcodingParts.push(
+          h('div', { style: 'font-size: 13px; font-weight: 600; margin: 12px 0 8px 0;' }, 'OSS 上传进度')
+        );
+        transcodingParts.push(
+          h('div', { style: 'margin-bottom: 4px; font-size: 12px;' }, uploadProgressLabel(up))
+        );
+        transcodingParts.push(
           h(NProgress, {
-            percentage: isWaiting ? 0 : Math.round(item.progress || 0),
-            processing: item.status === 'processing',
-            status: item.status === 'fail' ? 'error' : (item.status === 'success' ? 'success' : 'default'),
+            percentage: Math.round(up.progress || 0),
+            processing: up.status === 'uploading',
+            status: up.status === 'fail' ? 'error' : (up.status === 'success' ? 'success' : 'default'),
             showIndicator: true,
             indicatorPlacement: 'inside',
           })
-        ]);
-      }));
+        );
+        if (up.status === 'fail') {
+          transcodingParts.push(
+            h('div', { style: 'margin-top: 8px;' }, [
+              h(NButton, {
+                size: 'small',
+                type: 'warning',
+                onClick: () => reUploadVideo(row)
+              }, { default: () => '重新上传' })
+            ])
+          );
+        }
+      }
+
+      if (transcodingParts.length === 0) {
+        return h('div', { style: 'padding: 8px 4px; color: var(--n-text-color-3);' }, '暂无进度明细');
+      }
+      return h('div', { style: 'padding: 6px 0;' }, transcodingParts);
     }
   },
   {
@@ -306,12 +370,39 @@ const processingColumns: DataTableColumns<VideoType> = [
     key: 'progress',
     title: '总体转码进度',
     align: 'center',
-    width: 240,
+    width: 200,
     render: row => h(NProgress, {
       percentage: Math.round(row.transcodingProgress || 0),
       processing: true,
       showIndicator: true
     })
+  },
+  {
+    key: 'uploadProgress',
+    title: '上传状态',
+    align: 'center',
+    width: 160,
+    render: row => {
+      const up = row.uploadProgress;
+      if (!up || !up.status) return h('span', { style: 'color: var(--n-text-color-3); font-size: 12px;' }, '等待中');
+      if (up.status === 'local') return h('span', { style: 'color: var(--n-text-color-3);' }, '本地存储');
+      if (up.status === 'success') return h(NTag, { size: 'tiny', type: 'success' }, { default: () => '上传完成' });
+      if (up.status === 'fail') return h(NSpace, { size: 'small' }, {
+        default: () => [
+          h(NTag, { size: 'tiny', type: 'error' }, { default: () => '上传失败' }),
+          h(NButton, { size: 'tiny', type: 'warning', onClick: () => reUploadVideo(row) }, { default: () => '重新上传' })
+        ]
+      });
+      return h('div', { style: 'display: flex; align-items: center; gap: 6px;' }, [
+        h(NProgress, {
+          percentage: Math.round(up.progress || 0),
+          processing: true,
+          height: 16,
+          showIndicator: true,
+          style: { width: '100px' }
+        }),
+      ]);
+    }
   },
   {
     key: 'createdAt',

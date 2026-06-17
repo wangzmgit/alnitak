@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia';
 
-export const useVideoCountStore = defineStore({
-  id: "videoCount",
+export const useVideoCountStore = defineStore('videoCount', {
   state: () => {
     return {
       videoCount: 0,

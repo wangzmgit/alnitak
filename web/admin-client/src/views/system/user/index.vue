@@ -120,10 +120,10 @@ const columns: DataTableColumns<UserInfoType> = [
     key: 'role',
     title: '角色',
     align: 'center',
-    render: row => {
+render: row => {
       return h(NSelect, {
         size: "small",
-        defaultValue: row.role,
+        value: row.role,
         labelField: "name",
         valueField: "code",
         options: roleList.value,

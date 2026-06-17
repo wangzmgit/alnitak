@@ -64,7 +64,7 @@
           <ul class="pgc-search-list">
             <li v-for="item in pgcList.slice(0, 3)" :key="item.pgc_id" class="pgc-search-item">
               <div class="pgc-link" @click="openPGC(item)">
-                <img v-if="item.cover" class="cover" :src="getResourceUrl(item.cover)" alt="封面">
+                <oss-image v-if="item.cover" class="cover" :src="item.cover" alt="封面" />
                 <div class="meta">
                   <div class="title-row">{{ item.title }}</div>
                   <div class="desc">{{ item.desc || '暂无简介' }}</div>
@@ -102,7 +102,7 @@
                   <span v-if="item.tags" class="tags">{{ item.tags }}</span>
                 </div>
               </div>
-              <img v-if="item.cover" class="cover" :src="getResourceUrl(item.cover)" alt="封面">
+              <oss-image v-if="item.cover" class="cover" :src="item.cover" alt="封面" />
             </nuxt-link>
           </li>
         </ul>
@@ -127,7 +127,7 @@
         <ul class="pgc-search-list">
           <li v-for="item in pgcList" :key="item.pgc_id" class="pgc-search-item">
             <div class="pgc-link" @click="openPGC(item)">
-              <img v-if="item.cover" class="cover" :src="getResourceUrl(item.cover)" alt="封面">
+              <oss-image v-if="item.cover" class="cover" :src="item.cover" alt="封面" />
               <div class="meta">
                 <div class="title-row">{{ item.title }}</div>
                 <div class="desc">{{ item.desc || '暂无简介' }}</div>
@@ -156,9 +156,8 @@ import { getVideoInfoAPI, searchVideoAPI } from '@/api/video';
 import { searchArticleAPI } from '@/api/article';
 import { searchUserAPI } from '@/api/user';
 import { getPGCDetailWithEpisodesAPI, searchPGCAPI } from '@/api/pgc';
-import HeaderBar from '@/components/header-bar/index.vue';
 import VideoItem from './components/VideoItem.vue';
-import CommonAvatar from '@/components/common-avatar/index.vue';
+import { throttle } from "@/utils/debounce";
 import { Search as SearchIcon } from '@icon-park/vue-next';
 import { removeHtml } from '@/utils/format';
 import { getResourceUrl } from '@/utils/resource';
@@ -550,16 +549,18 @@ watch(
   },
 );
 
+const throttledLoading = throttle(lazyLoading, 150);
+
 onMounted(() => {
   hydrated.value = true;
   syncKeywordsFromRoute();
   readFiltersFromRoute();
   loadVideos(true);
-  window.addEventListener('scroll', lazyLoading, true);
+  window.addEventListener('scroll', throttledLoading, true);
 });
 
 onBeforeUnmount(() => {
-  window.removeEventListener('scroll', lazyLoading, true);
+  window.removeEventListener('scroll', throttledLoading, true);
 });
 </script>
 

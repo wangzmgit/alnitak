@@ -1,7 +1,7 @@
 import request from '@/utils/request';
 
 // 获取视频点赞收藏数据
-export const getVideoArchiveStatAPI = (vid: number) => {
+export const getVideoArchiveStatAPI = (vid: number | string) => {
   return request.get(`v1/archive/video/stat?vid=${vid}`);
 }
 

@@ -1,8 +1,8 @@
 <template>
   <ul class="video-list">
-    <li class="video-item" v-for="item in videoList">
+    <li class="video-item" v-for="item in videoList" :key="item.vid">
       <nuxt-link class="cover" :to="watchLink(item)">
-        <img class="img" :src="getResourceUrl(item.cover)" />
+        <oss-image class="img" :src="item.cover" alt="封面" />
       </nuxt-link>
       <nuxt-link class="title" :to="watchLink(item)">
         <template v-if="item.pgcAttached && item.pgcTitle">
@@ -39,9 +39,19 @@ const props = defineProps<{
 const watchLink = (item: HistoryVideoType) => {
   const p = item.part ?? 1;
   if (item.pgcAttached && item.epId && item.epId > 0) {
-    return `/watch?ep=${item.epId}&mode=pgc&p=${p}`;
+    if (p > 1) {
+      return `/watch?ep=${item.epId}&mode=pgc&p=${p}`;
+    }
+    return `/watch?ep=${item.epId}&mode=pgc`;
   }
-  return `/watch?v=${item.shortId || String(item.vid)}&p=${p}`;
+  // 仅当分P > 1 时使用 rid 精准跳转，分P=1 时不带 rid
+  if (item.rid && p > 1) {
+    return `/watch?v=${item.shortId || String(item.vid)}&rid=${item.rid}`;
+  }
+  if (p > 1) {
+    return `/watch?v=${item.shortId || String(item.vid)}&p=${p}`;
+  }
+  return `/watch?v=${item.shortId || String(item.vid)}`;
 };
 </script>
 

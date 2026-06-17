@@ -18,6 +18,7 @@ interface VideoType {
   resources: ResourceType[];
   transcodingProgress?: number;
   transcodingDetails?: TranscodingProgressItem[];
+  uploadProgress?: UploadProgressInfo;
 }
 
 interface TranscodingProgressItem {
@@ -26,4 +27,10 @@ interface TranscodingProgressItem {
   quality: string;
   progress: number;
   status: 'waiting' | 'processing' | 'success' | 'fail' | string;
+}
+
+interface UploadProgressInfo {
+  ossType: string;   // aliyun/minio/cloudflare/local
+  progress: number;  // 0-100
+  status: string;    // uploading/success/fail/local
 }

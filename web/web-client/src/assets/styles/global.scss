@@ -93,3 +93,12 @@
   -webkit-user-select: none;
   user-select: none;
 }
+
+/*
+ * VideoPlayer 组件（WPlayer）：全局弹幕描边（仅描边，不使用 text-shadow）
+ */
+.wplayer-danmaku .wplayer-danmaku-item:not(.wplayer-danmaku-item--demo) {
+  text-shadow: none;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 2.8px rgba(0, 0, 0, 0.9);
+}

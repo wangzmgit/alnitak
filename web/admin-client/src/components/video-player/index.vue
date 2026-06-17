@@ -14,10 +14,12 @@ import { getResourceQualityApi, getVideoFileUrl, getVideoFileUrlDash, getVideoFi
 import { useMessage } from "naive-ui";
 import { getResourceUrl } from "@/utils/resource";
 import { storageData } from "@/utils/storage-data";
+import { baseURL } from "@/utils/request";
 
 const message = useMessage();
 
 let player: any = null;
+let mpdBlobUrl: string | null = null;
 const defaultQuality = ref('');
 const hls = shallowRef<Hls | null>(null);
 const dash = shallowRef<any>(null);
@@ -56,14 +58,18 @@ const options: any = {
         }
       },
 
-      // DASH 播放逻辑 - 核心修复区
+      // DASH 播放逻辑
       customDash: (video: HTMLVideoElement) => {
         const token = storageData.get('token');
+
+        // 预先保存 URL，清掉 video.src 防止浏览器预加载跨域 MPD 触发 CORB
+        const mpdUrl = video.src;
+        video.src = '';
 
         // 1. 实例复用检查
         if (dash.value) {
           try {
-            if (dash.value.getSource() === video.src) return;
+            if (dash.value.getSource() === mpdUrl) return;
           } catch (e) {
             console.warn('[DASH] 读取当前播放源失败，重建播放器实例:', e);
           }
@@ -75,6 +81,8 @@ const options: any = {
         const dp = dashjs.MediaPlayer().create();
         
         // 3. 配置参数 (dash.js v4.x)
+        // 注意: dashjs@4.7.4 的 protection 不可通过 updateSettings 配置
+        // EME 检测警告无害，只是 protection module 检查 DRM 支持的日志
         dp.updateSettings({
           streaming: {
             buffer: {
@@ -90,28 +98,33 @@ const options: any = {
 
         // 4. 【关键修复】无论什么模式，只要有 token 就必须注入鉴权
         // 否则后端返回 JSON 错误导致 dash.js 报 "parsing failed"
+        // 注意：仅对后端 API 请求加 Authorization，外部 R2 分片请求不加
+        // 否则 R2 presigned URL 触发 CORS preflight 导致请求被拦截
         if (token) {
+          let _currentReqUrl = '';
           dp.extend('RequestModifier', function () {
             return {
+              modifyRequestURL: function (url: string) {
+                _currentReqUrl = url;
+                return url;
+              },
               modifyRequestHeader: function (xhr: XMLHttpRequest) {
-                xhr.setRequestHeader('Authorization', token);
+                if (_currentReqUrl.indexOf(baseURL) === 0) {
+                  xhr.setRequestHeader('Authorization', token);
+                }
                 return xhr;
               },
-              modifyRequestURL: function (url: string) { return url; }
             };
           }, true);
         }
 
-        // 5. 初始化与事件
-        dp.initialize(video, video.src, false);
-
+        // 5. 注册事件处理器（在 initialize 之前注册，确保不丢失事件）
         dp.on('streamInitialized', () => {
           const quality = dp.getQualityFor('video');
           console.log('[DASH] 初始清晰度索引:', quality, '总清晰度:', options.video.quality.length);
           if (options.video.quality[quality]) {
             console.log('[DASH] 初始清晰度名称:', options.video.quality[quality].name);
           }
-          // 设置默认清晰度为最高（降序排列后最高在最后）
           const maxQualityIndex = options.video.quality.length - 1;
           dp.setQualityFor('video', maxQualityIndex);
           console.log('[DASH] 切换到最高清晰度索引:', maxQualityIndex);
@@ -134,6 +147,27 @@ const options: any = {
         });
 
         dash.value = dp;
+
+        // 6. 【关键修复】Wplayer customType 必须为同步函数（不能 async）
+        // 因此用 IIFE 包裹异步的 MPD 拉取逻辑
+        (async () => {
+          let manifestUrl = mpdUrl;
+          try {
+            const res = await getVideoFileAPI(mpdUrl);
+            console.log('[DASH] MPD 拉取完成, 状态:', res.status, '数据长度:', res.data?.length);
+            if (res.data) {
+              const blob = new Blob([res.data], { type: 'application/dash+xml' });
+              manifestUrl = URL.createObjectURL(blob);
+              if (mpdBlobUrl) URL.revokeObjectURL(mpdBlobUrl);
+              mpdBlobUrl = manifestUrl;
+            } else {
+              console.warn('[DASH] MPD 返回数据为空，使用直连 URL');
+            }
+          } catch (e) {
+            console.warn('[DASH] MPD 拉取失败，回退直连:', e);
+          }
+          dp.initialize(video, manifestUrl, false);
+        })();
       },
     },
   },
@@ -147,6 +181,7 @@ const loadVideo = async (resourceId: number) => {
     if (player) player.destroy();
     if (dash.value) { dash.value.reset(); dash.value = null; }
     if (hls.value) { hls.value.destroy(); hls.value = null; }
+    if (mpdBlobUrl) { URL.revokeObjectURL(mpdBlobUrl); mpdBlobUrl = null; }
 
     const resourceReady = await loadResource(resourceId);
     if (!resourceReady) return;
@@ -315,6 +350,7 @@ onBeforeUnmount(() => {
   if (player) player.destroy();
   if (hls.value) hls.value.destroy();
   if (dash.value) dash.value.reset();
+  if (mpdBlobUrl) { URL.revokeObjectURL(mpdBlobUrl); mpdBlobUrl = null; }
 })
 </script>
 

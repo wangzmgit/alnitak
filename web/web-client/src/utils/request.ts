@@ -1,10 +1,15 @@
 import axios from "axios";
 import type { AxiosInstance, AxiosError } from "axios";
+import Cookies from "js-cookie";
 import { updateTokenAPI } from "@/api/auth";
 import { statusCode } from "./status-code";
 import { globalConfig as config, } from "./global-config";
 import { storageData as storage } from "./storage-data";
 import { useAuthStore, saveCredentials, clearCredentials } from "@/stores/auth-store";
+
+/** 本地是否存在可读登录痕迹（与 auth-store 一致）；全无则视为游客，不发起无意义的 refresh，也不打错误日志 */
+const hasLocalAuthHint = (): boolean =>
+  Boolean(storage.get('token') || storage.get('refreshToken') || Cookies.get('user_id'));
 
 // 重试配置
 const MAX_RETRIES = 3;
@@ -37,11 +42,6 @@ let requests: TokenCallback[] = [];
 let isRefreshing = false;
 let refreshPromise: Promise<string> | null = null;
 
-// 播放页（watch）在后端重启清会话后不续签，避免噪音与无意义重试
-const isWatchPage = () => {
-  if (typeof window === 'undefined') return false;
-  return window.location.pathname === '/watch';
-};
 // 开发环境仅在“浏览器端”通过前端代理，SSR/生产环境直连后端
 const isBrowser = typeof window !== 'undefined';
 export const baseURL = (process.dev && isBrowser)
@@ -102,8 +102,7 @@ service.interceptors.request.use(async (config) => {
     const token = storage.get('token');
     if (token) {
       config.headers.Authorization = token;
-    } else if (!isWatchPage()) {
-      // 播放页不做 token 续签/刷新，避免后端重启后产生噪音重试
+    } else {
       // 如果没有 accessToken 且有 refreshToken
       const localRefreshToken = storage.get('refreshToken');
       if (localRefreshToken) {
@@ -115,7 +114,7 @@ service.interceptors.request.use(async (config) => {
             config.headers.Authorization = token;
             return config;
           } catch (error) {
-            console.error('Token refresh failed:', error);
+            console.warn('[request] Token refresh failed:', error);
             // 刷新失败,继续原请求
           }
         } else {
@@ -140,7 +139,8 @@ service.interceptors.response.use(async (res) => {
   if (process.client) {
     switch (res.data.code) {
       case statusCode.TOKEN_EXPRIED:
-        if (isWatchPage()) {
+        // 未登录且本地无任何凭证时：不尝试刷新，避免无谓请求与控制台报错
+        if (!hasLocalAuthHint()) {
           return res;
         }
         // token 过期：优先刷新；无本地 refresh 时仍可能通过 HttpOnly Cookie 由服务端续签
@@ -151,7 +151,7 @@ service.interceptors.response.use(async (res) => {
             res.config.headers.Authorization = token;
             return service.request(res.config); // 重新发起请求
           } catch (error) {
-            console.error('Token refresh in response interceptor failed:', error);
+            console.warn('[request] Token refresh in response interceptor failed:', error);
             return res;
           }
         }
@@ -199,6 +199,11 @@ service.interceptors.response.use(async (res) => {
 
     await delay(delayMs);
     return service.request(config);
+  }
+
+  // 重试耗尽后，给用户一个友好提示
+  if (isRetryableError(error)) {
+    ElMessage.error('网络连接失败，请检查服务器状态');
   }
 
   return Promise.reject(error);

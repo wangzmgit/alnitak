@@ -24,7 +24,7 @@ export const getFollowDataAPI = (uid: number | string) => {
 
 // 获取关注数据
 export const asyncetFollowDataAPI = async (userId: number | string) => {
-  return await useAsyncData(() => $fetch(`${baseURL}/api/v1/relation/getFollowCount?userId=${userId}`));
+  return await useAsyncData(`follow-data-${userId}`, () => $fetch(`${baseURL}/api/v1/relation/getFollowCount?userId=${userId}`));
 }
 
 //获取关注列表

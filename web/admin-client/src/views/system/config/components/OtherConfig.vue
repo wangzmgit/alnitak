@@ -15,6 +15,18 @@
         <n-form-item label="转码开启gpu加速">
           <n-switch v-model:value="otherForm.useGpu"></n-switch>
         </n-form-item>
+        <n-form-item label="视频编码">
+          <n-radio-group v-model:value="codecMode">
+            <n-radio-button value="h264">H.264</n-radio-button>
+            <n-radio-button value="h265">H.265 (10-bit)</n-radio-button>
+            <n-radio-button value="av1">AV1</n-radio-button>
+          </n-radio-group>
+        </n-form-item>
+        <n-alert v-if="codecMode === 'av1'" type="warning" style="margin-bottom: 16px;">
+          <template #header>AV1 硬件要求</template>
+          AV1 硬件编码需要 <strong>NVIDIA RTX 40 系列及以上</strong> 显卡。
+          不满足时自动降级到 CPU 编码（libsvtav1），速度显著变慢，建议仅在 GPU H.265 无法满足需求时选用。
+        </n-alert>
 
         <n-divider title-placement="left">服务器配置</n-divider>
         <n-form-item label="HTTP端口">
@@ -47,10 +59,10 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeMount, reactive } from "vue";
+import { onBeforeMount, reactive, ref, watch } from "vue";
 import { statusCode } from "@/utils/status-code";
 import { getOtherConfigAPI, setOtherConfigAPI } from "@/api/config";
-import { NInput, NSwitch, NForm, NFormItem, NButton, NDivider, NScrollbar, NAlert, useMessage } from "naive-ui";
+import { NInput, NSwitch, NForm, NFormItem, NButton, NDivider, NScrollbar, NAlert, NRadioGroup, NRadioButton, useMessage } from "naive-ui";
 
 const message = useMessage();
 
@@ -59,6 +71,8 @@ const otherForm = reactive({
   prefix: "",
   generate1080p60: false,
   useGpu: false,
+  useH265: false,
+  useAv1: false,
   // 服务器配置
   serverPort: "9000",
   sslEnabled: false,
@@ -75,6 +89,9 @@ const getConfig = async () => {
     otherForm.prefix = data.prefix;
     otherForm.generate1080p60 = data.generate1080p60;
     otherForm.useGpu = data.useGpu;
+    otherForm.useH265 = data.useH265;
+    otherForm.useAv1 = data.useAv1;
+    codecMode.value = data.useAv1 ? 'av1' : data.useH265 ? 'h265' : 'h264';
     // 服务器配置
     otherForm.serverPort = data.serverPort || "9000";
     otherForm.sslEnabled = data.sslEnabled || false;
@@ -94,6 +111,12 @@ const setConfig = async () => {
     message.error(res.data.msg || "修改失败");
   }
 }
+
+const codecMode = ref<'h264' | 'h265' | 'av1'>('h264');
+watch(codecMode, (mode) => {
+  otherForm.useH265 = mode === 'h265';
+  otherForm.useAv1 = mode === 'av1';
+});
 
 onBeforeMount(() => {
   getConfig();

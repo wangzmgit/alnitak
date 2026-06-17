@@ -23,8 +23,8 @@ export const editVideoAPI = (editVideo: EditVideoType) => {
 }
 
 // 获取所有视频列表
-export const getAllVideoAPI = () => {
-  return request.get("v1/video/getAllVideoList");
+export const getAllVideoAPI = (page: number = 1, pageSize: number = 10) => {
+  return request.get(`v1/video/getAllVideoList?page=${page}&pageSize=${pageSize}`);
 }
 
 // 删除视频
@@ -43,7 +43,7 @@ export const getVideoByUser = (userId: number, page: number, pageSize: number) =
 }
 
 export const asyncGetVideoByUser = async (userId: number, page: number, pageSize: number) => {
-  return await useAsyncData(() => $fetch(`${baseURL}/api/v1/video/getVideoByUser?userId=${userId}&page=${page}&pageSize=${pageSize}`));
+  return await useAsyncData(`video-by-user-${userId}-${page}-${pageSize}`, () => $fetch(`${baseURL}/api/v1/video/getVideoByUser?userId=${userId}&page=${page}&pageSize=${pageSize}`));
 }
 
 // 获取视频信息
@@ -53,7 +53,7 @@ export const getVideoInfoAPI = (videoId: number | string) => {
 
 // 获取视频信息（SSR）
 export const asyncGetVideoInfoAPI = async (videoId: number | string) => {
-  return await useAsyncData(() => $fetch(`${baseURL}/api/v1/video/getVideoById?vid=${videoId}`));
+  return await useAsyncData(`video-info-${videoId}`, () => $fetch(`${baseURL}/api/v1/video/getVideoById?vid=${videoId}`));
 }
 
 // 获取视频支持的分辨率
@@ -62,31 +62,31 @@ export const getResourceQualityApi = async (resourceId: number | string) => {
 }
 
 // 获取视频文件URL（HLS格式）
-export const getVideoFileUrl = (resourceId: number, quality: string, ts?: number) => {
+export const getVideoFileUrl = (resourceId: number | string, quality: string, ts?: number) => {
   const cacheBust = ts ? `&ts=${ts}` : '';
   return `${baseURL}/api/v1/video/getVideoFile?resourceId=${resourceId}&quality=${quality}&format=m3u8${cacheBust}`;
 }
 
 // 获取视频文件URL（DASH格式 - 返回MPD XML）
-export const getVideoFileUrlDash = (resourceId: number, quality: string, ts?: number) => {
+export const getVideoFileUrlDash = (resourceId: number | string, quality: string, ts?: number) => {
   const cacheBust = ts ? `&ts=${ts}` : '';
   return `${baseURL}/api/v1/video/getVideoFile?resourceId=${resourceId}&quality=${quality}&format=dash${cacheBust}`;
 }
 
 // 获取统一DASH MPD URL（所有清晰度合并到一个MPD，用于无缝切换）
-export const getVideoFileUrlDashUnified = (resourceId: number, ts?: number) => {
+export const getVideoFileUrlDashUnified = (resourceId: number | string, ts?: number) => {
   const cacheBust = ts ? `&ts=${ts}` : '';
   return `${baseURL}/api/v1/video/getVideoFile?resourceId=${resourceId}&format=dash-unified${cacheBust}`;
 }
 
 // 获取视频播放信息（JSON格式，类似B站）
-export const getVideoPlayInfo = (resourceId: number, quality: string) => {
+export const getVideoPlayInfo = (resourceId: number | string, quality: string) => {
   return request.get(`v1/video/getVideoFile?resourceId=${resourceId}&quality=${quality}`);
 }
 
 // 获取热门视频
 export const asyncGetHotVideoAPI = async (page: number, pageSize: number) => {
-  return await useAsyncData(() => $fetch(`${baseURL}/api/v1/video/getHotVideo?page=${page}&pageSize=${pageSize}`));
+  return await useAsyncData(`hot-video-${page}-${pageSize}`, () => $fetch(`${baseURL}/api/v1/video/getHotVideo?page=${page}&pageSize=${pageSize}`));
 }
 
 // 获取热门视频
@@ -96,7 +96,7 @@ export const getHotVideoAPI = (page: number, pageSize: number) => {
 
 // 获取最近上传的视频（SSR）
 export const asyncGetLatestVideoAPI = async (page: number, pageSize: number) => {
-  return await useAsyncData(() => $fetch(`${baseURL}/api/v1/video/getLatestVideo?page=${page}&pageSize=${pageSize}`));
+  return await useAsyncData(`latest-video-${page}-${pageSize}`, () => $fetch(`${baseURL}/api/v1/video/getLatestVideo?page=${page}&pageSize=${pageSize}`));
 }
 
 // 获取最近上传的视频
@@ -106,7 +106,7 @@ export const getLatestVideoAPI = (page: number, pageSize: number) => {
 
 // 获取分区视频
 export const asyncGetVideoByPartitionAPI = async (size: number, partitionId: number | string) => {
-  return await useAsyncData(() => $fetch(`${baseURL}/api/v1/video/getVideoListByPartition?size=${size}&partitionId=${partitionId}`));
+  return await useAsyncData(`partition-video-${partitionId}-${size}`, () => $fetch(`${baseURL}/api/v1/video/getVideoListByPartition?size=${size}&partitionId=${partitionId}`));
 }
 
 // 获取分区视频
@@ -116,7 +116,7 @@ export const getVideoByPartitionAPI = (size: number, partitionId: number | strin
 
 // 获取相关推荐视频
 export const asyncGetRelatedVideoList = async (videoId: number) => {
-  return await useAsyncData(() => $fetch(`${baseURL}/api/v1/video/getRelatedVideoList?vid=${videoId}`));
+  return await useAsyncData(`related-video-${videoId}`, () => $fetch(`${baseURL}/api/v1/video/getRelatedVideoList?vid=${videoId}`));
 }
 
 // 搜索视频
@@ -130,8 +130,13 @@ export const postPlayGrantAPI = (resourceShortId: string) => {
 }
 
 /** 换取当前分 P 的音视频直链（query 需带 token） */
-export const getPlayUrlsAPI = (resourceShortId: string, token: string, quality?: string) => {
+export const getPlayUrlsAPI = (resourceShortId: string, token: string, quality?: string, audioLang?: string) => {
   return request.get(`v1/play/${encodeURIComponent(resourceShortId)}`, {
-    params: { token, ...(quality ? { quality } : {}) },
+    params: { token, ...(quality ? { quality } : {}), ...(audioLang ? { audioLang } : {}) },
   });
+}
+
+/** 查询指定资源的可用音轨列表 */
+export const getAudioTracksAPI = (resourceId: number | string) => {
+  return request.get(`v1/audio/tracks/${resourceId}`);
 }

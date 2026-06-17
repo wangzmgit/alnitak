@@ -37,7 +37,6 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from "vue";
-import HeaderBar from "@/components/header-bar/index.vue";
 import { asyncGetArticleInfoAPI } from "@/api/article";
 import TextEditor from './components/TextEditor.vue';
 import "@/assets/styles/article-html.scss";

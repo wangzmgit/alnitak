@@ -3,7 +3,7 @@
     <div class="video-card" v-for="item in videoList" :key="item.pgc_id">
       <div class="card-box">
         <nuxt-link class="cover-box" :to="toWatchLink(item)">
-          <img :src="getResourceUrl(item.cover)" alt="封面" />
+          <oss-image :src="item.cover" alt="封面" />
           <span class="duration" v-if="item.new_ep?.index_show">{{ item.new_ep.index_show }}</span>
         </nuxt-link>
         <div class="info">
@@ -25,7 +25,7 @@
 import { asyncGetPGCRecommendByVideoAPI } from "@/api/pgc";
 
 const props = defineProps<{
-  vid: number;
+  vid: number | string;
 }>();
 
 const videoList = ref<PGCRecommendItem[]>([])

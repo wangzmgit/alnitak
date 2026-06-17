@@ -18,8 +18,11 @@
         <n-form-item-grid-item :span="24" label="邮箱" path="email">
           <n-input v-model:value="formModel.email" />
         </n-form-item-grid-item>
-        <n-form-item-grid-item :span="24" label="个性签名" path="sign">
+<n-form-item-grid-item :span="24" label="个性签名" path="sign">
           <n-input v-model:value="formModel.sign" />
+        </n-form-item-grid-item>
+        <n-form-item-grid-item :span="24" label="角色" path="role">
+          <n-select v-model:value="formModel.role" :options="roleList" label-field="name" value-field="code" />
         </n-form-item-grid-item>
       </n-grid>
       <n-space :size="24" justify="end">
@@ -34,10 +37,11 @@
 import { computed, reactive, ref, watch } from 'vue';
 import type { FormInst, FormRules } from 'naive-ui';
 import { editUserInfoAPI } from '@/api/user';
+import { getAllRoleListAPI } from '@/api/role';
 import { statusCode } from '@/utils/status-code';
 import { getResourceUrl } from "@/utils/resource";
 import CommonAvatar from "@/components/common-avatar/index.vue";
-import { NGrid, NButton, NSpace, NModal, NForm, NFormItemGridItem, NInput, NImage, useMessage } from 'naive-ui';
+import { NGrid, NButton, NSpace, NModal, NForm, NFormItemGridItem, NInput, NImage, NSelect, useMessage } from 'naive-ui';
 
 const emit = defineEmits(['update:visible', 'refresh']);
 const props = withDefaults(defineProps<{
@@ -48,6 +52,15 @@ const props = withDefaults(defineProps<{
 })
 
 const message = useMessage();
+
+const roleList = ref<Array<{ code: string, name: string }>>([])
+const getAllRoleList = async () => {
+  const res = await getAllRoleListAPI();
+  if (res.data.code === statusCode.OK) {
+    roleList.value = res.data.data.roles;
+  }
+}
+getAllRoleList();
 
 const modalVisible = computed({
   get() {

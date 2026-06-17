@@ -7,7 +7,7 @@
       </div>
       <div class="space-header">
         <button class="upload-btn" @click="uploadCoverClick">上传封面图片</button>
-        <img class="cover" v-if="userInfo?.spaceCover" :src="getResourceUrl(userInfo.spaceCover)" alt="用户封面图" />
+        <oss-image class="cover" v-if="userInfo?.spaceCover" :src="userInfo.spaceCover" alt="用户封面图" />
         <div class="header-inner">
           <common-avatar :url="userInfo?.avatar" :size="60" :iconSize="36"></common-avatar>
           <div class="header-info">
@@ -39,7 +39,7 @@
       </div>
       <div class="space-content">
         <div class="space-menu">
-          <nuxt-link v-for="item in menuList" :to="item.to" class="menu-item" :target="item.blank ? '_blank' : '_self'"
+          <nuxt-link v-for="item in menuList" :key="item.key" :to="item.to" class="menu-item" :target="item.blank ? '_blank' : '_self'"
             :class="getMenuName(route.name) === item.key ? 'menu-item-active' : ''">
             <span class="menu-icon">
               <component :is="item.icon" size="18"></component>
@@ -62,14 +62,11 @@
 
 <script setup lang="ts">
 import { storeToRefs } from 'pinia';
-import HeaderBar from '@/components/header-bar/index.vue';
-import CommonAvatar from '@/components/common-avatar/index.vue';
 import { useVideoCountStore } from "@/composables/video-count-store";
 import { getUserInfoAPI, asyncGetUserBaseInfoAPI, editUserInfoAPI } from '@/api/user';
 import type { RouteRecordName } from 'vue-router';
 import { getFollowDataAPI } from '@/api/relation';
 import UploadIcon from "@/components/icons/UploadIcon.vue";
-import ImageCropper from "@/components/image-cropper/index.vue";
 import SpaceCoverCropper from "@/components/image-cropper/components/SpaceCoverCropper.vue";
 import { Male, Female, VideoTwo, FolderFocus, History as HistoryIcon, Message as MessageIcon, Config } from '@icon-park/vue-next';
 import { getUploadVideoAPI } from '@/api/video';

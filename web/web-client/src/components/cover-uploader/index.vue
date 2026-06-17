@@ -2,7 +2,7 @@
   <div class="upload-cover">
     <client-only>
       <el-upload drag multiple action="#" :show-file-list="false" :auto-upload="false" :before-upload="beforeUploadCover" @change="fileChange">
-        <img v-if="currentCover" :src="getResourceUrl(currentCover)" class="cover" alt="封面" />
+        <oss-image v-if="currentCover" :src="currentCover" class="cover" alt="封面" />
         <el-progress v-else-if="uploading" type="circle" :percentage="percent" />
         <div class="upload-tips" v-else>
           <div class="tips-icon">
@@ -28,7 +28,6 @@ import { ElMessage } from "element-plus";
 import { isUrl } from "@/utils/verify";
 import { globalConfig } from "@/utils/global-config";
 import { Upload as UploadIcon } from "@icon-park/vue-next";
-import ImageCropper from "@/components/image-cropper/index.vue";
 import CoverCropper from "@/components/image-cropper/components/CoverCropper.vue";
 
 const emits = defineEmits(["finish"]);

@@ -1,7 +1,7 @@
 <template>
   <div class="upload-cover">
     <el-upload multirple :show-file-list="false" :before-upload="beforeUploadCover" @change="fileChange">
-      <img v-if="currentCover" :src="getResourceUrl(currentCover)" class="cover" alt="封面" />
+      <oss-image v-if="currentCover" :src="currentCover" class="cover" alt="封面" />
       <div v-else class="cover placeholder">
         <div class="tips-icon">
           <add-picture-icon size="22"></add-picture-icon>
@@ -24,7 +24,6 @@ import { ElMessage } from "element-plus";
 import { isUrl } from "@/utils/verify";
 import { globalConfig } from "@/utils/global-config";
 import { AddPicture as AddPictureIcon } from "@icon-park/vue-next";
-import ImageCropper from "@/components/image-cropper/index.vue";
 import CoverCropper from "@/components/image-cropper/components/CoverCropper.vue";
 
 const emits = defineEmits(["finish"]);

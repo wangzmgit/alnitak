@@ -20,3 +20,10 @@ interface PlayerQualityType {
 interface PlayerDanmakuType {
   data?: DanmakuType[];
 }
+
+/** 后端返回的音频轨信息（用于多音轨切换） */
+interface AudioTrackInfo {
+  language: string;
+  title: string;
+  isDefault: boolean;
+}

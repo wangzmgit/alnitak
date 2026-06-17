@@ -6,7 +6,7 @@
         <span>账号已封禁</span>
       </div>
       <div class="space-header">
-        <img class="cover" v-if="userInfo?.spaceCover" :src="getResourceUrl(userInfo.spaceCover)" alt="用户封面图" />
+        <oss-image class="cover" v-if="userInfo?.spaceCover" :src="userInfo.spaceCover" alt="用户封面图" />
         <div class="header-inner">
           <common-avatar :url="userInfo?.avatar" :size="60" :iconsize="36"></common-avatar>
           <div class="header-info">

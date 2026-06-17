@@ -1,5 +1,5 @@
 interface AddCommentType {
-  cid: number;
+  cid: number | string;
   content: string;
   parentId: number;
   replyUserId?: number;
@@ -20,6 +20,10 @@ interface CommentType {
   parentId: number;
   reply: ReplyType[];
   replyCount: number;
+  likes: number;
+  liked: boolean;
+  dislikes: number;
+  disliked: boolean;
 
   // 本地使用的数据，接口不返回
   page?: number;
@@ -38,6 +42,10 @@ interface ReplyType {
   parentId: number;
   replyUserId: number;
   replyUserName: string;
+  likes: number;
+  liked: boolean;
+  dislikes: number;
+  disliked: boolean;
 }
 
 interface CommentManageType {

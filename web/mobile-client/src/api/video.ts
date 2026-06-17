@@ -32,10 +32,15 @@ export const postPlayGrantAPI = (resourceShortId: string) => {
   return request.post('v1/play/grant', { resourceShortId })
 }
 
-export const getPlayUrlsAPI = (resourceShortId: string, token: string, quality?: string) => {
+export const getPlayUrlsAPI = (resourceShortId: string, token: string, quality?: string, audioLang?: string) => {
   return request.get(`v1/play/${encodeURIComponent(resourceShortId)}`, {
-    params: { token, ...(quality ? { quality } : {}) },
+    params: { token, ...(quality ? { quality } : {}), ...(audioLang ? { audioLang } : {}) },
   })
+}
+
+/** 查询指定资源的可用音轨列表 */
+export const getAudioTracksAPI = (resourceId: number | string) => {
+  return request.get(`v1/audio/tracks/${resourceId}`);
 }
 
 // 获取视频支持的分辨率

@@ -2,12 +2,12 @@
   <div class="video">
     <header-bar class="header"></header-bar>
     <div class="video-main">
-      <div class="mian-content">
+      <div class="main-content">
         <div class="left-column">
           <div class="video-player" ref="playerContainerRef">
-            <client-only>
+<client-only>
               <video-player v-if="videoInfo && playerReady" ref="playerRef" :video-info="videoInfo" :part="currentPart"
-                :progress="pendingProgress" :key="videoInfo?.vid + '-' + currentPart"></video-player>
+                :progress="pendingProgress" :key="videoInfo?.vid + '-' + currentPart" @danmaku-sent="handleDanmakuSent"></video-player>
             </client-only>
             <div v-if="!showPlayer" class="skeleton"></div>
           </div>
@@ -33,7 +33,7 @@
             </div>
           </div>
           <div class="pgc-info-card" v-if="isPGCPage && pgcInfo">
-            <img class="pgc-cover" :src="getResourceUrl(pgcInfo.cover)" alt="封面" />
+            <oss-image class="pgc-cover" :src="pgcInfo.cover" alt="封面" />
             <div class="pgc-meta">
               <div class="pgc-name">{{ pgcInfo.title }}</div>
               <div class="pgc-sub">
@@ -59,43 +59,43 @@
             <div class="tag" v-for="item in videoTagList" :key="item">{{ item }}</div>
           </div>
           <!-- 评论区 -->
-          <comment-list v-if="videoInfo" :vid="videoInfo.vid" @seek-time="handleSeekTime"></comment-list>
+          <comment-list v-if="videoInfo" :vid="videoInfo.vid" :short-id="videoInfo.shortId" @seek-time="handleSeekTime"></comment-list>
         </div>
         <div class="right-column" :class="{ 'pgc-mode': isPGCPage }">
-          <!-- 作者信息 -->
+<!-- 作者信息 -->
           <author-card v-if="videoInfo && !isPGCPage" :info="videoInfo.author"></author-card>
           <!-- 添加弹幕列表 -->
           <div class="danmaku-list-container">
-            <danmaku-list ref="danmakuListRef" :height="danmakuListHeight"></danmaku-list>
+            <danmaku-list ref="danmakuListRef" :height="danmakuListHeight" @seek-time="handleSeekTime"></danmaku-list>
           </div>
-          <!-- 合并的分P和合集列表 / PGC正片列表 -->
+<!-- 合并的分P和合集列表 / PGC正片列表 -->
           <PGCSeasonPanel
             ref="collectionRef"
             v-if="videoInfo && isPGCPage"
-            :vid="videoInfo.vid"
+            :vid="videoInfo.shortId || videoInfo.vid"
             :initial-seasons="pgcPanel.seasons"
             :initial-episodes="pgcPanel.episodes"
             :initial-active-season-id="pgcPanel.activeSeasonId"
           ></PGCSeasonPanel>
-          <video-collection 
+<video-collection 
             ref="collectionRef" 
             v-else-if="videoInfo" 
-            :vid="videoInfo.vid"
+            :vid="videoInfo.shortId || videoInfo.vid"
             :resources="videoInfo.resources"
             :current-part="currentPart"
             @change-part="changePart"
           ></video-collection>
-          <!-- 相关推荐 -->
+<!-- 相关推荐 -->
           <PGCRecommendList
             ref="recommendListRef"
             v-if="videoInfo && isPGCPage"
-            :vid="videoInfo.vid"
+            :vid="videoInfo.shortId || videoInfo.vid"
           ></PGCRecommendList>
           <recommend-list
             ref="recommendListRef"
             v-else-if="videoInfo"
-            :vid="videoInfo.vid"
-            :show-autoplay-control="!videoInfo || (videoInfo.resources.length <= 1 && !hasCollection)"
+            :vid="videoInfo.shortId || videoInfo.vid"
+            :show-autoplay-control="(videoInfo.resources?.length ?? 0) <= 1 && !hasCollection"
           ></recommend-list>
         </div>
       </div>
@@ -104,19 +104,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick, type ComponentPublicInstance } from "vue";
+import { ref, computed, unref, onMounted, onBeforeUnmount, watch, nextTick, type ComponentPublicInstance } from "vue";
 import { ElIcon } from "element-plus";
 import { Forbid as ForbidIcon } from "@icon-park/vue-next";
 import { formatTime } from "@/utils/format";
-import PartList from "./video/components/PartList.vue";
 import AuthorCard from './video/components/AuthorCard.vue';
 import ArchiveInfo from './video/components/ArchiveInfo.vue';
 import VideoCollection from "./video/components/VideoCollection.vue";
 import PGCSeasonPanel from "./video/components/PGCSeasonPanel.vue";
 import CommentList from "./video/components/CommentList.vue";
 import DanmakuList from "./video/components/DanmakuList.vue";
-import HeaderBar from "@/components/header-bar/index.vue";
-import VideoPlayer from "@/components/video-player/index.vue";
+
 import RecommendList from "./video/components/RecommendList.vue";
 import PGCRecommendList from "./video/components/PGCRecommendList.vue";
 import { asyncGetVideoInfoAPI } from "@/api/video";
@@ -173,15 +171,19 @@ const currentWatchVQuery = computed(() => {
   return String(videoInfo.value?.shortId || videoInfo.value?.vid || '');
 });
 
-const { data } = await asyncGetVideoInfoAPI(videoId);
-if ((data.value as any).code === statusCode.OK) {
-  videoInfo.value = (data.value as any).data.video as VideoType;
-} else {
-  await navigateTo('/404');
-  throw new Error('video not found');
+const { data: videoApiData } = await asyncGetVideoInfoAPI(videoId);
+if (videoApiData.value) {
+  if (videoApiData.value.code === statusCode.OK) {
+    videoInfo.value = videoApiData.value.data.video as VideoType;
+  } else {
+    if (process.client) {
+      await navigateTo('/404');
+    }
+    throw new Error('video not found');
+  }
 }
 
-const loadPGCBinding = async (vid: number) => {
+const loadPGCBinding = async (vid: number | string) => {
   try {
     const res = await getPGCPlayPanelByVideoAPI(vid);
     if (res?.data?.code === statusCode.OK && res?.data?.data?.current) {
@@ -203,9 +205,13 @@ const loadPGCBinding = async (vid: number) => {
     pgcPanel.value = { seasons: [], episodes: [], activeSeasonId: '' };
   }
 };
-if (videoInfo.value?.vid) {
-  await loadPGCBinding(videoInfo.value.vid);
-}
+// PGC 绑定：放在 watch 里客户端执行，避免 SSR 水合不匹配
+watch(videoInfo, (val) => {
+  if (val?.vid && process.client) {
+    const vid = val.shortId || val.vid;
+    loadPGCBinding(vid);
+  }
+}, { immediate: true });
 
 const playerContainerRef = ref<HTMLElement | null>(null)
 const danmakuListHeight = ref(300);
@@ -223,11 +229,27 @@ const handelResize = () => {
   })
 }
 
-// 视频分集：校验 p 参数有效性，无效则重定向到 p1
-if (route.query.p && Number(route.query.p) > videoInfo.value!.resources.length) {
-  router.replace({ path: '/watch', query: { ...route.query, v: currentWatchVQuery.value, p: 1 } });
+// 计算当前分P：rid 优先（不受分P排序影响），否则用 p，最后兜底 1
+const resolveInitialPart = (): number => {
+  if (route.query.rid) {
+    const rid = String(route.query.rid);
+    const idx = videoInfo.value?.resources.findIndex(r => r.shortId === rid) ?? -1;
+    if (idx >= 0) return idx + 1;
+  }
+  return Number(route.query.p) || 1;
+};
+const currentPart = ref(resolveInitialPart());
+
+// URL 冗余/非法参数清理，仅在 client 端做以避免 SSR 期间副作用
+if (process.client) {
+  if (route.query.rid && route.query.p) {
+    const { p, ...queryWithoutP } = route.query;
+    router.replace({ path: '/watch', query: queryWithoutP });
+  } else if (route.query.p && !route.query.rid && Number(route.query.p) > videoInfo.value!.resources.length) {
+    router.replace({ path: '/watch', query: { ...route.query, v: currentWatchVQuery.value, p: undefined } });
+  }
 }
-const currentPart = ref(Number(route.query.p) || 1);
+
 const pendingProgress = ref<number | null>(null);
 
 // 获取组件引用
@@ -236,7 +258,6 @@ const recommendListRef = ref<ComponentPublicInstance<{
   getNextVideo?: () => any;
   resetPlayIndex?: (vid: number) => void;
 }> | null>(null);
-const partListRef = ref<InstanceType<typeof PartList> | null>(null);
 const collectionRef = ref<ComponentPublicInstance<{
   autonext?: boolean;
   getNextVideo?: () => any;
@@ -244,47 +265,60 @@ const collectionRef = ref<ComponentPublicInstance<{
 }> | null>(null);
 const hasCollection = computed(() => !!collectionRef.value?.hasPlaylist);
 
+/** 合集与推荐共用 useVideoAutonextFollow；defineExpose 的 autonext 可能是 Ref / ComputedRef，任一侧有实例即可，只 unref 一次 */
+const isFollowAutonextOn = () => {
+  const inst = collectionRef.value ?? recommendListRef.value;
+  return Boolean(inst && unref((inst as { autonext?: unknown }).autonext as any));
+};
+
+/** 侧栏/推荐「下一则」：与 VideoCollection.goVideo 一致：多分 P 用 resourceRid 作查询 rid，勿把稿件 shortId 当成资源 rid */
+function scheduleNavigateToWatchNext(
+  item: { shortId?: string; vid?: number | string; resourceRid?: string; p?: number },
+  delayMs: number,
+) {
+  const v = String(item.shortId ?? item.vid ?? '').trim();
+  if (!v) return;
+  const resourceRid = item.resourceRid;
+  const p = item.p;
+  window.setTimeout(() => {
+    if (resourceRid) {
+      void navigateTo(`/watch?v=${v}&rid=${encodeURIComponent(resourceRid)}`);
+      return;
+    }
+    if (typeof p === 'number' && p > 1) {
+      void navigateTo(`/watch?v=${v}&p=${p}`);
+      return;
+    }
+    void navigateTo(`/watch?v=${v}`);
+  }, delayMs);
+}
+
 // 视频播放结束时的自动连播逻辑
 const onVideoEnded = () => {
-  console.log('视频播放结束，检查自动连播状态');
+  // PGC模式不执行自动连播
+  if (isPGCPage.value) return;
 
-  // 优先检查当前视频是否有分P
-  const hasParts = (videoInfo.value?.resources?.length || 0) > 1
-  const curPart = currentPart.value
-  
-  if (hasParts) {
-    // 当前视频有分P，检查是否还有下一个分P
-    if (curPart < (videoInfo.value?.resources?.length || 0)) {
-      // 切换到下一个分P
+  // 优先检查当前视频是否有分P（与 PartList 开关一致：video-autonext-parts）
+  const partCount = videoInfo.value?.resources?.length || 0;
+  const hasParts = partCount > 1;
+  const curPart = currentPart.value;
+
+  if (hasParts && localStorage.getItem('video-autonext-parts') === 'true') {
+    if (curPart < partCount) {
       setTimeout(() => {
-        changePart(curPart + 1)
-      }, 1000)
-      return
+        changePart(curPart + 1);
+      }, 1000);
+      return;
     }
   }
-  
+
   // 没有分P或已是最后一个分P，检查合集自动连播
-  const collectionRefVal = collectionRef.value
-  console.log('合集自动连播状态:', collectionRefVal?.autonext)
-  if (collectionRefVal?.autonext) {
-    const nextVideo = collectionRefVal.getNextVideo?.()
-    console.log('合集下一个视频:', nextVideo)
+  const collectionRefVal = collectionRef.value;
+  if (isFollowAutonextOn() && collectionRefVal) {
+    const nextVideo = collectionRefVal.getNextVideo?.();
     if (nextVideo) {
-      setTimeout(() => {
-        const nextEp = Number((nextVideo as any).epId || 0);
-        if (isPGCPage.value && Number.isFinite(nextEp) && nextEp > 0) {
-          navigateTo(`/watch?ep=${Math.floor(nextEp)}&mode=pgc`);
-          return;
-        }
-        const nextV = (nextVideo as any).shortId || String((nextVideo as any).vid);
-        const pgcMode = isPGCPage.value ? '&mode=pgc' : '';
-        if (nextVideo.resourceId) {
-          navigateTo(`/watch?v=${nextV}&resourceId=${nextVideo.resourceId}${pgcMode}`)
-        } else {
-          navigateTo(`/watch?v=${nextV}${pgcMode}`)
-        }
-      }, 1000)
-      return
+      scheduleNavigateToWatchNext(nextVideo as { shortId?: string; vid?: number | string }, 1000);
+      return;
     }
   }
   
@@ -294,46 +328,22 @@ const onVideoEnded = () => {
 
 // 检查推荐视频自动连播
 const checkRecommendAutoplay = () => {
-  const recommendRef = recommendListRef.value
-  console.log('检查推荐自动连播:', recommendRef?.autonext, recommendRef?.getNextVideo?.())
-  
-  if (recommendRef?.autonext) {
-    const nextVideo = recommendRef.getNextVideo?.();
-    console.log('自动连播下一个推荐视频:', nextVideo);
-
-    if (nextVideo) {
-      setTimeout(() => {
-        const nextEp = Number((nextVideo as any).epId || 0);
-        if (isPGCPage.value && Number.isFinite(nextEp) && nextEp > 0) {
-          navigateTo(`/watch?ep=${Math.floor(nextEp)}&mode=pgc`);
-          return;
-        }
-        const nextV = nextVideo.shortId || String(nextVideo.vid);
-        const pgcMode = isPGCPage.value ? '&mode=pgc' : '';
-        navigateTo(`/watch?v=${nextV}${pgcMode}`);
-      }, 3000);
-    } else {
-      console.log('没有更多推荐视频了');
-    }
-  }
+  const recommendRef = recommendListRef.value;
+  if (!isFollowAutonextOn() || !recommendRef) return;
+  const nextVideo = recommendRef.getNextVideo?.();
+  if (!nextVideo) return;
+  scheduleNavigateToWatchNext(nextVideo, 3000);
 };
 
 const onPlayerReady = () => {
-  // 原有的进度恢复逻辑
-  if (pendingProgress.value === -1 && playerRef.value && playerRef.value.seek) {
+  // 进度恢复由 video-player 内部通过 props.progress + pendingSeek + loadedmetadata/canplay 统一处理
+  // 这里只做"已看完即重新开始"的场景兜底 + 绑定播放结束事件
+  if (pendingProgress.value === -1 && playerRef.value?.seek) {
     playerRef.value.seek(0);
-    pendingProgress.value = null;
-    return;
   }
-  if (pendingProgress.value !== null && playerRef.value && playerRef.value.seek) {
-    playerRef.value.seek(pendingProgress.value);
-    pendingProgress.value = null;
-  }
-
-  // 新增：绑定播放结束事件
-  if (playerRef.value && playerRef.value.setOnEnded) {
+  pendingProgress.value = null;
+  if (playerRef.value?.setOnEnded) {
     playerRef.value.setOnEnded(onVideoEnded);
-    console.log('自动连播事件已绑定');
   }
 };
 
@@ -350,45 +360,11 @@ const handleSeekTime = (seconds: number) => {
   }
 };
 
-const changePart = async (target: number) => {
-  if (videoInfo.value?.resources[target - 1]) {
-    currentPart.value = target;
-  }
-  router.replace({ path: '/watch', query: { ...route.query, v: currentWatchVQuery.value, p: currentPart.value } });
-
-  // 主动请求新分集进度
-  if (videoInfo.value) {
-    const res = await getHistoryProgressAPI(videoInfo.value.vid, currentPart.value);
-    if (res.data.code === 200 && res.data.data && typeof res.data.data.progress === 'number' && res.data.data.progress > 0) {
-      pendingProgress.value = res.data.data.progress;
-    } else {
-      pendingProgress.value = null;
-    }
-  }
-}
-
-// 监听路由参数 p，自动切换分P和弹幕
-watch(() => route.query.p, async (newP) => {
-  const partNum = Number(newP) || 1;
-  if (videoInfo.value?.resources[partNum - 1]) {
-    currentPart.value = partNum;
-    const res = await getHistoryProgressAPI(videoInfo.value.vid, partNum);
-    if (res.data.code === 200 && res.data.data && typeof res.data.data.progress === 'number') {
-      pendingProgress.value = res.data.data.progress;
-    } else {
-      pendingProgress.value = null;
-    }
-    getDanmakuList(videoInfo.value.vid, partNum);
-  } else {
-    router.replace({ path: '/watch', query: { ...route.query, v: currentWatchVQuery.value, p: 1 } });
-  }
-});
-
 // 获取弹幕列表
 const danmakuListRef = ref<InstanceType<typeof DanmakuList> | null>(null);
 
-const getDanmakuList = async (vid: number, part: number) => {
-  const res = await getDanmakuAPI(vid, part);
+const getDanmakuList = async (vid: string | number, part?: number, rid?: string) => {
+  const res = await getDanmakuAPI(vid, part, rid);
   if (res.data.code === statusCode.OK) {
     const danmakus = res.data.data.danmaku || [];
     nextTick(() => {
@@ -396,6 +372,51 @@ const getDanmakuList = async (vid: number, part: number) => {
       danmakuListRef.value?.setDanmaku(danmakus)
     })
   }
+};
+
+// 弹幕发送成功后无需额外处理：server 会通过 ws 回广播自己发的弹幕，走 websocketOnmessage 分支单条插入
+const handleDanmakuSent = () => {};
+
+// 加载某分P的进度与弹幕；rid 存在则优先走 rid 精准定位
+const refreshProgressAndDanmaku = async (partNum: number) => {
+  if (!videoInfo.value) return;
+  const vid = videoInfo.value.shortId || videoInfo.value.vid;
+  const rid = videoInfo.value.resources[partNum - 1]?.shortId;
+  try {
+    const res = rid
+      ? await getHistoryProgressAPI(vid, undefined, rid)
+      : await getHistoryProgressAPI(vid, partNum);
+    const progress = res?.data?.code === 200 ? res.data.data?.progress : null;
+    // -1 = 已看完：不做续播（由 onPlayerReady 兜底 seek(0)）；其他 0 或非数字也视为无续播
+    if (progress === -1) {
+      pendingProgress.value = -1;
+    } else if (typeof progress === 'number' && progress > 0) {
+      pendingProgress.value = progress;
+    } else {
+      pendingProgress.value = null;
+    }
+  } catch {
+    pendingProgress.value = null;
+  }
+  if (rid) {
+    getDanmakuList(vid, undefined, rid);
+  } else {
+    getDanmakuList(vid, partNum);
+  }
+};
+
+const changePart = async (target: number) => {
+  if (!videoInfo.value?.resources[target - 1]) return;
+  currentPart.value = target;
+  const targetRid = videoInfo.value.resources[target - 1]?.shortId;
+  if (targetRid) {
+    router.replace({ path: '/watch', query: { ...route.query, rid: targetRid, p: undefined } });
+  } else {
+    router.replace({ path: '/watch', query: { ...route.query, v: currentWatchVQuery.value, p: currentPart.value } });
+  }
+  await refreshProgressAndDanmaku(target);
+  // 切换分P后重新连接WebSocket以使用新的rid
+  reconnectWebSocket();
 };
 
 // 简介部分
@@ -415,28 +436,7 @@ onMounted(async () => {
   }
 
   if (videoInfo.value) {
-    try {
-      const res = await getHistoryProgressAPI(videoInfo.value.vid, route.query.p ? Number(route.query.p) : undefined);
-      if (res.data.code === 200 && res.data.data) {
-        const { part, progress } = res.data.data;
-        if (part && part !== currentPart.value && videoInfo.value.resources[part - 1]) {
-          currentPart.value = part;
-          router.replace({ path: '/watch', query: { ...route.query, v: currentWatchVQuery.value, p: part } });
-          await nextTick();
-        }
-        getDanmakuList(videoInfo.value.vid, part || currentPart.value);
-        if (typeof progress === 'number' && progress > 0) {
-          pendingProgress.value = progress;
-        } else {
-          pendingProgress.value = null;
-        }
-      } else {
-        getDanmakuList(videoInfo.value.vid, currentPart.value);
-        pendingProgress.value = null;
-      }
-    } catch (e) {
-      getDanmakuList(videoInfo.value.vid, currentPart.value);
-    }
+    await refreshProgressAndDanmaku(currentPart.value);
   }
 
   handelResize();
@@ -493,13 +493,18 @@ const initWebSocket = () => {
     localStorage.setItem("ws-client-id", clientId);
   }
 
-  if (process.dev) {
-    const wsProtocol = globalConfig.https ? 'wss://' : 'ws://';
-    SocketURL = `${wsProtocol}${globalConfig.domain}/api/v1/online/video?vid=${videoId}&clientId=${clientId}`;
-  } else {
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
-    SocketURL = `${wsProtocol}${window.location.host}/api/v1/online/video?vid=${videoId}&clientId=${clientId}`;
+  // 实时读取当前 vid，避免 SPA 路由切换后用到初始 setup 阶段捕获的旧值
+  const currentVid = videoInfo.value?.shortId || videoInfo.value?.vid || videoId;
+  if (!currentVid) {
+    console.warn('[WebSocket] 当前 vid 为空，放弃建立连接');
+    return;
   }
+  // 获取当前分P的rid
+  const rid = videoInfo.value?.resources?.[currentPart.value - 1]?.shortId || '';
+  const ridParam = rid ? `&rid=${rid}` : '';
+
+  const wsProtocol = globalConfig.https ? 'wss://' : 'ws://';
+  SocketURL = `${wsProtocol}${globalConfig.domain}/api/v1/online/video?vid=${currentVid}&clientId=${clientId}${ridParam}`;
 
   if (heartbeatTimer) {
     clearInterval(heartbeatTimer);
@@ -609,6 +614,18 @@ const websocketOnmessage = (e: any) => {
       onlineCount.value = res.number;
       console.log('[WebSocket] 更新在线人数:', res.number);
     }
+    // 处理弹幕消息：单条插入，不再全量刷新列表
+    if (res.type === 'danmaku' && res.danmaku) {
+      const currentRid = videoInfo.value?.resources?.[currentPart.value - 1]?.shortId;
+      const danmakuWithMeta = {
+        ...res.danmaku,
+        vid: videoInfo.value?.vid,
+        part: currentPart.value,
+        rid: currentRid
+      };
+      playerRef.value?.addDanmaku(danmakuWithMeta);
+      danmakuListRef.value?.addDanmaku(danmakuWithMeta);
+    }
   } catch (error) {
     console.error('[WebSocket] 解析消息失败:', error);
   }
@@ -621,36 +638,46 @@ onBeforeUnmount(() => {
   closeWebSocket();
   playerRef.value = null;
   recommendListRef.value = null;
-  partListRef.value = null;
   collectionRef.value = null;
   danmakuListRef.value = null;
   playerContainerRef.value = null;
   descRef.value = undefined;
 })
 
-// 监听 v/ep 变化，重新拉取视频信息和重置状态
+// 监听 v/ep/p/rid 变化，重新拉取视频信息和重置状态
 watch(
-  () => [route.query.v, route.query.ep],
-  async ([newV, newEp], [oldV, oldEp]) => {
-    if (newV === oldV && newEp === oldEp) return;
-    const resolved = await resolveWatchVideoIdOnQueryChange(route.query);
-    if (!resolved.ok) {
-      if (resolved.reason === 'no_identifier') return;
+  () => [route.query.v, route.query.ep, route.query.p, route.query.rid],
+  async ([newV, newEp, newP, newRid], [oldV, oldEp, oldP, oldRid]) => {
+    // 视频主体未变（v/ep/rid 都没动），仅 p 变：不重拉 videoInfo，只切分P
+    if (newV === oldV && newEp === oldEp && newRid === oldRid) {
+      if (newP !== oldP && videoInfo.value) {
+        const partNum = Number(newP) || 1;
+        if (videoInfo.value.resources[partNum - 1]) {
+          currentPart.value = partNum;
+          await refreshProgressAndDanmaku(partNum);
+        } else {
+          router.replace({ path: '/watch', query: { ...route.query, v: currentWatchVQuery.value, p: 1 } });
+        }
+      }
       return;
     }
+    const resolved = await resolveWatchVideoIdOnQueryChange(route.query);
+    if (!resolved.ok) return;
     const newVideoId = resolved.videoId;
     const { data } = await asyncGetVideoInfoAPI(newVideoId);
     if ((data.value as any).code === statusCode.OK) {
       videoInfo.value = (data.value as any).data.video as VideoType;
-      await loadPGCBinding(videoInfo.value.vid);
-      currentPart.value = Number(route.query.p) || 1;
-      getDanmakuList(videoInfo.value.vid, currentPart.value);
-      const res = await getHistoryProgressAPI(videoInfo.value.vid, currentPart.value);
-      if (res.data.code === 200 && res.data.data && typeof res.data.data.progress === 'number') {
-        pendingProgress.value = res.data.data.progress;
+      const vid = videoInfo.value.shortId || videoInfo.value.vid;
+      await loadPGCBinding(vid);
+      // 初始化分P
+      if (route.query.rid) {
+        const rid = String(route.query.rid);
+        const idx = videoInfo.value.resources.findIndex(r => r.shortId === rid);
+        currentPart.value = idx >= 0 ? idx + 1 : 1;
       } else {
-        pendingProgress.value = null;
+        currentPart.value = Number(route.query.p) || 1;
       }
+      await refreshProgressAndDanmaku(currentPart.value);
       if (process.client) {
         reconnectWebSocket();
       }
@@ -679,7 +706,7 @@ useHead({
   min-width: 1200px;
 }
 
-.mian-content {
+.main-content {
   display: flex;
   justify-content: center;
   width: 100%;

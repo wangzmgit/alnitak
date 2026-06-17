@@ -54,7 +54,6 @@ import { statusCode } from "@/utils/status-code";
 import { isLegalTag } from "@/utils/verify";
 import CoverUploader from "./CoverUploader.vue";
 import PartitionSelector from "./PartitionSelector.vue";
-import FormSkeleton from "@/components/form-skeleton/index.vue";
 import { uploadVideoInfoAPI, editVideoAPI } from "@/api/video";
 import { normalizeVideoTags } from "@/utils/video-tags";
 import { getPartitionAPI } from '@/api/partition';

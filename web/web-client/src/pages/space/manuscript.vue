@@ -2,9 +2,9 @@
   <div class="video-box">
     <p class="video-title">我的视频</p>
     <ul ref="videoListRef" class="video-list">
-      <li class="video-item" v-for="item in videoList">
+      <li class="video-item" v-for="item in videoList" :key="item.vid">
         <nuxt-link class="cover" :to="item.status === reviewCode.AUDIT_APPROVED ? `/watch?v=${item.shortId || String(item.vid)}` : ''">
-          <img class="img" :src="getResourceUrl(item.cover)" />
+          <oss-image class="img" :src="item.cover" alt="封面" />
         </nuxt-link>
         <nuxt-link class="title" :to="item.status === reviewCode.AUDIT_APPROVED ? `/watch?v=${item.shortId || String(item.vid)}` : ''">
           {{ item.title }}
@@ -31,6 +31,11 @@ import { getUploadVideoAPI } from "@/api/video";
 import { ElIcon } from 'element-plus';
 import PlayCountIcon from "@/components/icons/PlayCountIcon.vue";
 import { useVideoCountStore } from '@/composables/video-count-store';
+import { throttle } from "@/utils/debounce";
+
+definePageMeta({
+  middleware: ['auth']
+})
 
 //获取我的视频
 const page = ref(1);
@@ -79,15 +84,18 @@ const handleScroll = () => {
       getUploadVideo();
     }
   }
+  loading.value = false;
 }
+
+const throttledScroll = throttle(handleScroll, 150);
 
 onMounted(() => {
   getUploadVideo();
-  window.addEventListener('scroll', handleScroll, true);
+  window.addEventListener('scroll', throttledScroll, true);
 })
 
 onBeforeUnmount(() => {
-  window.removeEventListener('scroll', handleScroll, true);
+  window.removeEventListener('scroll', throttledScroll, true);
 })
 </script>
 

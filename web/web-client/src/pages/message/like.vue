@@ -3,7 +3,10 @@
     <p class="like-title">收到的赞</p>
     <div class="like-box">
       <el-scrollbar max-height="100%">
-        <ul class="like-list">
+        <template v-if="!likeMessageList.length && !loading">
+          <el-empty description="暂无点赞消息" />
+        </template>
+        <ul class="like-list" v-else>
           <li class="like-msg-item" v-for="(item, index) in likeMessageList" :key="index">
             <div class="item-left">
               <common-avatar class="avatar" :url="item.user.avatar" :size="45"></common-avatar>
@@ -37,8 +40,27 @@ import { ref, onBeforeMount } from "vue";
 import { ElPagination } from 'element-plus';
 import { formatTime } from "@/utils/format";
 import { getLikeMsgAPI } from '@/api/msg-like';
-import CommonAvatar from '@/components/common-avatar/index.vue';
+import { getResourceUrl } from '@/utils/resource';
 
+definePageMeta({
+  middleware: ['auth']
+})
+const getContentUrl = (msg: LikeMessageType) => {
+  if (msg.type === 0) {
+    return `/watch?v=${msg.video.shortId || String(msg.video.vid)}`;
+  }
+  return `/article/${msg.article.aid}`;
+}
+
+const getCoverUrl = (msg: LikeMessageType) => {
+  return msg.type === 0 ? msg.video.cover : msg.article.cover;
+}
+
+const getContentTitle = (msg: LikeMessageType) => {
+  return msg.type === 0 ? msg.video.title : msg.article.title;
+}
+
+const loading = ref(true);
 const page = ref(1);
 const total = ref(0);
 const pageSize = ref(10);
@@ -50,30 +72,7 @@ const getlikeMsgList = async () => {
     total.value = res.data.data.total;
     likeMessageList.value = res.data.data.messages;
   }
-}
-
-const getContentUrl = (msg: LikeMessageType) => {
-  if (msg.type === 0) {
-    return `/watch?v=${msg.video.shortId || String(msg.video.vid)}`;
-  }
-
-  return `/article/${msg.article.aid}`;
-}
-
-const getCoverUrl = (msg: LikeMessageType) => {
-  if (msg.type === 0) {
-    return msg.video.cover;
-  }
-
-  return msg.article.cover;
-}
-
-const getContentTitle = (msg: LikeMessageType) => {
-  if (msg.type === 0) {
-    return msg.video.title;
-  }
-
-  return msg.article.title;
+  loading.value = false;
 }
 
 onBeforeMount(() => {

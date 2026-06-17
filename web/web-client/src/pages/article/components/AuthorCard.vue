@@ -18,7 +18,6 @@ import { onBeforeMount, computed, watch } from "vue";
 import { ElMessage } from "element-plus";
 import { statusCode } from "@/utils/status-code";
 import { relationCode } from "@/utils/relation-code";
-import CommonAvatar from "@/components/common-avatar/index.vue";
 import { getUserRelationAPI, followAPI, unfollowAPI } from "@/api/relation";
 import { requireLogin } from "@/utils/require-login";
 import { useAuthStore } from "@/stores/auth-store";

@@ -17,7 +17,7 @@
           </nuxt-link>
         </div>
         <div class="menu-group partition-list">
-          <nuxt-link class="menu-item menu-item-only-text" :class="{ 'menu-active': isPartitionActive(item.id) }" v-for="item in partitionList" :to="`/partition/${item.id}`">
+          <nuxt-link class="menu-item menu-item-only-text" :class="{ 'menu-active': isPartitionActive(item.id) }" v-for="item in partitionList" :key="item.id" :to="`/partition/${item.id}`">
             {{ item.name }}
           </nuxt-link>
         </div>

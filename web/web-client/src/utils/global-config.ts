@@ -1,6 +1,6 @@
 const title = "anime弹幕";
 const https = true;
-const domain = "anime.ayypd.cn:9001";
+const domain = "animes.ayypd.cn:9001";
 const mobile = "/mobile/";
 const icp = "icp备案信息";
 const security = "公网安备信息";

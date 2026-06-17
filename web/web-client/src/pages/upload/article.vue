@@ -57,7 +57,6 @@ import { isLegalTag } from "@/utils/verify";
 import PartitionSelector from "./components/PartitionSelector.vue";
 import { getPartitionAPI } from '@/api/partition';
 import CoverUploader from "./components/CoverUploader.vue";
-import AlnitakEditor from '@/components/alnitak-editor/index.vue';
 import { uploadArticleInfoAPI, editArticleAPI, getArticleStatusAPI } from "@/api/article";
 
 definePageMeta({
