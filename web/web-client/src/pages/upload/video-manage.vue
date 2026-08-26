@@ -13,12 +13,12 @@
       </span>
     </div>
     <div class="video-box">
-      <el-scrollbar>
-        <ul class="video-list" v-infinite-scroll="scrollLoad">
+      <el-scrollbar ref="scrollbarRef" @scroll="onScroll">
+        <ul v-if="videoList.length" class="video-list">
           <li class="video-item" v-for="(item, index) in videoList" :key="index">
             <div class="item-left">
               <div class="cover">
-                <img v-if="item.cover" :src="getResourceUrl(item.cover)" alt="封面">
+                <oss-image v-if="item.cover" :src="item.cover" alt="封面" />
               </div>
             </div>
             <div class="item-center">
@@ -26,7 +26,7 @@
                 <span class="item-title unlinked">{{ item.title }}</span>
               </template>
               <template v-else>
-                <nuxt-link class="item-title" :to="`/watch?v=${item.shortId || String(item.vid)}`">{{ item.title }}</nuxt-link>
+                <nuxt-link class="item-title" :to="`/watch?v=${item.shortId}`">{{ item.title }}</nuxt-link>
               </template>
               <span class="desc">简介：{{ item.desc }}</span>
               <div class="desc">
@@ -37,23 +37,49 @@
                   @click="showReason(item.vid)">查看原因</span>
               </div>
               <div class="progress-box" v-if="item.status === reviewCode.CREATED_VIDEO || item.status === reviewCode.VIDEO_PROCESSING || item.status === reviewCode.SUBMIT_REVIEW">
-                <div class="progress-head">
-                  <span>总体转码进度 {{ ((item.transcodingProgress || 0)).toFixed(1) }}%</span>
-                  <span class="expand-btn" v-if="(item.transcodingDetails || []).length"
-                    @click="toggleProgressDetail(item.vid)">
-                    {{ expandedDetail[item.vid] ? '收起' : '展开' }}
-                  </span>
-                </div>
-                <el-progress :percentage="Number(((item.transcodingProgress || 0)).toFixed(1))" :stroke-width="6" :show-text="false" />
-                <div class="progress-detail" v-if="expandedDetail[item.vid] && (item.transcodingDetails || []).length">
-                  <div class="detail-item" v-for="detail in item.transcodingDetails" :key="`${detail.resourceId}-${detail.quality}`">
-                    <div class="detail-title">
-                      {{ detail.resourceTitle || `分P${detail.resourceId}` }} / {{ detail.quality }}
-                      <el-tag v-if="detail.status === 'waiting'" size="small" type="info" style="margin-left: 6px">排队中</el-tag>
+                <div class="progress-detail" v-if="(item.transcodingDetails || []).length">
+                  <template v-for="group in groupDetails(item.transcodingDetails || [])" :key="`${item.vid}-${group.resourceId}`">
+                    <div class="resource-group">
+                      <div class="group-header" @click="toggleResourceGroup(item.vid, group.resourceId)">
+                        <span class="group-arrow" :class="{ expanded: isResourceGroupExpanded(item.vid, group.resourceId) }">▶</span>
+                        <span class="group-title">{{ group.title }}</span>
+                        <span class="group-count">{{ group.items.length }} 个画质</span>
+                        <span class="group-status" v-if="group.allWaiting">排队中</span>
+                        <span class="group-status success" v-else-if="group.allDone">完成</span>
+                        <span class="group-status warn" v-else-if="group.failCount > 0 && group.successCount > 0">部分完成 ({{ group.successCount }}/{{ group.items.length }})</span>
+                        <span class="group-status error" v-else-if="group.failCount > 0 && group.successCount === 0">失败</span>
+                        <span class="group-progress">
+                          <el-progress
+                            :percentage="group.allWaiting ? 0 : group.overallPct"
+                            :stroke-width="14"
+                            :show-text="true"
+                            :status="group.allDone ? 'success' : (group.failCount > 0 && group.successCount === 0 ? 'exception' : undefined)" />
+                        </span>
+                      </div>
+                      <div class="group-detail" v-if="isResourceGroupExpanded(item.vid, group.resourceId)">
+                        <div class="detail-item" v-for="detail in group.items" :key="`${detail.resourceId}-${detail.quality}`">
+                          <div class="detail-title">
+                            <span class="detail-quality">{{ detail.quality }}</span>
+                            <el-tag v-if="detail.status === 'waiting'" size="small" type="info">排队中</el-tag>
+                            <el-tag v-else-if="detail.status === 'fail'" size="small" type="danger">失败</el-tag>
+                            <span v-if="detail.status === 'fail'" class="retry-btn" @click.stop="retryQuality(group.resourceId, detail.quality)">重试</span>
+                          </div>
+                          <el-progress :percentage="detail.status === 'waiting' ? 0 : Number((detail.progress || 0).toFixed(1))" :stroke-width="8"
+                            :show-text="true"
+                            :status="detail.status === 'fail' ? 'exception' : (detail.status === 'success' ? 'success' : undefined)" />
+                        </div>
+                        <!-- 上传进度 -->
+                        <div class="upload-section" v-if="group.upload">
+                          <div class="detail-title"><span class="detail-quality">OSS 上传</span></div>
+                          <el-progress
+                            :percentage="Math.round((group.upload.progress || 0))"
+                            :stroke-width="8"
+                            :show-text="true"
+                            :status="group.upload.status === 'fail' ? 'exception' : (group.upload.status === 'success' ? 'success' : undefined)" />
+                        </div>
+                      </div>
                     </div>
-                    <el-progress :percentage="detail.status === 'waiting' ? 0 : Number((detail.progress || 0).toFixed(1))" :stroke-width="4"
-                      :status="detail.status === 'fail' ? 'exception' : (detail.status === 'success' ? 'success' : undefined)" />
-                  </div>
+                  </template>
                 </div>
               </div>
             </div>
@@ -66,7 +92,8 @@
                 </el-button>
                 <template #dropdown>
                   <el-dropdown-menu>
-                    <el-dropdown-item @click="modifyVideo(item.vid)">编辑</el-dropdown-item>
+<el-dropdown-item @click="modifyVideo(item.shortId || item.vid)">编辑</el-dropdown-item>
+<el-dropdown-item @click="openSubtitleManage(item.shortId || item.vid)">字幕管理</el-dropdown-item>
                     <el-dropdown-item @click="deleteVideo(item, index)">删除稿件</el-dropdown-item>
                   </el-dropdown-menu>
                 </template>
@@ -74,6 +101,7 @@
             </div>
           </li>
         </ul>
+        <el-empty v-else-if="!initialLoading" description="暂无视频" />
       </el-scrollbar>
     </div>
     <client-only>
@@ -84,28 +112,92 @@
         <el-button type="danger" class="delete-btn" @click="submitDelete">确认删除</el-button>
       </el-dialog>
     </client-only>
+    <subtitle-manage-dialog :vid="subtitleManageVid" @close="subtitleManageVid = null" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { onBeforeMount, onBeforeUnmount, ref } from 'vue';
-import { getUploadVideoAPI, deleteVideoAPI } from '@/api/video';
+import { getUploadVideoAPI, deleteVideoAPI, reTranscodeResourceAPI } from '@/api/video';
 import { MoreOne as MoreIcon } from '@icon-park/vue-next';
 import { getVideoReviewRecordAPI } from '@/api/revies';
 import { reviewCode } from '@/utils/review-code';
 import { statusCode } from '@/utils/status-code';
 import { formatTime } from '@/utils/format';
 import { getResourceUrl } from '@/utils/resource';
+import SubtitleManageDialog from '@/components/subtitle/SubtitleManageDialog.vue';
+
+const subtitleManageVid = ref<string | number | null>(null);
 
 const page = ref(1);
 const total = ref(0);
 const pageSize = 8;
 const noMore = ref(false);
 const loading = ref(false);
+const initialLoading = ref(true);
 const videoList = ref<Array<ManuscriptVideoType>>([]);
 let silentRefreshTimer: number | null = null;
 const activeTab = ref<'published' | 'pending' | 'rejected' | 'transcoding' | 'transcode_failed'>('published');
 const expandedDetail = ref<Record<number, boolean>>({});
+const expandedResourceGroups = ref<Set<string>>(new Set());
+
+function toggleResourceGroup(vid: number, resourceId: number) {
+  const key = `${vid}-${resourceId}`;
+  const s = new Set(expandedResourceGroups.value);
+  if (s.has(key)) s.delete(key); else s.add(key);
+  expandedResourceGroups.value = s;
+}
+
+function isResourceGroupExpanded(vid: number, resourceId: number): boolean {
+  return expandedResourceGroups.value.has(`${vid}-${resourceId}`);
+}
+
+interface ResourceGroup {
+  resourceId: number;
+  title: string;
+  items: TranscodingProgressDetail[];
+  overallPct: number;
+  donePct: number;
+  successCount: number;
+  failCount: number;
+  allWaiting: boolean;
+  allDone: boolean;
+  upload?: UploadProgressInfo;
+}
+
+function groupDetails(details: TranscodingProgressDetail[]): ResourceGroup[] {
+  const map = new Map<number, TranscodingProgressDetail[]>();
+  for (const d of details) {
+    if (!map.has(d.resourceId)) map.set(d.resourceId, []);
+    map.get(d.resourceId)!.push(d);
+  }
+  const groups: ResourceGroup[] = [];
+  for (const [rid, items] of map) {
+    const n = items.length;
+    const successCount = items.filter(i => i.status === 'success').length;
+    const failCount = items.filter(i => i.status === 'fail').length;
+    const allWaiting = items.every(i => i.status === 'waiting');
+    const allDone = !allWaiting && items.every(i => i.status === 'success' || i.status === 'fail');
+    const donePct = n > 0 ? Math.round((successCount / n) * 100) : 0;
+    // 综合进度：已完成的算 100%，正在编码的用实时 progress，排队的算 0%
+    const totalProgPct = items.reduce((s, i) => {
+      if (i.status === 'success') return s + 100;
+      if (i.status === 'fail') return s + 0;
+      return s + (i.progress || 0);
+    }, 0);
+    const overallPct = n > 0 ? Math.round(totalProgPct / n) : 0;
+    const upload = items.find(i => (i as any).upload)?.upload;
+    groups.push({
+      resourceId: rid,
+      title: items[0]?.resourceTitle || `分P${rid}`,
+      items,
+      overallPct, donePct, successCount, failCount,
+      allWaiting, allDone,
+      upload,
+    });
+  }
+  return groups;
+}
 const tabs = [
   { key: 'published', label: '已发布' },
   { key: 'pending', label: '待审核' },
@@ -130,6 +222,7 @@ const getUploadVideo = async () => {
       noMore.value = true;
     }
   }
+  initialLoading.value = false;
   loading.value = false;
 }
 
@@ -138,6 +231,13 @@ const scrollLoad = () => {
     page.value++;
     getUploadVideo();
   }
+}
+
+const scrollbarRef = ref()
+const onScroll = () => {
+  const wrap = scrollbarRef.value?.wrapRef
+  if (!wrap) return
+  if (wrap.scrollHeight - wrap.scrollTop - wrap.clientHeight < 50) scrollLoad()
 }
 
 const silentRefreshUploadVideo = async () => {
@@ -200,7 +300,9 @@ const changeTab = (tab: typeof tabs[number]['key']) => {
   total.value = 0;
   noMore.value = false;
   videoList.value = [];
+  initialLoading.value = true;
   expandedDetail.value = {};
+  expandedResourceGroups.value = new Set();
   if (tab === 'transcoding') {
     startSilentRefresh();
   } else {
@@ -211,6 +313,14 @@ const changeTab = (tab: typeof tabs[number]['key']) => {
 
 const toggleProgressDetail = (vid: number) => {
   expandedDetail.value[vid] = !expandedDetail.value[vid];
+}
+
+const retryQuality = async (resourceId: number, quality: string) => {
+  const res = await reTranscodeResourceAPI(resourceId, quality);
+  if (res.data.code === statusCode.OK) {
+    ElMessage.success(`已触发重试: ${quality}`);
+    silentRefreshUploadVideo();
+  }
 }
 
 const deleteVideoIndex = ref(-1);
@@ -301,8 +411,12 @@ const showReason = async (vid: number) => {
 }
 
 //前往修改视频
-const modifyVideo = (vid: number) => {
+const modifyVideo = (vid: number | string) => {
   navigateTo({ name: "upload-video", query: { vid: vid } });
+}
+
+const openSubtitleManage = (vid: number | string) => {
+  subtitleManageVid.value = vid;
 }
 
 onBeforeMount(() => {
@@ -362,7 +476,7 @@ onBeforeUnmount(() => {
       display: flex;
       padding: 16px 0;
       width: 100%;
-      height: 80px;
+      min-height: 80px;
       margin-bottom: 12px;
     border-bottom: 1px solid var(--border-color);
       padding-bottom: 12px;
@@ -437,41 +551,121 @@ onBeforeUnmount(() => {
           cursor: pointer;
         }
 
-        .progress-box {
+            .progress-box {
           margin-top: 8px;
-
-          .progress-head {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 4px;
-            font-size: 12px;
-            color: var(--font-primary-3);
-          }
-
-          .expand-btn {
-            cursor: pointer;
-            color: var(--primary-hover-color);
-          }
 
           .progress-detail {
             margin-top: 8px;
-            padding: 8px;
-            border-radius: 6px;
-            background-color: var(--bg-elev-2);
 
-            .detail-item {
+            .resource-group {
               margin-bottom: 8px;
+              border: 1px solid var(--border-color, #e0e0e0);
+              border-radius: 6px;
+              overflow: hidden;
+              background-color: var(--bg-elev-1);
 
-              &:last-child {
-                margin-bottom: 0;
+              .group-header {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 6px 10px;
+                cursor: pointer;
+                user-select: none;
+                font-size: 12px;
+                background-color: var(--fill-1);
+
+                .group-arrow {
+                  font-size: 10px;
+                  color: var(--font-primary-3);
+                  width: 14px;
+                  text-align: center;
+                  transition: transform .2s;
+                  flex-shrink: 0;
+
+                  &.expanded {
+                    transform: rotate(90deg);
+                  }
+                }
+
+                .group-title {
+                  font-weight: 500;
+                  white-space: nowrap;
+                  overflow: hidden;
+                  text-overflow: ellipsis;
+                  flex-shrink: 1;
+                  min-width: 0;
+                }
+
+                .group-count {
+                  color: var(--font-primary-3);
+                  white-space: nowrap;
+                  flex-shrink: 0;
+                }
+
+                .group-status {
+                  font-size: 11px;
+                  padding: 1px 6px;
+                  border-radius: 3px;
+                  background: var(--bg-elev-1);
+                  color: var(--font-primary-3);
+                  white-space: nowrap;
+                  flex-shrink: 0;
+
+                  &.error { color: #f56c6c; background: rgba(245, 108, 108, 0.12); }
+                  &.success { color: #67c23a; background: rgba(103, 194, 58, 0.12); }
+                  &.warn { color: #e6a23c; background: rgba(230, 162, 60, 0.12); }
+                }
+
+                .group-progress {
+                  flex: 1;
+                  min-width: 120px;
+                  max-width: 260px;
+                  margin-left: auto;
+
+                  :deep(.el-progress-bar__outer) {
+                    background-color: var(--fill-1);
+                  }
+                }
               }
-            }
 
-            .detail-title {
-              font-size: 12px;
-              color: var(--font-primary-2);
-              margin-bottom: 4px;
+              .group-detail {
+                padding: 8px 12px 4px 26px;
+                border-top: 1px solid var(--border-color, #e0e0e0);
+
+                .detail-item {
+                  margin-bottom: 8px;
+                }
+
+                .detail-title {
+                  font-size: 12px;
+                  color: var(--font-primary-2);
+                  margin-bottom: 4px;
+                  display: flex;
+                  align-items: center;
+                  gap: 6px;
+
+                  .detail-quality {
+                    color: var(--font-primary-3);
+                  }
+
+                  .retry-btn {
+                    color: var(--primary-hover-color);
+                    cursor: pointer;
+                    font-size: 11px;
+                    padding: 0 4px;
+                    border-radius: 3px;
+                    &:hover {
+                      background: var(--primary-color-active);
+                    }
+                  }
+                }
+
+                .upload-section {
+                  margin-top: 4px;
+                  padding-top: 8px;
+                  border-top: 1px dashed var(--border-color, #e0e0e0);
+                }
+              }
             }
           }
         }

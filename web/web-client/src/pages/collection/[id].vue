@@ -9,7 +9,7 @@
               <li class="video-item" v-for="(item, index) in videoList" :key="index">
                 <div class="item-left">
                   <div class="cover">
-                    <img v-if="item.cover" :src="getResourceUrl(item.cover)" alt="收藏夹封面">
+                    <oss-image v-if="item.cover" :src="item.cover" alt="收藏夹封面" />
                   </div>
                 </div>
                 <div class="item-center">
@@ -42,7 +42,7 @@
       </div>
       <div class="collection-right">
         <div class="cover">
-          <img v-if="collection?.cover" :src="getResourceUrl(collection.cover)" alt="视频封面">
+          <oss-image v-if="collection?.cover" :src="collection.cover" alt="视频封面" />
         </div>
         <div class="info">
           <span class="title">{{ collection?.name }}</span>
@@ -63,7 +63,6 @@
 <script setup lang="ts">
 import { onBeforeMount, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import HeaderBar from '@/components/header-bar/index.vue';
 import { getCollectionInfoAPI, getCollectVideoAPI } from '@/api/collection';
 import { MoreOne as MoreIcon } from '@icon-park/vue-next';
 import { getUserInfoAPI } from '@/api/user';

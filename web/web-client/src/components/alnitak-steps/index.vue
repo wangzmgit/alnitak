@@ -1,6 +1,6 @@
 <template>
   <div class="alnitak-steps">
-    <div class="alnitak-step" v-for="(item, index) in props.data">
+    <div class="alnitak-step" v-for="(item, index) in props.data" :key="index">
       <div class="step-indicator" :class="index + 1 <= props.current ? 'step-indicator-active' : ''">
         <div class="step-indicator-slot">
           <div class="slot-icon" v-if="index + 1 === props.current && props.status === 'error'">

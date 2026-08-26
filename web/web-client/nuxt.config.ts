@@ -1,19 +1,27 @@
 import { globalConfig } from "./src/utils/global-config";
 import fs from "node:fs";
 import path from "node:path";
+import https from "node:https";
 
 // 当 globalConfig.https 为 true 时，开发服务器以 HTTPS 启动（Nuxt 需要文件路径字符串）
 const certDir = path.resolve(process.cwd(), "../../../../server/alnitak/server/conf");
 const keyPath = path.join(certDir, "private.key");
 const certPath = path.join(certDir, "public.crt");
-const httpsConfig = globalConfig.https && fs.existsSync(keyPath)
+// 环境变量 NUXT_DEV_HTTP=true 强制 HTTP，覆盖 globalConfig.https
+const useHttps = process.env.NUXT_DEV_HTTP !== 'true' && globalConfig.https;
+const httpsConfig = useHttps && fs.existsSync(keyPath)
   ? { key: keyPath, cert: certPath }
   : undefined;
 
+// 代理到后端 HTTPS 时跳过自签证书验证
+const proxyAgent = new https.Agent({ rejectUnauthorized: false });
+
 export default defineNuxtConfig({
+  compatibilityDate: '2026-05-09',
   devServer: {
     https: httpsConfig,
   },
+
   modules: [
     '@element-plus/nuxt',
     '@pinia/nuxt',
@@ -40,12 +48,6 @@ export default defineNuxtConfig({
       ],
       link: [
         { rel: "icon", type: "image/x-icon", href: "/favicon.ico" }
-      ],
-      script: [
-        {
-          // 在首屏渲染前应用主题，避免刷新首页仍为浅色
-          children: `(() => { try { const k='ui-theme-mode'; const m=(localStorage.getItem(k)||'light'); const r=document.documentElement; r.setAttribute('data-theme', m); if (m==='dark') r.classList.add('dark'); else r.classList.remove('dark'); } catch(e){} })();`,
-        }
       ]
     }
   },
@@ -76,7 +78,10 @@ export default defineNuxtConfig({
     'element-plus/theme-chalk/dark/css-vars.css',
     '~/assets/styles/element.scss'
   ],
-  devtools: { enabled: true },
+  routeRules: {
+    '/embed/**': { ssr: false },
+  },
+  devtools: false,
   srcDir: 'src/',
   vite: {
     define: {
@@ -86,64 +91,6 @@ export default defineNuxtConfig({
     },
     optimizeDeps: {
       include: [
-        // Element Plus 组件及样式预构建
-        'element-plus/es/components/form/index',
-        'element-plus/es/components/form/style/css',
-        'element-plus/es/components/form-item/style/css',
-        'element-plus/es/components/input/index',
-        'element-plus/es/components/input/style/css',
-        'element-plus/es/components/radio/index',
-        'element-plus/es/components/radio/style/css',
-        'element-plus/es/components/radio-button/style/css',
-        'element-plus/es/components/radio-group/style/css',
-        'element-plus/es/components/date-picker/index',
-        'element-plus/es/components/date-picker/style/css',
-        'element-plus/es/components/button/index',
-        'element-plus/es/components/button/style/css',
-        'element-plus/es/components/pagination/index',
-        'element-plus/es/components/pagination/style/css',
-        'element-plus/es/components/icon/index',
-        'element-plus/es/components/icon/style/css',
-        'element-plus/es/components/scrollbar/index',
-        'element-plus/es/components/scrollbar/style/css',
-        'element-plus/es/components/dropdown/index',
-        'element-plus/es/components/dropdown/style/css',
-        'element-plus/es/components/dropdown-item/style/css',
-        'element-plus/es/components/dropdown-menu/style/css',
-        'element-plus/es/components/switch/index',
-        'element-plus/es/components/switch/style/css',
-        'element-plus/es/components/dialog/index',
-        'element-plus/es/components/dialog/style/css',
-        'element-plus/es/components/progress/index',
-        'element-plus/es/components/progress/style/css',
-        'element-plus/es/components/upload/index',
-        'element-plus/es/components/upload/style/css',
-        'element-plus/es/components/tag/index',
-        'element-plus/es/components/tag/style/css',
-        'element-plus/es/components/tabs/index',
-        'element-plus/es/components/tabs/style/css',
-        'element-plus/es/components/tab-pane/style/css',
-        'element-plus/es/components/popconfirm/index',
-        'element-plus/es/components/popconfirm/style/css',
-        'element-plus/es/components/checkbox/index',
-        'element-plus/es/components/checkbox/style/css',
-        'element-plus/es/components/loading/index',
-        'element-plus/es/components/loading/style/css',
-        'element-plus/es/components/message/index',
-        'element-plus/es/components/message/style/css',
-        'element-plus/es/components/message-box/index',
-        'element-plus/es/components/message-box/style/css',
-        'element-plus/es/components/skeleton/index',
-        'element-plus/es/components/skeleton/style/css',
-        'element-plus/es/components/skeleton-item/style/css',
-        'element-plus/es/components/select/index',
-        'element-plus/es/components/select/style/css',
-        'element-plus/es/components/option/style/css',
-        'element-plus/es/components/tooltip/index',
-        'element-plus/es/components/tooltip/style/css',
-        'element-plus/es/components/result/index',
-        'element-plus/es/components/result/style/css',
-        // 其他常用依赖
         'moment',
         'hls.js',
         'wplayer-next',
@@ -151,10 +98,47 @@ export default defineNuxtConfig({
         'spark-md5',
         '@icon-park/vue-next',
         'axios',
-        'js-cookie'
+        'js-cookie',
+        '@wangeditor/editor-for-vue',
+        'artplayer',
+        'dashjs',
+        'artplayer-plugin-danmuku',
+        'dayjs',
+        'dayjs/plugin/*.js',
+        'lodash-unified',
+        'vuedraggable',
+        'js-base64',
       ]
     },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id: string) {
+            if (id.includes('/node_modules/artplayer') ||
+                id.includes('/node_modules/hls.js') ||
+                id.includes('/node_modules/dashjs') ||
+                id.includes('/node_modules/artplayer-plugin-danmuku') ||
+                id.includes('/node_modules/wplayer-next')) {
+              return 'player-vendor';
+            }
+            if (id.includes('/node_modules/element-plus')) {
+              return 'ui-vendor';
+            }
+            if (id.includes('/node_modules/@wangeditor')) {
+              return 'editor-vendor';
+            }
+          },
+        },
+      },
+    },
     server: {
+      warmup: {
+        clientFiles: [
+          './src/pages/**/*.vue',
+          './src/layouts/**/*.vue',
+          './src/components/**/*.vue',
+        ],
+      },
       headers: {
         // 避免切回标签页触发强刷时，SFC 子模块（如 ?vue&type=style）被错误缓存复用
         'Cache-Control': 'no-store',
@@ -164,9 +148,10 @@ export default defineNuxtConfig({
       },
       proxy: {
         '/api': {
-          target: `http${globalConfig.https ? 's' : ''}://${globalConfig.domain}`,
+          target: `https://${globalConfig.domain}`,
           changeOrigin: true,
-          ws: true,
+          secure: false,
+          agent: proxyAgent,
           // 可选：需要去掉 /api 前缀时，设置 API_PROXY_REWRITE=remove 并解开下一行
           // rewrite: process.env.API_PROXY_REWRITE === 'remove' ? (path) => path.replace(/^\/api/, '') : undefined,
           // 网络不稳定时适当拉长代理超时
@@ -185,12 +170,6 @@ export default defineNuxtConfig({
                 res.writeHead(502, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ code: 502, msg: 'Proxy error: ' + err.message }));
               }
-            });
-            // WebSocket 代理错误处理
-            proxy.on('proxyReqWs', (proxyReq, _req, socket) => {
-              socket.on('error', () => {
-                // WebSocket 连接错误，静默忽略
-              });
             });
             proxy.on('proxyReq', (proxyReq, req, _res) => {
               // 仅对非 WebSocket 请求设置 keep-alive

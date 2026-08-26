@@ -19,4 +19,18 @@ interface PGCReviewRow {
   year: number;
   area: string;
   created_at?: string;
+  updated_at?: string;
+}
+
+interface PGCManageListParam {
+  page: number;
+  pageSize: number;
+  pgc_type?: number;
+  status?: number;
+  keyword?: string;
+}
+
+interface PGCUpdateStatusParam {
+  pgc_id: string;
+  status: number;
 }

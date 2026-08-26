@@ -5,7 +5,7 @@
         <div class="player-info-overlay" v-if="videoInfo" v-show="infoOverlayVisible" @mouseenter="showOverlay" @mouseleave="hideOverlay">
           <a class="title-link" :href="videoLink" target="_blank">{{ displayedTitle }}</a>
           <div class="up-info">
-            <img class="avatar" :src="getResourceUrl(videoInfo.author.avatar)" :alt="videoInfo.author.name" />
+            <oss-image class="avatar" :src="videoInfo.author.avatar" :alt="videoInfo.author.name" />
             <a class="up-name" :href="userLink" target="_blank">{{ videoInfo.author.name }}</a>
           </div>
         </div>
@@ -35,7 +35,7 @@ if (!v || typeof v !== 'string') {
 }
 const videoId = v;
 
-const currentPart = ref(Number(route.query.p) || 1);
+const currentPart = ref(1);
 const pendingProgress = ref<number | null>(null);
 const playerRef = ref();
 const playerReady = ref(false);
@@ -59,6 +59,10 @@ const pageTitle = computed(() => {
 
 const videoLink = computed(() => {
   const vVal = videoInfo.value?.shortId || String(videoInfo.value?.vid ?? '');
+  const currentRid = videoInfo.value?.resources?.[currentPart.value - 1]?.shortId;
+  if (currentRid) {
+    return `/watch?v=${vVal}&rid=${currentRid}`;
+  }
   return `/watch?v=${vVal}${currentPart.value > 1 ? `&p=${currentPart.value}` : ''}`;
 });
 
@@ -76,20 +80,31 @@ const fetchVideoInfo = async () => {
   }
 };
 
-// 校验分集参数
+// 校验分集参数：rid 优先，不存在则退回到 p
 const validatePartQuery = () => {
+  if (!videoInfo.value) return;
+  if (route.query.rid) {
+    const rid = String(route.query.rid);
+    const idx = videoInfo.value.resources.findIndex(r => r.shortId === rid);
+    currentPart.value = idx >= 0 ? idx + 1 : 1;
+    return;
+  }
   const partNum = Number(route.query.p) || 1;
-  if (videoInfo.value?.resources.length && partNum > videoInfo.value.resources.length) {
+  if (videoInfo.value.resources.length && partNum > videoInfo.value.resources.length) {
     router.replace({ path: '/embed/watch', query: { v: route.query.v as string, p: 1 } });
   } else {
     currentPart.value = partNum;
   }
 };
 
-// 加载弹幕
+// 加载弹幕：rid 优先
 const loadDanmaku = async () => {
   if (!videoInfo.value) return;
-  const res = await getDanmakuAPI(videoInfo.value.vid, currentPart.value);
+  const vid = videoInfo.value.shortId || videoInfo.value.vid;
+  const rid = videoInfo.value.resources?.[currentPart.value - 1]?.shortId;
+  const res = rid
+    ? await getDanmakuAPI(vid, undefined, rid)
+    : await getDanmakuAPI(vid, currentPart.value);
   if (res.data.code === 200) {
     playerRef.value?.setDanmaku(res.data.data);
   }
@@ -105,8 +120,11 @@ const onPlayerReady = () => {
   loadDanmaku();
 };
 
-// 路由监听
-watch(() => route.query.p, validatePartQuery);
+// 路由监听：rid 或 p 变化时都要重算分P
+watch(() => [route.query.p, route.query.rid], () => {
+  validatePartQuery();
+  loadDanmaku();
+});
 
 // 播放器 ref 变更
 watch(playerRef, (val) => {

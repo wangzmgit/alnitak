@@ -53,15 +53,25 @@
                 <div class="progress" :style="`width: ${item.uploading ? item.percent : 100}%`"></div>
               </div>
             </div>
+            <div v-if="canManageSubtitles(item)" class="subtitle-action">
+              <el-button link type="primary" size="small" @click="openSubtitleDialog(subtitleResourceKey(item))">字幕管理</el-button>
+            </div>
           </div>
         </div>
       </template>
     </draggable>
   </div>
+  <el-dialog v-model="subtitleDialogVisible" title="字幕管理" width="600" :destroy-on-close="true">
+    <resource-subtitle-editor
+      v-if="subtitleDialogResourceId"
+      :resource-short-id="subtitleDialogResourceId"
+      :key="subtitleDialogResourceId"
+    />
+  </el-dialog>
 </template>
 
 <script setup lang="ts">
-import { reactive, nextTick, ref } from "vue";
+import { reactive, nextTick, ref, watch } from "vue";
 import { Plus } from '@icon-park/vue-next';
 import { reviewCode } from '@/utils/review-code';
 import { ElIcon, ElButton, ElInput, ElPopconfirm } from "element-plus";
@@ -71,6 +81,15 @@ import { submitReviewAPI, getVideoStatusAPI } from "@/api/video";
 import { deleteResourceAPI, modifyTitleAPI, replaceResourceAPI, checkReplaceResourceAPI, reorderResourceAPI } from "@/api/resource";
 import { uploadFileChunkAPI } from "@/api/upload";
 import { getFileMD5 } from '@/utils/md5';
+import ResourceSubtitleEditor from './ResourceSubtitleEditor.vue';
+
+const subtitleDialogVisible = ref(false);
+const subtitleDialogResourceId = ref('');
+
+const openSubtitleDialog = (resourceId: string) => {
+  subtitleDialogResourceId.value = resourceId;
+  subtitleDialogVisible.value = true;
+};
 
 const emit = defineEmits(["review"]);
 const props = defineProps<{
@@ -80,11 +99,30 @@ const props = defineProps<{
 
 const resourceList = ref<Array<ResourceType | UploadResourceType>>(props.resources ?? []);
 
+/** 分 P 已有正式 ID 且未在上传中时可管理字幕 */
+const canManageSubtitles = (item: ResourceType | UploadResourceType) => {
+  if (item.id <= 0) return false;
+  if ('uploading' in item && item.uploading) return false;
+  return true;
+};
+
+const subtitleResourceKey = (item: ResourceType | UploadResourceType): string => {
+  const r = item as ResourceType;
+  if (r.shortId) return String(r.shortId);
+  return String(item.id);
+};
+
 // 获取标签文本
 const getTagText = (state: number) => {
   switch (state) {
     case reviewCode.AUDIT_APPROVED:
       return '审核通过';
+    case reviewCode.VIDEO_PROCESSING:
+      return '转码中';
+    case reviewCode.WAITING_REVIEW:
+      return '待审核';
+    case reviewCode.REVIEW_FAILED:
+      return '审核不通过';
     case reviewCode.PROCESSING_FAIL:
       return '处理失败';
     default:
@@ -226,9 +264,15 @@ const handleReplace = async (uploadFile: any, resource: ResourceType | UploadRes
   }
 
   // hash不同，需要上传新文件
-  // 设置上传状态
+  if (!props.vid) {
+    ElMessage.error('视频ID不存在');
+    return;
+  }
+
+  // 设置上传状态（使用临时ID占位，替换完成后替换列表项）
+  const uploadKey = --uploadIdCounter;
   const uploadData: UploadResourceType = {
-    id: resourceId,
+    id: uploadKey,
     status: -1,
     title: originalResource.title,
     percent: 0,
@@ -238,7 +282,8 @@ const handleReplace = async (uploadFile: any, resource: ResourceType | UploadRes
 
   uploadFileChunkAPI({
     name: "video",
-    action: `v1/resource/replaceResource?resourceId=${resourceId}`,
+    action: `v1/upload/video/${props.vid}`,
+    replaceResourceID: resourceId,
     file: uploadFile.raw,
     onProgress: (val: any) => {
       uploadData.percent = val;
@@ -251,8 +296,9 @@ const handleReplace = async (uploadFile: any, resource: ResourceType | UploadRes
     },
     onFinish: async (data?: any) => {
       if (data.code === statusCode.OK) {
+        // 后端返回新创建的 Resource（新 ID，ReplaceID=oldResourceId）
         resourceList.value[index] = data.data.resource;
-        ElMessage.success('替换成功，正在转码中');
+        ElMessage.success('替换成功，新分P审核通过后生效');
       } else {
         resourceList.value[index] = originalResource;
         ElMessage.error(data.msg || '替换失败');

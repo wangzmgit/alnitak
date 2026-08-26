@@ -4,7 +4,7 @@
     <div class="cover">
       <div class="label">封面</div>
       <div class="cover-uploader-box">
-        <cover-uploader class="uploader" v-if="!loadingForm" :cover="videoForm.cover" @finish="finishUpload" />
+        <cover-uploader class="uploader" v-if="!loadingForm" :cover="videoForm.cover || props.coverUrl || ''" @finish="finishUpload" />
         <el-skeleton v-else class="uploader-skeleton" animated>
           <template #template>
             <el-skeleton-item style="width: 100%;height: 100%;" />
@@ -54,7 +54,6 @@ import { statusCode } from "@/utils/status-code";
 import { isLegalTag } from "@/utils/verify";
 import CoverUploader from "./CoverUploader.vue";
 import PartitionSelector from "./PartitionSelector.vue";
-import FormSkeleton from "@/components/form-skeleton/index.vue";
 import { uploadVideoInfoAPI, editVideoAPI } from "@/api/video";
 import { normalizeVideoTags } from "@/utils/video-tags";
 import { getPartitionAPI } from '@/api/partition';
@@ -62,7 +61,8 @@ import { ElForm, ElFormItem, ElInput, ElSwitch, ElButton, ElSkeleton, ElSkeleton
 
 const emits = defineEmits(["finish"]);
 const props = defineProps<{
-  info: VideoStatusType
+  info: VideoStatusType,
+  coverUrl?: string | null
 }>();
 
 const isEdit = ref(false);
@@ -123,10 +123,6 @@ const closeTag = (tag: string) => {
 }
 
 const submitVideoInfo = async () => {
-  if (!videoForm.cover) {
-    ElMessage.error("请上传视频封面");
-    return;
-  }
   if (!videoForm.title) {
     ElMessage.error("请填写视频标题");
     return;

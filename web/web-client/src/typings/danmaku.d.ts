@@ -1,18 +1,21 @@
 interface AddDanmakuType {
-  vid: number,
+  vid: string | number,
   time: number,
   color: string,
   type: number,
   text: string,
   part: number,
+  rid?: string,
 }
 
 interface DanmakuType {
-  vid: number;
+  vid: string | number;
   time: number,
   color: string,
   type: number,
   text: string,
+  part?: number,
+  rid?: string,
   createdAt?: number;
 }
 

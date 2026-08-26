@@ -14,10 +14,13 @@
 <script setup lang="ts">
 import { ElConfigProvider } from 'element-plus';
 import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
-import LoginDialog from '@/components/login-dialog/index.vue';
 import { useAuthStore } from '@/stores/auth-store';
+import { initNetworkLine } from '@/utils/network-line';
 
 const auth = useAuthStore();
+
+// 应用启动时检测网络线路，为整个会话选择最优 OSS
+initNetworkLine();
 
 const handleLoginSuccess = async () => {
   auth.closeLoginModal();
@@ -45,6 +48,7 @@ body {
 @font-face {
   font-family: "HarmonyOS Regular";
   src: url("@/assets/fonts/HarmonyOS_Sans_SC_Regular.ttf");
+  font-display: swap;
 }
 
 a {

@@ -11,10 +11,10 @@
       </p>
     </div>
     
-    <div class="video-card" v-for="item in videoList">
+    <div class="video-card" v-for="item in videoList" :key="item.vid">
       <div class="card-box">
         <nuxt-link class="cover-box" :to="`/watch?v=${item.shortId || String(item.vid)}`">
-          <img :src="getResourceUrl(item.cover)" alt="封面" />
+          <oss-image :src="item.cover" alt="封面" />
           <span class="duration">{{ toDuration(item.duration) }}</span>
         </nuxt-link>
         <div class="info">
@@ -41,33 +41,32 @@
 import UpIcon from '@/components/icons/UpIcon.vue';
 import { asyncGetRelatedVideoList } from "@/api/video";
 import PlayCountIcon from '@/components/icons/PlayCountIcon.vue';
+import { useVideoAutonextFollow } from '@/composables/use-video-autonext-follow';
 
 const props = defineProps<{
-  vid: number;
+  vid: number | string;
   showAutoplayControl?: boolean; // 新增：是否显示自动连播控制
 }>();
 
-// 修改自动连播状态的存储key，区分分集和推荐
-const autonext = ref(false);
-
-onMounted(() => {
-  const saved = localStorage.getItem('video-autonext-recommend');
-  autonext.value = saved === 'true';
-});
-
-watch(autonext, (val) => {
-  localStorage.setItem('video-autonext-recommend', val.toString());
-  console.log('推荐自动连播状态变更:', val);
-});
+// 与合集列表共用同一开关（localStorage: video-autonext-follow）
+const autonext = useVideoAutonextFollow();
 
 const videoList = ref<VideoType[]>([])
-const { data } = await asyncGetRelatedVideoList(props.vid);
-if ((data.value as any).code === statusCode.OK) {
-  videoList.value = (data.value as any).data.videos;
-}
-
-// 添加当前播放索引，初始值为 -1
 const currentPlayIndex = ref(-1);
+
+const loadRelatedVideos = async (vid: number | string) => {
+  const { data } = await asyncGetRelatedVideoList(vid);
+  if ((data.value as any).code === statusCode.OK) {
+    videoList.value = (data.value as any).data.videos;
+    currentPlayIndex.value = -1;
+  }
+};
+
+await loadRelatedVideos(props.vid);
+
+watch(() => props.vid, (newVid) => {
+  if (newVid) loadRelatedVideos(newVid);
+});
 
 // 获取下一个视频
 const getNextVideo = () => {

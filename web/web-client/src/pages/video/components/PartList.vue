@@ -33,7 +33,7 @@
     <el-scrollbar max-height="340px">
       <!-- 标题模式：垂直列表 -->
       <ul v-if="!isNumberMode" class="list-box">
-        <li :class="['list-item', props.active - 1 === index ? 'active-part' : '']" v-for="(item, index) in resources"
+        <li :class="['list-item', props.active - 1 === index ? 'active-part' : '']" v-for="(item, index) in resources" :key="item.id"
           @click="changePart(index)">
           <div class="item-content">
             <span class="part-num">P{{ index + 1 }}</span>
@@ -47,7 +47,7 @@
       <div v-else class="number-grid">
         <div 
           :class="['number-item', props.active - 1 === index ? 'active-number' : '']" 
-          v-for="(item, index) in resources"
+          v-for="(item, index) in resources" :key="item.id"
           @click="changePart(index)"
         >
           {{ index + 1 }}

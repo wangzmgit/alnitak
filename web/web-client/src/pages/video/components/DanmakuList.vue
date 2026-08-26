@@ -19,11 +19,21 @@
     </div>
     <!-- 弹幕列表 -->
     <el-scrollbar :height="props.height - 76">
-      <div class="danmaku-item" v-for="item in danmakuList" :key="`${item.time}-${item.text}`">
-        <div class="time">{{ formatDanmakuTime(item.time) }}</div>
-        <div class="text">{{ item.text }}</div>
-        <div class="send-time">{{ moment(item.createdAt).format('MM-DD HH:mm') }}</div>
-      </div>
+      <el-tooltip
+        v-for="item in danmakuList"
+        :key="`${item.time}-${item.text}`"
+        content="点击跳转到该弹幕出现的进度"
+        placement="left"
+        :show-after="400"
+        :hide-after="0"
+        popper-class="danmaku-item-tip"
+      >
+        <div class="danmaku-item" @click="handleItemClick(item)">
+          <div class="time">{{ formatDanmakuTime(item.time) }}</div>
+          <div class="text">{{ item.text }}</div>
+          <div class="send-time">{{ formatDate(item.createdAt) }}</div>
+        </div>
+      </el-tooltip>
     </el-scrollbar>
   </div>
 </template>
@@ -32,13 +42,22 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { Down as DownIcon } from "@icon-park/vue-next";
-import moment from 'moment';
 
 const props = withDefaults(defineProps<{
   height: number;
 }>(), {
   height: 300,
 })
+
+const emit = defineEmits<{
+  (e: 'seek-time', seconds: number): void;
+}>();
+
+const handleItemClick = (item: DanmakuType) => {
+  if (typeof item.time === 'number' && isFinite(item.time) && item.time >= 0) {
+    emit('seek-time', item.time);
+  }
+}
 
 // 添加弹幕列表相关的代码
 const showDanmakuList = ref(false);
@@ -50,6 +69,15 @@ const formatDanmakuTime = (seconds: number) => {
   return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
 };
 
+const formatDate = (dateStr: string) => {
+  const d = new Date(dateStr);
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const hh = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${mm}-${dd} ${hh}:${min}`;
+};
+
 // 切换弹幕列表显示状态
 const toggleDanmakuList = () => {
   showDanmakuList.value = !showDanmakuList.value;
@@ -59,10 +87,33 @@ const setDanmaku = (data: DanmakuType[]) => {
   danmakuList.value = data;
 }
 
+// 列表按发送时间（createdAt）升序排列：新弹幕直接追加到末尾
+// ws 回广播天然按发送顺序到达，与后端初始查询的插入顺序一致
+const addDanmaku = (item: DanmakuType) => {
+  danmakuList.value.push(item);
+}
+
 defineExpose({
   setDanmaku,
+  addDanmaku,
 });
 </script>
+
+<style lang="scss">
+/* 非 scoped：el-tooltip popper 被 teleport 到 body，需全局样式才能命中 */
+.danmaku-item-tip.el-popper {
+  background: var(--bg-elev-1) !important;
+  color: var(--font-primary-1) !important;
+  border: 1px solid var(--border-color) !important;
+  box-shadow: 0 4px 12px var(--shadow-weak);
+  font-size: 12px;
+
+  .el-popper__arrow::before {
+    background: var(--bg-elev-1) !important;
+    border: 1px solid var(--border-color) !important;
+  }
+}
+</style>
 
 <style lang="scss" scoped>
 .danmaku-list-container {

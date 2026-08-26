@@ -38,7 +38,7 @@
         </div>
       </div>
     </div>
-    <collection-list v-if="showCollect" :vid="vid" @close="closeCollectionCard"></collection-list>
+    <collection-list v-if="showCollect" :vid="shortId || vid" @close="closeCollectionCard"></collection-list>
   </div>
 </template>
 
@@ -58,8 +58,9 @@ import { getCollectVideoStatusAPI } from '@/api/collect';
 import CollectionList from './CollectionList.vue';
 
 const props = defineProps<{
-  vid: number;
+  vid: number | string;
   shortId?: string;
+  rid?: string;         // 当前分P的资源 rid，嵌入代码用
 }>();
 
 // 点赞收藏数据
@@ -102,8 +103,14 @@ const shareUrl = computed(() => {
 const route = useRoute();
 const embedCode = computed(() => {
   if (process.client) {
-    const part = Number(route.query.p) || 1;
     const v = props.shortId || String(props.vid);
+    // 优先使用 props.rid（父组件同步的当前资源 rid），其次 route.query.rid 兜底
+    const rid = props.rid || route.query.rid;
+    if (rid) {
+      const url = window.location.origin + `/embed/watch?v=${v}&rid=${rid}`;
+      return `<iframe src='${url}' width='800' height='450' frameborder='0' allowfullscreen></iframe>`;
+    }
+    const part = Number(route.query.p) || 1;
     const url = window.location.origin + `/embed/watch?v=${v}` + (part > 1 ? `&p=${part}` : '');
     return `<iframe src='${url}' width='800' height='450' frameborder='0' allowfullscreen></iframe>`;
   }
@@ -134,7 +141,7 @@ const copyText = async (text: string, msg: string) => {
 };
 
 const doShare = async () => {
-  await shareVideoAPI(props.vid);
+  await shareVideoAPI(props.shortId || props.vid);
   stat.value.share++;
 };
 const copyUrl = () => { copyText(shareUrl.value, '播放地址已复制'); doShare(); };
@@ -142,7 +149,7 @@ const copyEmbed = () => { copyText(embedCode.value, '嵌入代码已复制'); do
 
 //获取点赞收藏关注信息
 const getArchiveStat = async () => {
-  const res = await getVideoArchiveStatAPI(props.vid);
+  const res = await getVideoArchiveStatAPI(props.shortId || props.vid);
   if (res.data.code === statusCode.OK) {
     stat.value = res.data.data.stat;
   }
@@ -150,7 +157,7 @@ const getArchiveStat = async () => {
 
 // 获取是否点赞
 const getLikeStatus = async () => {
-  const res = await getLikeVideoStatusAPI(props.vid);
+  const res = await getLikeVideoStatusAPI(props.shortId || props.vid);
   if (res.data.code === statusCode.OK) {
     archive.hasLike = res.data.data.like;
   }
@@ -158,7 +165,7 @@ const getLikeStatus = async () => {
 
 // 获取是否收藏
 const getCollectStatus = async () => {
-  const res = await getCollectVideoStatusAPI(props.vid);
+  const res = await getCollectVideoStatusAPI(props.shortId || props.vid);
   if (res.data.code === statusCode.OK) {
     archive.hasCollect = res.data.data.collect;
   }
@@ -168,13 +175,14 @@ const likeAnimation = ref('');
 const likeClick = async () => { // 点赞点赞按钮
   if (loading.value) return;
   if (!(await requireLogin('点赞'))) return;
+  const videoId = props.shortId || props.vid;
   if (!archive.hasLike) {
     //调用点赞接口
-    await likeVideoAPI(props.vid);
+    await likeVideoAPI(videoId);
     likeAnimation.value = 'like-active';
     stat.value.like++;
   } else {
-    await cancelLikeVideoAPI(props.vid);
+    await cancelLikeVideoAPI(videoId);
     stat.value.like--;
   }
 

@@ -1,21 +1,19 @@
 <template>
   <n-drawer v-model:show="drawerVisible" :width="500">
     <n-drawer-content title="合集详情">
-      <n-form v-if="data" label-placement="top">
-        <n-grid :cols="24" :x-gap="18">
-          <n-form-item-grid-item :span="12" label="合集ID">{{ data.id }}</n-form-item-grid-item>
-          <n-form-item-grid-item :span="12" label="作者">{{ data.author?.name }} (UID:{{ data.uid }})</n-form-item-grid-item>
-          <n-form-item-grid-item :span="24" label="标题">{{ data.title }}</n-form-item-grid-item>
-          <n-form-item-grid-item :span="24" label="简介">{{ data.desc || '暂无' }}</n-form-item-grid-item>
-          <n-form-item-grid-item v-if="data.cover" :span="24" label="封面">
-            <n-image :src="getResourceUrl(data.cover)" :width="200" />
-          </n-form-item-grid-item>
-          <n-form-item-grid-item :span="8" label="视频数">{{ data.videoCount }}</n-form-item-grid-item>
-          <n-form-item-grid-item :span="8" label="浏览量">{{ data.views }}</n-form-item-grid-item>
-          <n-form-item-grid-item :span="8" label="公开">{{ data.isOpen ? '是' : '否' }}</n-form-item-grid-item>
-          <n-form-item-grid-item :span="12" label="创建时间">{{ formatTime(data.createdAt) }}</n-form-item-grid-item>
-        </n-grid>
-      </n-form>
+      <n-descriptions v-if="data" label-placement="top" :column="2">
+        <n-descriptions-item label="合集ID">{{ data.id }}</n-descriptions-item>
+        <n-descriptions-item label="作者">{{ data.author?.name }} (UID:{{ data.uid }})</n-descriptions-item>
+        <n-descriptions-item label="标题" :span="2">{{ data.title }}</n-descriptions-item>
+        <n-descriptions-item label="简介" :span="2">{{ data.desc || '暂无' }}</n-descriptions-item>
+        <n-descriptions-item v-if="data.cover" label="封面" :span="2">
+          <n-image :src="getResourceUrl(data.cover)" :width="200" />
+        </n-descriptions-item>
+        <n-descriptions-item label="视频数">{{ data.videoCount }}</n-descriptions-item>
+        <n-descriptions-item label="浏览量">{{ data.views }}</n-descriptions-item>
+        <n-descriptions-item label="公开">{{ data.isOpen ? '是' : '否' }}</n-descriptions-item>
+        <n-descriptions-item label="创建时间">{{ formatTime(data.createdAt) }}</n-descriptions-item>
+      </n-descriptions>
 
       <div class="video-box">
         <span>合集视频列表</span>
@@ -41,7 +39,7 @@ import { formatTime } from '@/utils/format';
 import { statusCode } from '@/utils/status-code';
 import { getPlaylistVideoListAPI } from "@/api/playlist";
 import { getResourceUrl } from '@/utils/resource';
-import { NButton, NDrawer, NDrawerContent, NScrollbar, NForm, NGrid, NFormItemGridItem, NImage } from "naive-ui";
+import { NButton, NDrawer, NDrawerContent, NScrollbar, NDescriptions, NDescriptionsItem, NImage } from "naive-ui";
 
 const emit = defineEmits(['update:visible']);
 const props = withDefaults(defineProps<{

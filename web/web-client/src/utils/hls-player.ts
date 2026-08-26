@@ -12,6 +12,7 @@ export interface HlsPlayerOptions {
   onError?: (event: string, data: any) => void;
   onMediaAttached?: () => void;
   onManifestParsed?: () => void;
+  onTokenExpired?: () => void;
 }
 
 export interface PlaybackState {
@@ -75,6 +76,26 @@ export function createHlsPlayer(
   });
 
   state.instance.on(Hls.Events.ERROR, (event, data) => {
+    // 检测 403 错误（JWT token 过期）
+    if (data.type === Hls.ErrorTypes.NETWORK_ERROR && data.details === Hls.ErrorDetails.ERROR_NOTE_TIMEOUT) {
+      const response = (data as any).response;
+      if (response && response.code === 403) {
+        console.warn('[HLS] Token 过期，触发续签');
+        options.onTokenExpired?.();
+        return;
+      }
+    }
+    
+    // 检测 403 HTTP 状态码
+    if (data.type === Hls.ErrorTypes.NETWORK_ERROR && data.networkDetails) {
+      const xhr = data.networkDetails as XMLHttpRequest;
+      if (xhr && xhr.status === 403) {
+        console.warn('[HLS] HTTP 403 Token 过期，触发续签');
+        options.onTokenExpired?.();
+        return;
+      }
+    }
+
     if (data.fatal) {
       switch (data.type) {
         case Hls.ErrorTypes.NETWORK_ERROR:

@@ -1,5 +1,5 @@
 <template>
-  <ul class="follow-list" v-infinite-scroll="scrollLoad">
+  <ul class="follow-list">
     <li class="follow-card" v-for="(item, index) in followList" :key="index">
       <!--头像-->
       <div class="follow-avatar">
@@ -16,7 +16,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch, computed } from "vue";
+import { ref, reactive, watch, computed, onMounted, onUnmounted } from "vue";
 import { getFollowingAPI, getFollowersAPI, followAPI, unfollowAPI, getUserRelationAPI } from '@/api/relation';
 import { requireLogin } from "@/utils/require-login";
 import { useAuthStore } from "@/stores/auth-store";
@@ -70,6 +70,15 @@ const scrollLoad = () => {
     getRelationList();
   }
 }
+
+const onWindowScroll = () => {
+  const scrollTop = document.documentElement.scrollTop || document.body.scrollTop
+  const scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight
+  const clientHeight = document.documentElement.clientHeight
+  if (scrollHeight - scrollTop - clientHeight < 100) scrollLoad()
+}
+onMounted(() => window.addEventListener('scroll', onWindowScroll))
+onUnmounted(() => window.removeEventListener('scroll', onWindowScroll))
 
 const followBtnClick = async (relation: RelationListType) => {
   if (!(await requireLogin('关注'))) return;

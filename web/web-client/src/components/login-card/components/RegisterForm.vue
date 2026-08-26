@@ -37,8 +37,6 @@ import { reactive, ref } from 'vue';
 import { isEmail } from "@/utils/verify";
 import { statusCode } from '@/utils/status-code';
 import { registerAPI } from "@/api/auth";
-import BaseTabs from "@/components/base-tabs/index.vue";
-import SliderCaptcha from "@/components/slider-captcha/index.vue";
 import { sendEmailCodeAPI } from '~/api/code';
 
 const emit = defineEmits(["changeForm"]);
@@ -126,7 +124,7 @@ const sendEmailCode = async () => {
   if (disabledSend.value) return;
   //禁用发送按钮
   disabledSend.value = true;
-  const res = await sendEmailCodeAPI(registerForm);
+  const res = await sendEmailCodeAPI({ email: registerForm.email, captchaId: registerForm.captchaId });
   switch (res.data.code) {
     case statusCode.OK:
       //开启倒计时，使用后端返回的冷却时间

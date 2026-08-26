@@ -168,7 +168,7 @@ onBeforeUnmount(() => {
 }
 
 :deep(.w-e-text-container) {
-  min-height: 300px !important;
+  height: 300px !important;
   background-color: var(--bg-elev-1);
   color: var(--font-primary-1);
   border-bottom-left-radius: 8px;

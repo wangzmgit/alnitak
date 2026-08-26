@@ -3,7 +3,10 @@
     <p class="at-title">@我的</p>
     <div class="at-box">
       <el-scrollbar max-height="100%">
-        <ul class="at-list">
+        <template v-if="!atMessageList.length && !loading">
+          <el-empty description="暂无 @ 消息" />
+        </template>
+        <ul class="at-list" v-else>
           <li class="at-msg-item" v-for="(item, index) in atMessageList" :key="index">
             <div class="item-left">
               <common-avatar class="avatar" :url="item.user.avatar" :size="45"></common-avatar>
@@ -37,8 +40,27 @@ import { ref, onBeforeMount } from "vue";
 import { ElPagination } from 'element-plus';
 import { formatTime } from "@/utils/format";
 import { getAtMsgAPI } from '@/api/msg-at';
-import CommonAvatar from '@/components/common-avatar/index.vue';
+import { getResourceUrl } from '@/utils/resource';
 
+definePageMeta({
+  middleware: ['auth']
+})
+const getContentUrl = (msg: AtMessageType) => {
+  if (msg.type === 0) {
+    return `/watch?v=${msg.video.shortId || String(msg.video.vid)}`;
+  }
+  return `/article/${msg.article.aid}`;
+}
+
+const getCoverUrl = (msg: AtMessageType) => {
+  return msg.type === 0 ? msg.video.cover : msg.article.cover;
+}
+
+const getContentTitle = (msg: AtMessageType) => {
+  return msg.type === 0 ? msg.video.title : msg.article.title;
+}
+
+const loading = ref(true);
 const page = ref(1);
 const total = ref(0);
 const pageSize = ref(10);
@@ -50,30 +72,7 @@ const getAtMsgList = async () => {
     total.value = res.data.data.total;
     atMessageList.value = res.data.data.messages;
   }
-}
-
-const getContentUrl = (msg: AtMessageType) => {
-  if (msg.type === 0) {
-    return `/watch?v=${msg.video.shortId || String(msg.video.vid)}`;
-  }
-
-  return `/article/${msg.article.aid}`;
-}
-
-const getCoverUrl = (msg: AtMessageType) => {
-  if (msg.type === 0) {
-    return msg.video.cover;
-  }
-
-  return msg.article.cover;
-}
-
-const getContentTitle = (msg: AtMessageType) => {
-  if (msg.type === 0) {
-    return msg.video.title;
-  }
-
-  return msg.article.title;
+  loading.value = false;
 }
 
 onBeforeMount(() => {

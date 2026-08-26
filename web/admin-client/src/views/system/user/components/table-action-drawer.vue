@@ -9,6 +9,7 @@
           <n-form-item-grid-item :span="12" label="性别">{{ toGender(data.gender) }}</n-form-item-grid-item>
           <n-form-item-grid-item :span="12" label="生日">{{ formatDate(data.birthday || "") }}</n-form-item-grid-item>
           <n-form-item-grid-item :span="12" label="注册时间">{{ formatTime(data.createdAt || "") }}</n-form-item-grid-item>
+          <n-form-item-grid-item :span="12" label="角色">{{ getRoleName(data.role) }}</n-form-item-grid-item>
           <n-form-item-grid-item :span="24" label="个性签名">{{ data.sign }}</n-form-item-grid-item>
         </n-grid>
       </n-form>
@@ -50,6 +51,7 @@ import { computed, ref, watch } from 'vue';
 import { formatDate, formatTime } from '@/utils/format';
 import { statusCode } from '@/utils/status-code';
 import { getUserBanRecordAPI, unbanUserAPI } from '@/api/user';
+import { getAllRoleListAPI } from '@/api/role';
 import banModal from './ban-modal.vue';
 import { NButton, NTable, NDrawer, NDrawerContent, NScrollbar, NForm, NGrid, NFormItemGridItem, useDialog, useMessage } from "naive-ui";
 
@@ -64,6 +66,21 @@ const props = withDefaults(defineProps<{
 const dialog = useDialog();
 const message = useMessage();
 const visibleBanModal = ref(false);
+
+const roleList = ref<Array<{ code: string, name: string }>>([])
+const getAllRoleList = async () => {
+  const res = await getAllRoleListAPI();
+  if (res.data.code === statusCode.OK) {
+    roleList.value = res.data.data.roles;
+  }
+}
+getAllRoleList();
+
+const getRoleName = (code: string | undefined) => {
+  if (!code) return "未知";
+  const role = roleList.value.find(r => r.code === code);
+  return role ? role.name : "未知";
+}
 
 const drawerVisible = computed({
   get() {

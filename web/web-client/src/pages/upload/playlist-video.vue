@@ -9,7 +9,7 @@
     </div>
     <div class="video-box">
       <el-scrollbar>
-        <div v-if="videoList.length === 0" class="empty-tip">暂无视频，点击"添加视频"按钮添加</div>
+        <div v-if="videoList.length === 0 && !loading" class="empty-tip">暂无视频，点击"添加视频"按钮添加</div>
         <ul v-else class="video-list">
           <li v-for="(element, index) in videoList" :key="element.vid" class="video-item"
             draggable="true"
@@ -22,7 +22,7 @@
             <div class="drag-handle">⠿</div>
             <div class="item-index">P{{ index + 1 }}</div>
             <div class="item-cover">
-              <img v-if="element.cover" :src="getResourceUrl(element.cover)" alt="封面">
+              <oss-image v-if="element.cover" :src="element.cover" alt="封面" />
             </div>
             <div class="item-info">
               <span class="item-title">{{ element.title }}</span>
@@ -44,7 +44,7 @@
           <div v-for="v in myVideos" :key="v.vid" class="add-video-item" :class="{ 'is-disabled': v.inOtherPlaylist }">
             <el-checkbox v-model="v.checked" :disabled="v.inPlaylist || v.inOtherPlaylist"></el-checkbox>
             <div class="add-cover">
-              <img v-if="v.cover" :src="getResourceUrl(v.cover)" alt="封面">
+              <oss-image v-if="v.cover" :src="v.cover" alt="封面" />
             </div>
             <div class="add-info">
               <span class="add-title">{{ v.title }}</span>
@@ -97,12 +97,22 @@ interface MyVideoItem {
   inOtherPlaylist: boolean; // 是否已在其他合集中
 }
 
+const loading = ref(true);
 const videoList = ref<PlaylistVideoItem[]>([]);
 
 const getVideoList = async () => {
   const res = await getPlaylistVideoListAPI(playlistId.value, 1, 200);
+  loading.value = false;
   if (res.data.code === statusCode.OK) {
-    videoList.value = res.data.data.videos || [];
+    videoList.value = (res.data.data.videos || []).map((v: any) => ({
+      vid: Number(v.shortId) || 0,
+      title: v.title,
+      cover: v.cover,
+      desc: v.desc,
+      duration: v.duration,
+      clicks: v.clicks,
+      createdAt: v.createdAt,
+    }));
   }
 }
 
@@ -175,7 +185,7 @@ const showAddDialog = async () => {
       ? (mapRes.data.data.videoPlaylistMap || {})
       : {};
     myVideos.value = videos.map((v: any) => {
-      const vid = v.vid;
+      const vid = Number(v.shortId) || 0;
       const belongsToPlaylistId = videoPlaylistMap[vid];
       const inCurrentPlaylist = existingVids.has(vid);
       // 已在其他合集中（不是当前合集）

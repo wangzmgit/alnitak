@@ -1,9 +1,9 @@
 <template>
   <div class="video-box">
-    <ul ref="videoListRef" class="video-list" v-infinite-scroll="scrollLoad">
-      <li class="video-item" v-for="item in videoList">
+    <ul ref="videoListRef" class="video-list">
+      <li class="video-item" v-for="item in videoList" :key="item.vid">
         <nuxt-link class="cover" :to="`/watch?v=${item.shortId || String(item.vid)}`">
-          <img class="img" :src="getResourceUrl(item.cover)" />
+          <oss-image class="img" :src="item.cover" alt="封面" />
         </nuxt-link>
         <nuxt-link class="title" :to="`/watch?v=${item.shortId || String(item.vid)}`">{{ item.title }}</nuxt-link>
         <div class="meta">
@@ -23,7 +23,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { getVideoByUser, asyncGetVideoByUser } from "@/api/video";
 import { ElIcon } from 'element-plus';
 import PlayCountIcon from "@/components/icons/PlayCountIcon.vue";
@@ -68,6 +68,15 @@ const scrollLoad = () => {
     getUserVideo();
   }
 }
+
+const onWindowScroll = () => {
+  const scrollTop = document.documentElement.scrollTop || document.body.scrollTop
+  const scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight
+  const clientHeight = document.documentElement.clientHeight
+  if (scrollHeight - scrollTop - clientHeight < 100) scrollLoad()
+}
+onMounted(() => window.addEventListener('scroll', onWindowScroll))
+onUnmounted(() => window.removeEventListener('scroll', onWindowScroll))
 </script>
 
 <style lang="scss" scoped>

@@ -264,6 +264,8 @@ async function deletePgc() {
 
 const addingEp = ref(false)
 const addEpError = ref('')
+const addEpMode = ref<'upload' | 'bind'>('upload')
+const addEpVidInput = ref('')
 const addEp = ref<AddPgcEpisodeReq>({
   episode_number: 1,
   title: '',
@@ -403,8 +405,17 @@ async function addEpisode() {
     return
   }
   if (!addEp.value.episode_number || addEp.value.episode_number <= 0) addEp.value.episode_number = 1
+  // 绑定已有视频模式：从手动输入的 vid 取值
+  if (addEpMode.value === 'bind') {
+    const parsed = Number(addEpVidInput.value)
+    if (!parsed || parsed <= 0 || !Number.isInteger(parsed)) {
+      addEpError.value = '请输入有效的视频 ID'
+      return
+    }
+    addEp.value.vid = parsed
+  }
   if (!addEp.value.vid || addEp.value.vid <= 0) {
-    addEpError.value = '请先上传视频并自动填入'
+    addEpError.value = '请先上传视频或输入已有视频 ID'
     return
   }
   addingEp.value = true
@@ -780,10 +791,29 @@ onBeforeUnmount(() => {
 
       <div class="mt-6 rounded-xl border border-studio-border bg-studio-elevated/30 p-4">
         <h4 class="text-sm font-semibold text-studio-fg">新增一集</h4>
-        <p class="mt-1 text-xs text-studio-muted">
-          上传视频后自动填充标题与 vid；时长由本地解析或上传结果写入，无需手动填写。发布时间由后端按上传时间写入。
-        </p>
+
+        <!-- 模式切换 -->
+        <div class="mt-2 flex gap-2">
+          <button
+            type="button"
+            class="rounded-lg px-3 py-1 text-xs font-medium transition"
+            :class="addEpMode === 'upload'
+              ? 'bg-cyan-500/20 text-cyan-300'
+              : 'bg-studio-elevated/40 text-studio-muted hover:text-studio-fg-subtle'"
+            @click="addEpMode = 'upload'"
+          >上传新视频</button>
+          <button
+            type="button"
+            class="rounded-lg px-3 py-1 text-xs font-medium transition"
+            :class="addEpMode === 'bind'
+              ? 'bg-cyan-500/20 text-cyan-300'
+              : 'bg-studio-elevated/40 text-studio-muted hover:text-studio-fg-subtle'"
+            @click="addEpMode = 'bind'"
+          >绑定已有视频</button>
+        </div>
+
         <p v-if="addEpError" class="mt-2 text-xs text-rose-400">{{ addEpError }}</p>
+
         <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,5rem)_minmax(0,1fr)_minmax(0,1.2fr)]">
           <input
             v-model.number="addEp.episode_number"
@@ -793,7 +823,9 @@ onBeforeUnmount(() => {
             placeholder="集号"
             readonly
           />
-          <div class="min-w-0">
+
+          <!-- 上传模式：文件选择 -->
+          <div v-if="addEpMode === 'upload'" class="min-w-0">
             <input
               type="file"
               accept="video/*"
@@ -802,57 +834,84 @@ onBeforeUnmount(() => {
               @change="onPickEpisodeFile"
             />
           </div>
+
+          <!-- 绑定模式：vid 输入 -->
+          <div v-else class="min-w-0">
+            <input
+              v-model="addEpVidInput"
+              type="number"
+              min="1"
+              step="1"
+              class="w-full rounded-xl border border-studio-border bg-studio-input px-3 py-2 text-sm text-studio-fg"
+              placeholder="输入已有视频 ID"
+            />
+          </div>
+
+          <!-- 上传模式标题 auto-fill / 绑定模式可手动填 -->
           <input
             v-model="addEp.title"
             type="text"
-            class="min-w-0 rounded-xl border border-studio-border bg-studio-input px-3 py-2 text-sm text-studio-fg"
-            placeholder="自动带出标题"
-            readonly
+            :readonly="addEpMode === 'upload'"
+            class="min-w-0 rounded-xl border border-studio-border px-3 py-2 text-sm"
+            :class="addEpMode === 'upload'
+              ? 'bg-studio-elevated/40 text-studio-fg-muted'
+              : 'bg-studio-input text-studio-fg'"
+            :placeholder="addEpMode === 'upload' ? '自动带出标题' : '剧集标题（选填）'"
           />
         </div>
-        <div class="mt-3 flex items-center justify-between gap-3">
-          <p class="text-xs text-studio-muted">
-            {{ addEpFile ? (addEpUploading ? '正在上传视频，请稍候…' : '已选择视频文件，点击右侧按钮执行上传') : '请先选择视频文件' }}
-          </p>
-          <button
-            type="button"
-            class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-cyan-600 px-4 py-2 text-sm font-semibold text-slate-950 shadow-lg shadow-cyan-500/20 transition hover:from-cyan-400 hover:to-cyan-500 disabled:cursor-not-allowed disabled:opacity-60"
-            :disabled="addEpUploading || !addEpFile"
-            @click="uploadEpisodeFileAndFill"
-          >
-            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-width="2" d="M12 16V7m0 0l-4 4m4-4l4 4M4 17v1a2 2 0 002 2h12a2 2 0 002-2v-1" />
-            </svg>
-            {{ addEpUploading ? '上传中…' : '上传视频并自动填入' }}
-          </button>
-        </div>
-        <div v-if="addEpUploading" class="mt-3">
-          <div class="flex items-center justify-between text-xs text-studio-muted">
-            <span>
-              {{
-                addEpUploadStage === 'checking'
-                  ? '校验文件中…'
-                  : addEpUploadStage === 'uploading'
-                  ? '上传中…'
-                  : addEpUploadStage === 'merging'
-                  ? '服务端合并中…'
-                  : '创建视频资源中…'
-              }}
-            </span>
-            <span>{{ addEpUploadPercent }}%</span>
+
+        <!-- 上传模式：上传按钮 + 进度 -->
+        <template v-if="addEpMode === 'upload'">
+          <div class="mt-3 flex items-center justify-between gap-3">
+            <p class="text-xs text-studio-muted">
+              {{ addEpFile ? (addEpUploading ? '正在上传视频，请稍候…' : '已选择视频文件，点击右侧按钮执行上传') : '请先选择视频文件' }}
+            </p>
+            <button
+              type="button"
+              class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-cyan-600 px-4 py-2 text-sm font-semibold text-slate-950 shadow-lg shadow-cyan-500/20 transition hover:from-cyan-400 hover:to-cyan-500 disabled:cursor-not-allowed disabled:opacity-60"
+              :disabled="addEpUploading || !addEpFile"
+              @click="uploadEpisodeFileAndFill"
+            >
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-width="2" d="M12 16V7m0 0l-4 4m4-4l4 4M4 17v1a2 2 0 002 2h12a2 2 0 002-2v-1" />
+              </svg>
+              {{ addEpUploading ? '上传中…' : '上传视频并自动填入' }}
+            </button>
           </div>
-          <div class="mt-1 h-2 w-full overflow-hidden rounded bg-studio-input">
-            <div
-              class="h-full rounded bg-gradient-to-r from-cyan-500 to-cyan-400 transition-all duration-200"
-              :style="{ width: `${addEpUploadPercent}%` }"
-            ></div>
+          <div v-if="addEpUploading" class="mt-3">
+            <div class="flex items-center justify-between text-xs text-studio-muted">
+              <span>
+                {{
+                  addEpUploadStage === 'checking'
+                    ? '校验文件中…'
+                    : addEpUploadStage === 'uploading'
+                    ? '上传中…'
+                    : addEpUploadStage === 'merging'
+                    ? '服务端合并中…'
+                    : '创建视频资源中…'
+                }}
+              </span>
+              <span>{{ addEpUploadPercent }}%</span>
+            </div>
+            <div class="mt-1 h-2 w-full overflow-hidden rounded bg-studio-input">
+              <div
+                class="h-full rounded bg-gradient-to-r from-cyan-500 to-cyan-400 transition-all duration-200"
+                :style="{ width: `${addEpUploadPercent}%` }"
+              ></div>
+            </div>
           </div>
-        </div>
+        </template>
+
+        <!-- 绑定模式：提示 -->
+        <p v-else class="mt-3 text-xs text-studio-muted">
+          输入已存在于系统的视频 ID，添加后该视频将被标记为 PGC 资产并从 UGC 分区移除。
+        </p>
+
         <div class="mt-3 flex justify-end">
           <button
             type="button"
             class="rounded-xl bg-gradient-to-r from-cyan-500 to-cyan-600 px-4 py-2 text-sm font-semibold text-slate-950 shadow-lg shadow-cyan-500/20 transition hover:from-cyan-400 hover:to-cyan-500 disabled:opacity-60"
-            :disabled="addingEp"
+            :disabled="addingEp || (addEpMode === 'upload' ? false : !addEpVidInput)"
             @click="addEpisode"
           >
             {{ addingEp ? '添加中…' : '添加' }}

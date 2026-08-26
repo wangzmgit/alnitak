@@ -6,11 +6,14 @@
     </div>
     <div class="video-box">
       <el-scrollbar>
-        <ul class="video-list">
+        <template v-if="!playlistList.length && !loading">
+          <el-empty description="暂无合集" />
+        </template>
+        <ul class="video-list" v-else>
           <li class="video-item" v-for="(item, index) in playlistList" :key="item.id">
             <div class="item-left">
               <div class="cover">
-                <img v-if="item.cover" :src="getResourceUrl(item.cover)" alt="封面">
+                <oss-image v-if="item.cover" :src="item.cover" alt="封面" />
               </div>
             </div>
             <div class="item-center">
@@ -41,7 +44,6 @@
               </el-dropdown>
             </div>
           </li>
-          <li v-if="playlistList.length === 0" class="empty-tip">暂无合集，点击上方按钮创建</li>
         </ul>
       </el-scrollbar>
     </div>
@@ -77,10 +79,12 @@ interface PlaylistItem {
   createdAt: string;
 }
 
+const loading = ref(true);
 const playlistList = ref<PlaylistItem[]>([]);
 
 const getMyPlaylists = async () => {
   const res = await getMyPlaylistAPI();
+  loading.value = false;
   if (res.data.code === statusCode.OK) {
     playlistList.value = res.data.data.playlists || [];
   }

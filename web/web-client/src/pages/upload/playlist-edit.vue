@@ -28,8 +28,6 @@
 import { computed, ref, onBeforeMount } from 'vue';
 import { addPlaylistAPI, editPlaylistAPI } from '@/api/playlist';
 import { statusCode } from '@/utils/status-code';
-import CoverUploader from '@/components/cover-uploader/index.vue';
-
 const route = useRoute();
 const isEdit = computed(() => !!Number(route.query.id));
 const submitting = ref(false);

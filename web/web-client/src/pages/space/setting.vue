@@ -7,8 +7,6 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import BaseTabs from "@/components/base-tabs/index.vue";
-
 definePageMeta({
   middleware: ['auth', (to, from) => {
     // 只在直接访问 /space/setting 时重定向，避免循环重定向

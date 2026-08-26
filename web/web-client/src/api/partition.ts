@@ -19,5 +19,5 @@ export const deletePartitionAPI = (id: number) => {
 }
 
 export const asyncGetPartition = async () => {
-  return await useAsyncData(() => $fetch(`${baseURL}/api/v1/partition/getPartitionList`));
+  return await useAsyncData('partition-list', () => $fetch(`${baseURL}/api/v1/partition/getPartitionList`));
 }

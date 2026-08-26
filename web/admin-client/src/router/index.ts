@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router";
 import type { RouteRecordRaw } from "vue-router";
+import { h } from "vue";
 import Layout from "@/layout/index.vue";
 import Login from "@/views/login/index.vue";
 import Error404 from "@/views/errors/404.vue";
@@ -15,7 +16,14 @@ export const routes: RouteRecordRaw[] = [
     path: `/${globalConfig.baseUrl}`,
     name: "layout",
     component: Layout,
-    children: [],
+    children: [
+      // 占位路由：防止动态路由加载前 URL 未匹配产生 Vue Router warn
+      {
+        path: '/:pathMatch(.*)*',
+        name: 'layoutCatchAll',
+        component: { render: () => h('div') },
+      }
+    ],
   },
   {
     path: `/${globalConfig.baseUrl}/login`,

@@ -6,6 +6,12 @@ export const sendDanmakuAPI = (danmaku: DanmakuType) => {
 }
 
 //获取弹幕
-export const getDanmakuAPI = (vid: number, part: number) => {
-  return request.get(`v1/danmaku/getDanmaku?vid=${vid}&part=${part}`);
+export const getDanmakuAPI = (vid: string | number, part?: number, rid?: string) => {
+  let url = `v1/danmaku/getDanmaku?vid=${vid}`;
+  if (rid) {
+    url += `&rid=${rid}`;
+  } else if (part) {
+    url += `&part=${part}`;
+  }
+  return request.get(url);
 }

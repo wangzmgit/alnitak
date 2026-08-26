@@ -37,11 +37,11 @@
 </template>
 
 <script setup lang="ts">
-import { h, onBeforeMount, onBeforeUnmount, reactive, ref, computed } from 'vue';
+import { h, defineComponent, type PropType, onBeforeMount, onBeforeUnmount, reactive, ref, computed } from 'vue';
 import { Refresh } from "@vicons/ionicons5";
 import useLoading from '@/hooks/loading-hooks';
 import { statusCode } from '@/utils/status-code';
-import { getVideoListAPI, getFailedVideoListAPI, getProcessingVideoListAPI, deleteVideoAPI, reTranscodeVideoAPI } from '@/api/video';
+import { getVideoListAPI, getFailedVideoListAPI, getProcessingVideoListAPI, deleteVideoAPI, reTranscodeVideoAPI, reTranscodeResourceAPI, reUploadVideoAPI } from '@/api/video';
 import type { DataTableColumns } from 'naive-ui';
 import { getResourceUrl } from '@/utils/resource';
 import usePartition from '@/hooks/partition-hooks';
@@ -90,11 +90,33 @@ const deleteVideo = async (row: VideoType) => {
   }
 }
 
+// 重新转码单个分P（仅重试失败的资源，不影响其他分P）
+const reTranscodeResource = async (resourceID: number) => {
+  const res = await reTranscodeResourceAPI(resourceID);
+  if (res.data.code === statusCode.OK) {
+    message.success('单分P转码任务已提交');
+    await refreshAfterReTranscode();
+  } else {
+    message.error(res.data.msg);
+  }
+}
+
 // 重新转码视频（后端按 vid 维度处理所有分P，只需调用一次）
 const reTranscodeVideo = async (row: VideoType) => {
   const res = await reTranscodeVideoAPI(row.vid);
   if (res.data.code === statusCode.OK) {
     message.success('重新转码任务已提交');
+    await refreshAfterReTranscode();
+  } else {
+    message.error(res.data.msg);
+  }
+}
+
+// 重新上传OSS（转码成功但上传失败时重置上传）
+const reUploadVideo = async (row: VideoType) => {
+  const res = await reUploadVideoAPI(row.vid);
+  if (res.data.code === statusCode.OK) {
+    message.success('重新上传任务已提交');
     await refreshAfterReTranscode();
   } else {
     message.error(res.data.msg);
@@ -240,34 +262,134 @@ const publishedColumns: DataTableColumns<VideoType> = [
   }
 ]
 
+// 分P转码进度组（可展开查看各画质明细）
+const TranscodingResourceGroup = defineComponent({
+  props: {
+    title: String,
+    items: Array as PropType<TranscodingProgressItem[]>,
+  },
+  setup(props) {
+    const expanded = ref(false)
+    return () => {
+      const items = props.items || []
+      const n = items.length
+      if (n === 0) return null
+      const totalPct = items.reduce((s, i) => s + (i.progress || 0), 0)
+      const avgPct = Math.round(totalPct / n)
+      const anyFail = items.some(i => i.status === 'fail')
+      const allSuccess = items.every(i => i.status === 'success')
+      const allWaiting = items.every(i => i.status === 'waiting')
+      const done = !allWaiting && !anyFail && allSuccess
+      const upload = items.find(i => i.upload)
+
+      return h('div', {
+        style: 'margin-bottom: 8px; border: 1px solid var(--n-border-color); border-radius: 6px; overflow: hidden;'
+      }, [
+        // 头部行 — 点击展开/折叠
+        h('div', {
+          style: 'display: flex; align-items: center; gap: 10px; padding: 8px 10px; cursor: pointer; user-select: none; background: var(--n-action-color);',
+          onClick: () => { expanded.value = !expanded.value }
+        }, [
+          h('span', {
+            style: 'font-size: 10px; color: var(--n-text-color-3); width: 14px; text-align: center; transition: transform .2s; flex-shrink: 0;' + (expanded.value ? ' transform: rotate(90deg);' : '')
+          }, '▶'),
+          h('span', { style: 'font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 1; min-width: 0;' }, props.title || ''),
+          h('span', { style: 'font-size: 11px; color: var(--n-text-color-3); white-space: nowrap; flex-shrink: 0; margin-right: auto;' }, `${n} 个画质`),
+          h('div', { style: 'width: 52px; flex-shrink: 0; text-align: center;' }, [
+            allWaiting ? h(NTag, { size: 'tiny', type: 'default' }, { default: () => '排队中' }) : null,
+            anyFail    ? h(NTag, { size: 'tiny', type: 'error' }, { default: () => '失败' }) : null,
+            done       ? h(NTag, { size: 'tiny', type: 'success' }, { default: () => '完成' }) : null,
+          ]),
+          h('div', { style: 'min-width: 160px; max-width: 320px; flex-shrink: 0;' }, [
+            h(NProgress, {
+              class: 'transcoding-progress',
+              percentage: allWaiting ? 0 : avgPct,
+              processing: !anyFail && !allSuccess && !allWaiting,
+              status: anyFail ? 'error' : (allSuccess ? 'success' : 'default'),
+              height: 18,
+              showIndicator: true,
+              indicatorPlacement: 'inside',
+            })
+          ]),
+        ]),
+        // 折叠面板 — 各画质明细 + 上传进度
+        expanded.value ? h('div', { style: 'padding: 8px 12px 4px 26px; border-top: 1px solid var(--n-border-color);' }, [
+          ...items.map(item => {
+            const waiting = item.status === 'waiting'
+            return h('div', { style: 'margin-bottom: 8px;' }, [
+              h('div', { style: 'margin-bottom: 2px; font-size: 12px; display: flex; align-items: center; gap: 6px;' }, [
+                h('span', { style: 'color: var(--n-text-color-3);' }, item.quality),
+                waiting ? h(NTag, { size: 'tiny', type: 'default' }, { default: () => '排队中' }) : null,
+              ]),
+              h(NProgress, {
+                class: 'transcoding-progress',
+                percentage: waiting ? 0 : Math.round(item.progress || 0),
+                processing: item.status === 'processing',
+                status: item.status === 'fail' ? 'error' : (item.status === 'success' ? 'success' : 'default'),
+                showIndicator: true,
+                indicatorPlacement: 'inside',
+                height: 14,
+              }),
+              item.status === 'fail' ? h('div', { style: 'margin-top: 4px;' }, [
+                h(NButton, { size: 'tiny', type: 'warning', onClick: () => reTranscodeResource(item.resourceId) }, { default: () => '单P重试' }),
+              ]) : null,
+            ])
+          }),
+          // 上传进度
+          upload && upload.status && upload.status !== 'local'
+            ? h('div', { style: 'margin-top: 4px; padding-top: 8px; border-top: 1px dashed var(--n-border-color);' }, [
+                h('div', { style: 'margin-bottom: 2px; font-size: 12px; display: flex; align-items: center; gap: 6px;' }, [
+                  h('span', { style: 'color: var(--n-text-color-3);' }, 'OSS 上传'),
+                ]),
+                h(NProgress, {
+                  percentage: Math.round(upload.progress || 0),
+                  processing: upload.status === 'uploading',
+                  status: upload.status === 'fail' ? 'error' : (upload.status === 'success' ? 'success' : 'default'),
+                  showIndicator: true,
+                  indicatorPlacement: 'inside',
+                  height: 14,
+                }),
+                upload.status === 'fail' ? h('div', { style: 'margin-top: 4px;' }, [
+                  h(NButton, { size: 'tiny', type: 'warning', onClick: () => reTranscodeResource(items[0].resourceId) }, { default: () => '重新上传' }),
+                ]) : null,
+              ])
+            : null,
+        ]) : null
+      ])
+    }
+  }
+})
+
 // 处理中列
 const processingColumns: DataTableColumns<VideoType> = [
   {
     type: 'expand',
     renderExpand: row => {
+      const transcodingParts: any[] = [];
       const details = row.transcodingDetails || [];
-      if (details.length === 0) {
-        return h('div', { style: 'padding: 8px 4px; color: var(--n-text-color-3);' }, '暂无清晰度进度明细');
-      }
-      return h('div', { style: 'padding: 6px 0;' }, details.map(item => {
-        const isWaiting = item.status === 'waiting';
-        const statusLabel = isWaiting ? '排队中' : (
-          item.status === 'processing' ? `${Math.round(item.progress || 0)}%` : ''
+      if (details.length > 0) {
+        // 按 resourceId 分组
+        const groups = new Map<number, { title: string; items: TranscodingProgressItem[] }>()
+        for (const item of details) {
+          const g = groups.get(item.resourceId)
+          if (g) {
+            g.items.push(item)
+          } else {
+            groups.set(item.resourceId, { title: item.resourceTitle || `资源#${item.resourceId}`, items: [item] })
+          }
+        }
+        transcodingParts.push(
+          h('div', { style: 'font-size: 13px; font-weight: 600; margin-bottom: 8px;' }, '转码进度')
         );
-        return h('div', { style: 'margin-bottom: 10px;' }, [
-          h('div', { style: 'margin-bottom: 4px; font-size: 12px; display: flex; align-items: center; gap: 8px;' }, [
-            `${item.resourceTitle || `资源#${item.resourceId}`} / ${item.quality}`,
-            isWaiting ? h(NTag, { size: 'tiny', type: 'default' }, { default: () => '排队中' }) : null,
-          ]),
-          h(NProgress, {
-            percentage: isWaiting ? 0 : Math.round(item.progress || 0),
-            processing: item.status === 'processing',
-            status: item.status === 'fail' ? 'error' : (item.status === 'success' ? 'success' : 'default'),
-            showIndicator: true,
-            indicatorPlacement: 'inside',
-          })
-        ]);
-      }));
+        for (const [, group] of groups) {
+          transcodingParts.push(h(TranscodingResourceGroup, { title: group.title, items: group.items }));
+        }
+      }
+
+      if (transcodingParts.length === 0) {
+        return h('div', { style: 'padding: 8px 4px; color: var(--n-text-color-3);' }, '暂无进度明细');
+      }
+      return h('div', { style: 'padding: 6px 0;' }, transcodingParts);
     }
   },
   {
@@ -306,12 +428,39 @@ const processingColumns: DataTableColumns<VideoType> = [
     key: 'progress',
     title: '总体转码进度',
     align: 'center',
-    width: 240,
+    width: 200,
     render: row => h(NProgress, {
       percentage: Math.round(row.transcodingProgress || 0),
       processing: true,
       showIndicator: true
     })
+  },
+  {
+    key: 'uploadProgress',
+    title: '上传状态',
+    align: 'center',
+    width: 160,
+    render: row => {
+      const up = row.uploadProgress;
+      if (!up || !up.status) return h('span', { style: 'color: var(--n-text-color-3); font-size: 12px;' }, '等待中');
+      if (up.status === 'local') return h('span', { style: 'color: var(--n-text-color-3);' }, '本地存储');
+      if (up.status === 'success') return h(NTag, { size: 'tiny', type: 'success' }, { default: () => '上传完成' });
+      if (up.status === 'fail') return h(NSpace, { size: 'small' }, {
+        default: () => [
+          h(NTag, { size: 'tiny', type: 'error' }, { default: () => '上传失败' }),
+          h(NButton, { size: 'tiny', type: 'warning', onClick: () => reUploadVideo(row) }, { default: () => '重新上传' })
+        ]
+      });
+      return h('div', { style: 'display: flex; align-items: center; gap: 6px;' }, [
+        h(NProgress, {
+          percentage: Math.round(up.progress || 0),
+          processing: true,
+          height: 16,
+          showIndicator: true,
+          style: { width: '100px' }
+        }),
+      ]);
+    }
   },
   {
     key: 'createdAt',
@@ -324,6 +473,40 @@ const processingColumns: DataTableColumns<VideoType> = [
 
 // 失败列
 const failedColumns: DataTableColumns<VideoType> = [
+  {
+    type: 'expand',
+    renderExpand: row => {
+      const parts: any[] = [];
+      const details = row.transcodingDetails || [];
+      if (details.length > 0) {
+        parts.push(
+          h('div', { style: 'font-size: 13px; font-weight: 600; margin-bottom: 8px;' }, '分P状态')
+        );
+        parts.push(h('div', { style: 'display: flex; flex-direction: column; gap: 8px;' }, details.map(item => {
+          const isFail = item.status === 'process_failed' || item.status === 'upload_failed';
+          const isSuccess = item.status === 'approved';
+          const statusLabel = isFail ? '失败' : (isSuccess ? '成功' : item.status);
+          return h('div', { style: 'display: flex; align-items: center; gap: 10px; padding: 4px 0;' }, [
+            h('span', { style: 'font-size: 12px; min-width: 120px;' }, item.resourceTitle || `资源#${item.resourceId}`),
+            isFail
+              ? h(NTag, { size: 'tiny', type: 'error' }, { default: () => statusLabel })
+              : isSuccess
+                ? h(NTag, { size: 'tiny', type: 'success' }, { default: () => statusLabel })
+                : h(NTag, { size: 'tiny', type: 'default' }, { default: () => statusLabel }),
+            isFail ? h(NButton, {
+              size: 'tiny',
+              type: 'warning',
+              onClick: () => reTranscodeResource(item.resourceId)
+            }, { default: () => '单P重试' }) : null
+          ]);
+        })));
+      }
+      if (parts.length === 0) {
+        return h('div', { style: 'padding: 8px 4px; color: var(--n-text-color-3);' }, '暂无分P信息');
+      }
+      return h('div', { style: 'padding: 6px 0;' }, parts);
+    }
+  },
   {
     key: 'vid',
     title: 'ID',
@@ -555,3 +738,4 @@ onBeforeUnmount(() => {
   }
 }
 </style>
+

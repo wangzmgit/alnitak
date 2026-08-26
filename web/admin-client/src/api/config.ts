@@ -31,6 +31,16 @@ export const setEmailConfigAPI = (config: EmailConfigType) => {
   return request.post('v1/config/setEmailConfig', config);
 }
 
+//获取转码配置
+export const getTranscodingConfigAPI = () => {
+  return request.get('v1/config/getTranscodingConfig');
+}
+
+//修改转码配置
+export const setTranscodingConfigAPI = (config: TranscodingConfigType) => {
+  return request.post('v1/config/setTranscodingConfig', config);
+}
+
 //获取资源清理预览
 export const getCleanupPreviewAPI = () => {
   return request.get('v1/config/getCleanupPreview');

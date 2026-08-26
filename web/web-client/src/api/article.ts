@@ -23,18 +23,18 @@ export const getArticleStatusAPI = (aid: number) => {
 }
 
 // 获取所有文章列表
-export const getAllArticleAPI = () => {
-  return request.get("v1/article/getAllArticleList");
+export const getAllArticleAPI = (page: number = 1, pageSize: number = 30) => {
+  return request.get(`v1/article/getAllArticleList?page=${page}&pageSize=${pageSize}`);
 }
 
 // 获取文章信息
 export const asyncGetArticleInfoAPI = async (articleId: number | string) => {
-  return await useAsyncData(() => $fetch(`${baseURL}/api/v1/article/getArticleById?aid=${articleId}`));
+  return await useAsyncData(`article-info-${articleId}`, () => $fetch(`${baseURL}/api/v1/article/getArticleById?aid=${articleId}`));
 }
 
 // 获取随机文章
 export const asyncGetRandomArticleAPI = async (size: number) => {
-  return await useAsyncData(() => $fetch(`${baseURL}/api/v1/article/getRandomArticleList?size=${size}`));
+  return await useAsyncData(`random-article-${size}`, () => $fetch(`${baseURL}/api/v1/article/getRandomArticleList?size=${size}`));
 }
 
 // 获取随机文章

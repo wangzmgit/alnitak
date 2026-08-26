@@ -34,7 +34,7 @@ export const getPGCRecommendAPI = (query: PGCRecommendQuery) => {
 
 // SSR 首屏获取
 export const asyncGetPGCRecommendAPI = async (query: PGCRecommendQuery) => {
-  return await useAsyncData(() =>
+  return await useAsyncData(`pgc-recommend-${query.page}-${query.pageSize}-${query.seedPgcId || ''}-${query.scene || ''}`, () =>
     $fetch(`${baseURL}/api/v1/pgc/recommend?${buildRecommendQuery(query)}`),
   );
 };
@@ -50,7 +50,7 @@ export const searchPGCAPI = (query: PGCSearchQuery) => {
 };
 
 export const asyncGetPGCRecommendByVideoAPI = async (vid: number, page = 1, pageSize = 10) => {
-  return await useAsyncData(() =>
+  return await useAsyncData(`pgc-recommend-by-video-${vid}-${page}-${pageSize}`, () =>
     $fetch(`${baseURL}/api/v1/pgc/recommend-by-video?vid=${vid}&page=${page}&page_size=${pageSize}`),
   );
 };

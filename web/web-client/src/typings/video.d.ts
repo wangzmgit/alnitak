@@ -53,6 +53,7 @@ interface TranscodingProgressDetail {
   quality: string;
   progress: number;
   status: 'processing' | 'success' | 'fail' | string;
+  upload?: UploadProgressInfo;
 }
 
 // 视频信息
@@ -72,8 +73,7 @@ interface VideoType extends BaseVideoType {
 
 // 全部视频列表
 interface AllVideoType {
-  vid: number;
-  shortId?: string;
+  shortId: string;
   title: string;
 }
 

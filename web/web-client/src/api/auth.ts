@@ -40,3 +40,8 @@ export const mpdifyPwdAPI = (data: ModifyPwdType) => {
   return request.post('v1/auth/modifyPwd', data);
 }
 
+// 修改密码（已登录用户，需旧密码）
+export const changePasswordAPI = (data: { oldPassword: string; newPassword: string }) => {
+  return request.post('v1/auth/changePassword', data);
+}
+

@@ -3,8 +3,7 @@ import type { AxiosInstance, AxiosError } from "axios";
 import { updateTokenAPI } from "@/api/auth";
 import { statusCode } from "./status-code";
 import { globalConfig as config, } from "./global-config";
-import { storageData as storage } from "./storage-data";
-import { useAuthStore, saveCredentials, clearCredentials } from "@/stores/auth-store";
+import { useAuthStore, getBrowserToken, saveCredentials, clearCredentials } from "@/stores/auth-store";
 
 // 重试配置
 const MAX_RETRIES = 3;
@@ -37,12 +36,7 @@ let requests: TokenCallback[] = [];
 let isRefreshing = false;
 let refreshPromise: Promise<string> | null = null;
 
-// 播放页（watch）在后端重启清会话后不续签，避免噪音与无意义重试
-const isWatchPage = () => {
-  if (typeof window === 'undefined') return false;
-  return window.location.pathname === '/watch';
-};
-// 开发环境仅在“浏览器端”通过前端代理，SSR/生产环境直连后端
+// 开发环境仅在"浏览器端"通过前端代理，SSR/生产环境直连后端
 const isBrowser = typeof window !== 'undefined';
 export const baseURL = (process.dev && isBrowser)
   ? ''
@@ -50,12 +44,14 @@ export const baseURL = (process.dev && isBrowser)
 
 const service: AxiosInstance = axios.create({
   baseURL: `${baseURL}/api/`,
-  withCredentials: true, // 跨域请求时发送Cookie
+  withCredentials: true, // 跨域请求时发送 Cookie（含 HttpOnly refresh_token）
   timeout: 5000,
-  headers: {},
+  headers: {
+    'X-Requested-With': 'XMLHttpRequest',
+  },
 });
 
-// 刷新 token 的统一函数
+// 刷新 token 的统一函数（依赖 HttpOnly Cookie，不从前端存储读取 refreshToken）
 const refreshToken = async (): Promise<string> => {
   if (refreshPromise) {
     return refreshPromise;
@@ -63,13 +59,13 @@ const refreshToken = async (): Promise<string> => {
 
   refreshPromise = (async () => {
     try {
-      const localRefreshToken = storage.get('refreshToken');
-      const tokenRes = await updateTokenAPI(localRefreshToken || undefined);
+      // 不传 refreshToken，后端从 HttpOnly Cookie 中读取
+      const tokenRes = await updateTokenAPI();
       if (tokenRes.data.code === statusCode.OK) {
         const token = tokenRes.data.data.token;
-        const rt = tokenRes.data.data.refreshToken;
 
-        saveCredentials({ token, refreshToken: rt, userId: tokenRes.data.data.userId });
+        // 更新内存中的 token
+        saveCredentials({ token, userId: tokenRes.data.data.userId });
 
         // 执行队列中的所有等待回调
         requests.forEach(cb => cb(token));
@@ -97,38 +93,13 @@ service.interceptors.request.use(async (config) => {
   // 如果为刷新 token 的请求则不拦截
   if (config.url === "v1/auth/updateToken") return config;
 
-  // 确保只在客户端处理 token
+  // 确保只在客户端处理 Authorization
   if (process.client) {
-    const token = storage.get('token');
+    const token = getBrowserToken();
     if (token) {
       config.headers.Authorization = token;
-    } else if (!isWatchPage()) {
-      // 播放页不做 token 续签/刷新，避免后端重启后产生噪音重试
-      // 如果没有 accessToken 且有 refreshToken
-      const localRefreshToken = storage.get('refreshToken');
-      if (localRefreshToken) {
-        if (!isRefreshing) {
-          isRefreshing = true;
-          try {
-            // 刷新 token
-            const token = await refreshToken();
-            config.headers.Authorization = token;
-            return config;
-          } catch (error) {
-            console.error('Token refresh failed:', error);
-            // 刷新失败,继续原请求
-          }
-        } else {
-          // 正在刷新中，等待刷新完成
-          return new Promise((resolve) => {
-            requests.push((token: string) => {
-              config.headers.Authorization = token;
-              resolve(config);
-            });
-          });
-        }
-      }
     }
+    // 无 token 时不设置 Authorization 头，后端通过 Cookie 鉴权或返回 401
   }
   return config;
 }, (error: any) => {
@@ -140,10 +111,7 @@ service.interceptors.response.use(async (res) => {
   if (process.client) {
     switch (res.data.code) {
       case statusCode.TOKEN_EXPRIED:
-        if (isWatchPage()) {
-          return res;
-        }
-        // token 过期：优先刷新；无本地 refresh 时仍可能通过 HttpOnly Cookie 由服务端续签
+        // token 过期：通过 HttpOnly Cookie 尝试刷新
         if (!isRefreshing) {
           isRefreshing = true;
           try {
@@ -151,7 +119,7 @@ service.interceptors.response.use(async (res) => {
             res.config.headers.Authorization = token;
             return service.request(res.config); // 重新发起请求
           } catch (error) {
-            console.error('Token refresh in response interceptor failed:', error);
+            console.warn('[request] Token refresh in response interceptor failed:', error);
             return res;
           }
         }
@@ -162,14 +130,14 @@ service.interceptors.response.use(async (res) => {
           });
         });
       case statusCode.LOGIN_AGAIN:
-        // 清理缓存信息并切换为游客态。
-        // 注意：这里不要自动弹出登录弹窗，否则“跨标签页退出登录”或页面后台轮询时
-        // 会在用户无操作的情况下频繁弹窗，影响体验。
+        // 仅清理本地凭证和切换游客态。
+        // 不调用 closeLoginModal()——用户可能正主动打开登录弹窗，
+        // 关闭它会打断登录流程。弹窗由用户操作控制，不由后端响应接管。
         clearCredentials();
         try {
           const auth = useAuthStore();
+          auth.token = '';
           auth.markGuest();
-          auth.closeLoginModal();
         } catch {
           // 兜底：不阻塞响应流
         }
@@ -199,6 +167,11 @@ service.interceptors.response.use(async (res) => {
 
     await delay(delayMs);
     return service.request(config);
+  }
+
+  // 重试耗尽后，给用户一个友好提示
+  if (isRetryableError(error)) {
+    ElMessage.error('网络连接失败，请检查服务器状态');
   }
 
   return Promise.reject(error);

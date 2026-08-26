@@ -10,7 +10,25 @@ node_modules
 
 # Local AI assistant config (do not commit)
 .claude/
+.cursor/
 
-web/admin-client/src/utils/global-config.ts
-web/mobile-client/src/utils/global-config.ts
-web/web-client/src/utils/global-config.ts
+# Non-source files (archives, binaries)
+*.7z
+*.zip
+*.rar
+*.tgz
+*.exe
+*.dll
+
+# Build artifacts / dev logs
+*.log
+dev-error.txt
+dev-output.txt
+
+# Yarn PnP install cache
+.yarn/
+
+# IDE / local config
+.ome/
+.omo/
+~/

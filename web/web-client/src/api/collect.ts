@@ -1,12 +1,12 @@
 import request from '@/utils/request';
 
 // 视频是否收藏
-export const getCollectVideoStatusAPI = (vid: number) => {
+export const getCollectVideoStatusAPI = (vid: number | string) => {
   return request.get(`v1/archive/video/hasCollect?vid=${vid}`);
 }
 
 // 已收藏的文件夹
-export const getCollectVideoInfoAPI = (vid: number) => {
+export const getCollectVideoInfoAPI = (vid: number | string) => {
   return request.get(`v1/archive/video/getCollectInfo?vid=${vid}`);
 }
 

@@ -8,38 +8,21 @@
       <div class="home-right" :style="`margin-left: ${menuFold ? '50px' : '220px'};`">
         <div class="home-recommended" :class="menuFold ? 'recommended-fold' : ''">
           <div class="recommended-top">
-            <div class="recommended-carousel">
+            <div v-if="carouselList.length" class="recommended-carousel">
               <div class="recommended-carousel-inner">
-                <client-only>
-                  <HomeCarousel></HomeCarousel>
-                </client-only>
+                <AlnitakCarousel :list="carouselList"></AlnitakCarousel>
               </div>
             </div>
             <div class="recommended-side" :class="menuFold ? 'side-fold' : ''">
-              <video-item v-for="item in videoList.slice(0, menuFold ? 6 : 4)" :info="item"></video-item>
+              <video-item v-for="item in videoList.slice(0, menuFold ? 6 : 4)" :key="item.vid" :info="item"></video-item>
             </div>
           </div>
           <div class="tab-bar">
             <span class="tab-item" :class="{ active: activeTab === 'hot' }" @click="switchTab('hot')">热门推荐</span>
             <span class="tab-item" :class="{ active: activeTab === 'latest' }" @click="switchTab('latest')">最近投稿</span>
           </div>
-          <div class="pgc-section" :class="menuFold ? 'pgc-section-fold' : ''">
-            <div class="pgc-grid">
-              <div class="pgc-item" v-for="item in pgcList" :key="item.pgc_id">
-                <div class="pgc-cover-wrap">
-                  <img class="pgc-cover" :src="getResourceUrl(item.cover)" :alt="item.title" />
-                  <span class="pgc-badge" v-if="item.badge">{{ item.badge }}</span>
-                </div>
-                <div class="pgc-meta">
-                  <div class="pgc-item-title">{{ item.title }}</div>
-                  <div class="pgc-item-ep" v-if="item.new_ep?.index_show">{{ item.new_ep.index_show }}</div>
-                  <div class="pgc-item-ep" v-else-if="item.current_episodes">更新至 {{ item.current_episodes }} 集</div>
-                </div>
-              </div>
-            </div>
-          </div>
           <div class="recommended-grid" :class="menuFold ? 'grid-fold' : ''">
-            <video-item v-for="item in videoList.slice(menuFold ? 6 : 4)" :info="item"></video-item>
+            <video-item v-for="item in videoList.slice(menuFold ? 6 : 4)" :key="item.vid" :info="item"></video-item>
           </div>
         </div>
       </div>
@@ -50,40 +33,38 @@
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount, ref } from 'vue';
 import VideoItem from '@/components/home-video-item/index.vue';
-import HomeSidebar from '@/components/home-sidebar/index.vue';
-import HomeHeader from "@/components/home-header/index.vue";
-import HomeCarousel from '@/components/alnitak-carousel/index.vue';
 import { asyncGetHotVideoAPI, getHotVideoAPI, getLatestVideoAPI } from "@/api/video";
-import { asyncGetPGCRecommendAPI, getPGCRecommendAPI } from "@/api/pgc";
-import { getResourceUrl } from "@/utils/resource";
+import { getCarouselAPI } from "@/api/carousel";
+import { asyncGetPGCRecommendAPI } from "@/api/pgc";
+import { throttle } from "@/utils/debounce";
 
 useHead({
   title: globalConfig.title
 });
 
-const menuFold = ref(false);
+// 用 cookie 在 SSR 阶段即可获取折叠状态，避免首屏闪烁
+const menuFoldCookie = useCookie<boolean>('menu-fold-state', { default: () => false });
+const menuFold = ref(menuFoldCookie.value);
 const changeMenuFold = (val: boolean) => {
   menuFold.value = val;
 }
-
-// 客户端挂载后同步折叠状态
-onMounted(() => {
-  try {
-    const saved = localStorage.getItem('menu-fold-state');
-    if (saved === 'true') {
-      menuFold.value = true;
-    }
-  } catch {}
-});
 
 // 当前选项卡
 const activeTab = ref<'hot' | 'latest'>('hot');
 const page = ref(1);
 const pageSize = 16;
 const videoList = ref<VideoType[]>([])
-const { data } = await asyncGetHotVideoAPI(page.value, pageSize);
+const [hotResult, carouselResult] = await Promise.all([
+  asyncGetHotVideoAPI(page.value, pageSize),
+  getCarouselAPI(0),
+]);
+const { data } = hotResult;
 if ((data.value as any).code === statusCode.OK) {
   videoList.value = (data.value as any).data.videos;
+}
+const carouselList = ref<CarouselType[]>([]);
+if (carouselResult.data.code === statusCode.OK && carouselResult.data.data.carousels) {
+  carouselList.value = carouselResult.data.data.carousels;
 }
 
 const pgcPage = ref(1);
@@ -100,7 +81,6 @@ if ((pgcData.value as any).code === statusCode.OK) {
 
 const noMore = ref(false);
 const loading = ref(false);
-const pgcLoading = ref(false);
 
 const fetchVideoList = async (append = true) => {
   loading.value = true;
@@ -128,22 +108,6 @@ const switchTab = async (tab: 'hot' | 'latest') => {
 
 const getViedeoList = () => fetchVideoList(true);
 
-const refreshPGCList = async () => {
-  pgcLoading.value = true;
-  try {
-    const res = await getPGCRecommendAPI({
-      page: 1,
-      pageSize: pgcPageSize,
-      scene: 'home',
-    });
-    if (res.data.code === statusCode.OK) {
-      pgcList.value = res.data.data.list || [];
-    }
-  } finally {
-    pgcLoading.value = false;
-  }
-}
-
 const lazyLoading = (e: Event) => {
   const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
   if (scrollTop === 0) return;
@@ -158,13 +122,14 @@ const lazyLoading = (e: Event) => {
   }
 }
 
+const throttledLoading = throttle(lazyLoading, 150);
+
 onMounted(() => {
-  window.addEventListener('scroll', lazyLoading, true);
-  refreshPGCList();
+  window.addEventListener('scroll', throttledLoading, true);
 })
 
 onBeforeUnmount(() => {
-  window.removeEventListener('scroll', lazyLoading, true);
+  window.removeEventListener('scroll', throttledLoading, true);
 })
 </script>
 
@@ -288,75 +253,11 @@ onBeforeUnmount(() => {
   display: grid;
   gap: 16px;
   margin-top: 16px;
-  grid-template-columns: repeat(4, 1fr);
-}
-
-.pgc-section {
-  margin-top: 16px;
-  padding: 4px 0 0;
-
-  .pgc-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-  }
-
-  .pgc-item {
-    background: var(--bg-elev-1);
-    border-radius: 10px;
-    overflow: hidden;
-  }
-
-  .pgc-cover-wrap {
-    position: relative;
-    aspect-ratio: 16 / 9;
-    background: rgba(0, 0, 0, .2);
-  }
-
-  .pgc-cover {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  .pgc-badge {
-    position: absolute;
-    right: 8px;
-    top: 8px;
-    background: rgba(0, 0, 0, .65);
-    color: #fff;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 12px;
-  }
-
-  .pgc-meta {
-    padding: 10px;
-  }
-
-  .pgc-item-title {
-    font-size: 14px;
-    line-height: 20px;
-    color: var(--font-primary-1);
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .pgc-item-ep {
-    margin-top: 6px;
-    font-size: 12px;
-    color: var(--font-primary-3);
-  }
-}
-
-.pgc-section-fold .pgc-grid {
   grid-template-columns: repeat(5, 1fr);
 }
 
 .grid-fold {
   grid-template-columns: repeat(5, 1fr);
 }
+
 </style>

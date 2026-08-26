@@ -1,7 +1,7 @@
 <template>
   <div class="video-item">
     <nuxt-link class="img" :to="`/watch?v=${info.shortId || String(info.vid)}`" target="_blank">
-      <img :src="getResourceUrl(info.cover)" alt="封面" />
+      <oss-image :src="info.cover" alt="封面" />
       <span class="duration">{{ toDuration(info.duration) }}</span>
     </nuxt-link>
     <div class="video-info">

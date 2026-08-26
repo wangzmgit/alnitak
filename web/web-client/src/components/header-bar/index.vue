@@ -128,11 +128,7 @@ import {
   Right as RightIcon, FolderFocusOne as CollectIcon,
   Theme as ThemeIcon, SunOne as SunIcon, Moon as MoonIcon
 } from '@icon-park/vue-next';
-import CommonAvatar from '@/components/common-avatar/index.vue';
-import { useClientHydrated } from '@/composables/use-client-hydrated';
 import { useAuthStore } from '@/stores/auth-store';
-
-const { hydrated } = useClientHydrated();
 
 const route = useRoute();
 const isSearchPage = ref(route.name !== 'search-keywords');
@@ -183,9 +179,9 @@ const handelSearch = () => {
 }
 
 const auth = useAuthStore();
+const uiLoggedIn = computed(() => auth.isLoggedIn);
 const isLoggedIn = computed(() => auth.isLoggedIn);
 const userInfo = computed(() => auth.user);
-const uiLoggedIn = computed(() => hydrated.value && isLoggedIn.value);
 
 const logout = async () => {
   await auth.logout();

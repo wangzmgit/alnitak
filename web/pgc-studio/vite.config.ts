@@ -8,7 +8,7 @@ const dirname = path.dirname(fileURLToPath(import.meta.url))
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  const apiBaseUrl = (env.VITE_API_BASE_URL || 'http://localhost:9000').replace(/\/$/, '')
+  const apiBaseUrl = (env.VITE_API_BASE_URL || 'http://10.0.0.122:9000').replace(/\/$/, '')
 
   return {
     plugins: [vue()],

@@ -9,12 +9,6 @@
         <n-form-item label="默认用户昵称前缀">
           <n-input v-model:value="otherForm.prefix"></n-input>
         </n-form-item>
-        <n-form-item label="生成1080p60帧视频">
-          <n-switch v-model:value="otherForm.generate1080p60"></n-switch>
-        </n-form-item>
-        <n-form-item label="转码开启gpu加速">
-          <n-switch v-model:value="otherForm.useGpu"></n-switch>
-        </n-form-item>
 
         <n-divider title-placement="left">服务器配置</n-divider>
         <n-form-item label="HTTP端口">
@@ -57,8 +51,6 @@ const message = useMessage();
 const otherForm = reactive({
   allowOrigin: "*",
   prefix: "",
-  generate1080p60: false,
-  useGpu: false,
   // 服务器配置
   serverPort: "9000",
   sslEnabled: false,
@@ -73,8 +65,6 @@ const getConfig = async () => {
     const data = res.data.data.config;
     otherForm.allowOrigin = data.allowOrigin;
     otherForm.prefix = data.prefix;
-    otherForm.generate1080p60 = data.generate1080p60;
-    otherForm.useGpu = data.useGpu;
     // 服务器配置
     otherForm.serverPort = data.serverPort || "9000";
     otherForm.sslEnabled = data.sslEnabled || false;

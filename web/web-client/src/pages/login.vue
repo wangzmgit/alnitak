@@ -6,7 +6,6 @@
 
 <script setup lang="ts" >
 import { globalConfig } from '@/utils/global-config';
-import LoginCard from '@/components/login-card/index.vue';
 import { useAuthStore } from '@/stores/auth-store';
 
 const route = useRoute();
@@ -17,10 +16,11 @@ useHead({
 })
 
 const loginSuccess = async () => {
-  // 登录页属于“独立入口”，这里需要显式同步全局登录态，避免其它页面仍显示未登录。
+  // 登录页属于"独立入口"，这里需要显式同步全局登录态，避免其它页面仍显示未登录。
   await auth.fetchMe();
   const redirect = route.query.redirect?.toString();
-  if (redirect) {
+  // 防开放重定向：只允许站内路径（以 / 开头且非 // 协议相对路径）
+  if (redirect && /^\/(?!\/)/.test(redirect)) {
     await navigateTo(redirect);
   } else {
     await navigateTo('/');

@@ -27,9 +27,17 @@
         </div>
         <div class="error-text">{{ errorTips.codeError }}</div>
       </div>
+      <div class="remember-row">
+        <label class="remember-label">
+          <input type="checkbox" v-model="loginForm.rememberMe" class="remember-checkbox" />
+          <span class="remember-text">记住登录</span>
+        </label>
+      </div>
       <div class="button-group">
         <button class="btn-other" type="button" @click="emit('changeForm')">注册</button>
-        <button class="btn-primary" type="submit">登录</button>
+        <button class="btn-primary" type="submit" :disabled="loading">
+          {{ loading ? '登录中...' : '登录' }}
+        </button>
       </div>
     </form>
     <client-only>
@@ -43,12 +51,12 @@
 import { isEmail } from "@/utils/verify";
 import { loginAPI, emailLoginAPI } from "@/api/auth";
 import type { AxiosResponse } from "axios";
-import BaseTabs from "@/components/base-tabs/index.vue";
 import { sendEmailCodeAPI } from "@/api/code";
-import { saveCredentials } from "@/stores/auth-store";
+import { saveCredentials, broadcastAuthChange } from "@/stores/auth-store";
 
 const emit = defineEmits(["success", "changeForm"]);
 
+const loading = ref(false);
 const currentTab = ref('account');
 const tabs = [{ key: 'account', label: '密码登录' }, { key: 'code', label: '邮箱登录' }];
 const tabChange = (tab: string) => {
@@ -82,7 +90,8 @@ const loginForm = reactive<UserLoginType>({
   email: '',
   password: '',
   code: '',
-  captchaId: ''
+  captchaId: '',
+  rememberMe: true,
 })
 const handleLogin = () => {
   initErrorTips();
@@ -114,8 +123,13 @@ const accountLogin = async () => {
     return;
   }
 
-  const res = await loginAPI(loginForm);
-  handleLoginRes(res);
+  loading.value = true;
+  try {
+    const res = await loginAPI(loginForm);
+    handleLoginRes(res);
+  } finally {
+    loading.value = false;
+  }
 }
 
 // 验证码登录
@@ -138,7 +152,7 @@ const sendEmailCode = async () => {
   if (disabledSend.value) return;
   //禁用发送按钮
   disabledSend.value = true;
-  const res = await sendEmailCodeAPI(loginForm);
+  const res = await sendEmailCodeAPI({ email: loginForm.email, captchaId: loginForm.captchaId });
   switch (res.data.code) {
     case statusCode.OK:
       //开启倒计时，使用后端返回的冷却时间
@@ -177,8 +191,13 @@ const codeLogin = async () => {
     return;
   }
 
-  const res = await emailLoginAPI(loginForm);
-  handleLoginRes(res);
+  loading.value = true;
+  try {
+    const res = await emailLoginAPI(loginForm);
+    handleLoginRes(res);
+  } finally {
+    loading.value = false;
+  }
 }
 
 const handleLoginRes = async (res: AxiosResponse<any, any>) => {
@@ -190,6 +209,7 @@ const handleLoginRes = async (res: AxiosResponse<any, any>) => {
       break;
     case statusCode.OK:
       saveCredentials(res.data.data);
+      broadcastAuthChange();
       emit("success");
       break;
     default:
@@ -304,6 +324,11 @@ const handleLoginRes = async (res: AxiosResponse<any, any>) => {
     background: var(--primary-color);
     border-radius: 8px;
     border: 1px solid var(--primary-color);
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
   }
 }
 
@@ -313,6 +338,33 @@ const handleLoginRes = async (res: AxiosResponse<any, any>) => {
 
   &:hover {
     color: var(--font-primary-3) !important;
+  }
+}
+
+.remember-row {
+  display: flex;
+  align-items: center;
+  margin-top: 12px;
+  padding: 0 10px;
+
+  .remember-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .remember-checkbox {
+    width: 15px;
+    height: 15px;
+    accent-color: var(--primary-color);
+    cursor: pointer;
+  }
+
+  .remember-text {
+    margin-left: 6px;
+    font-size: 13px;
+    color: var(--font-primary-3);
   }
 }
 </style>

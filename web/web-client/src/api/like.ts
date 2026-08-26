@@ -1,17 +1,17 @@
 import request from '@/utils/request';
 
 // 视频是否点赞
-export const getLikeVideoStatusAPI = (vid: number) => {
+export const getLikeVideoStatusAPI = (vid: number | string) => {
   return request.get(`v1/archive/video/hasLike?vid=${vid}`);
 }
 
 // 视频点赞
-export const likeVideoAPI = (vid: number) => {
+export const likeVideoAPI = (vid: number | string) => {
   return request.post('v1/archive/video/like', { vid });
 }
 
 // 视频取消赞
-export const cancelLikeVideoAPI = (vid: number) => {
+export const cancelLikeVideoAPI = (vid: number | string) => {
   return request.post('v1/archive/video/cancelLike', { vid })
 }
 

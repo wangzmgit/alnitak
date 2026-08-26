@@ -19,7 +19,7 @@ export const getUserBaseInfoAPI = (userId: number) => {
 
 // 获取用户基本信息
 export const asyncGetUserBaseInfoAPI = async (userId: number | string) => {
-  return await useAsyncData(() => $fetch(`${baseURL}/api/v1/user/getUserBaseInfo?userId=${userId}`));
+  return await useAsyncData(`user-base-info-${userId}`, () => $fetch(`${baseURL}/api/v1/user/getUserBaseInfo?userId=${userId}`));
 }
 
 // 搜索用户 / UP

@@ -1,9 +1,9 @@
 const title = "anime弹幕";
 const https = true;
-const domain = "anime.ayypd.cn:9001";
+const domain = "10.0.0.178:9001";
 const mobile = "/mobile/";
-const icp = "icp备案信息";
-const security = "公网安备信息";
+const icp = "";
+const security = "";
 const keywords = "视频,弹幕";
 const description = "这里是介绍";
 const article = true; // 是否开启专栏模块

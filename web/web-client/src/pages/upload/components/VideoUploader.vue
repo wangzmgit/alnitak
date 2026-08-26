@@ -24,7 +24,9 @@ import { uploadFileChunkAPI } from "@/api/upload";
 import { globalConfig } from "@/utils/global-config";
 import { Upload as UploadIcon } from "@icon-park/vue-next";
 
-const emits = defineEmits(["finish"]);
+const emits = defineEmits<{
+  (e: 'finish', data: any, coverURL?: string | null): void
+}>();
 const props = defineProps<{
   vid?: number
 }>();
@@ -33,18 +35,39 @@ const props = defineProps<{
 const percent = ref(0);//上传百分比
 const uploading = ref(false);//是否上传中
 
+/** MP4 文件魔数（文件头前 4 字节：ftyp 类型） */
+const MP4_MAGIC_PREFIXES = [
+  new Uint8Array([0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70]),  // mp42 / isom
+  new Uint8Array([0x00, 0x00, 0x00, 0x1C, 0x66, 0x74, 0x79, 0x70]),  // mp42 variant
+  new Uint8Array([0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70]),  // dash / iso5
+];
+
+/** 读取文件头字节并与已知魔数比对 */
+const isMp4ByMagicBytes = async (file: File): Promise<boolean> => {
+  try {
+    const header = await file.slice(0, 8).arrayBuffer();
+    const view = new Uint8Array(header);
+    return MP4_MAGIC_PREFIXES.some(prefix =>
+      prefix.every((b, i) => b === view[i])
+    );
+  } catch {
+    return false;
+  }
+};
+
 //上传之前的回调
 const beforeUploadVideo = async (options: any) => {
   const file = options.file;
-  const isJpgOrPng = file.type === "video/mp4";
-  if (!isJpgOrPng) {
+  const isMp4Type = file.type === "video/mp4";
+  const isMp4Magic = await isMp4ByMagicBytes(file.file);
+  if (!isMp4Type || !isMp4Magic) {
     ElMessage.error("文件只支持mp4格式");
   }
   const isLtMaxSize = file.file.size / 1024 / 1024 < globalConfig.maxVideoSize;
   if (!isLtMaxSize) {
     ElMessage.error(`视频大小不能超过${globalConfig.maxVideoSize}M`);
   }
-  return isJpgOrPng && isLtMaxSize;
+  return (isMp4Type && isMp4Magic) && isLtMaxSize;
 }
 
 //上传变化的回调

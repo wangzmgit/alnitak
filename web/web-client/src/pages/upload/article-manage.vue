@@ -2,8 +2,11 @@
   <div class="upload-article">
     <p class="title">专栏管理</p>
     <div class="article-box">
-      <el-scrollbar>
-        <ul class="article-list" v-infinite-scroll="scrollLoad">
+      <el-scrollbar ref="scrollbarRef" @scroll="onScroll">
+        <template v-if="!articleList.length && !initialLoading">
+          <el-empty description="暂无专栏" />
+        </template>
+        <ul class="article-list" v-else>
           <li class="article-item" v-for="(item, index) in articleList" :key="index">
             <div class="content-wrapper">
               <div class="content-main">
@@ -39,11 +42,11 @@
                     </li>
                   </ul>
                   <div class="entry-footer-tags">
-                    <div v-if="item.tags" class="tag" v-for="tag in item.tags.split(',')">{{ tag }}</div>
+                    <div v-if="item.tags" class="tag" v-for="tag in item.tags.split(',')" :key="tag">{{ tag }}</div>
                   </div>
                 </div>
               </div>
-              <img v-if="item.cover" class="cover" :src="getResourceUrl(item.cover)" alt="封面">
+              <oss-image v-if="item.cover" class="cover" :src="item.cover" alt="封面" />
             </div>
           </li>
         </ul>
@@ -71,6 +74,7 @@ definePageMeta({
   middleware: ['article']
 })
 
+const initialLoading = ref(true);
 const page = ref(1);
 const total = ref(0);
 const pageSize = 8;
@@ -89,6 +93,7 @@ const getUploadArticle = async () => {
       noMore.value = true;
     }
   }
+  initialLoading.value = false;
   loading.value = false;
 }
 
@@ -97,6 +102,13 @@ const scrollLoad = () => {
     page.value++;
     getUploadArticle();
   }
+}
+
+const scrollbarRef = ref()
+const onScroll = () => {
+  const wrap = scrollbarRef.value?.wrapRef
+  if (!wrap) return
+  if (wrap.scrollHeight - wrap.scrollTop - wrap.clientHeight < 50) scrollLoad()
 }
 
 const deleteArticleIndex = ref(-1);

@@ -3,7 +3,7 @@
     <div class="video-card" v-for="item in videoList" :key="item.pgc_id">
       <div class="card-box">
         <nuxt-link class="cover-box" :to="toWatchLink(item)">
-          <img :src="getResourceUrl(item.cover)" alt="封面" />
+          <oss-image :src="item.cover" alt="封面" />
           <span class="duration" v-if="item.new_ep?.index_show">{{ item.new_ep.index_show }}</span>
         </nuxt-link>
         <div class="info">
@@ -25,14 +25,25 @@
 import { asyncGetPGCRecommendByVideoAPI } from "@/api/pgc";
 
 const props = defineProps<{
-  vid: number;
+  vid: number | string;
 }>();
 
 const videoList = ref<PGCRecommendItem[]>([])
-const { data } = await asyncGetPGCRecommendByVideoAPI(props.vid, 1, 12);
-if ((data.value as any).code === statusCode.OK) {
-  videoList.value = (data.value as any).data.list || [];
-}
+const currentPlayIndex = ref(-1);
+
+const loadPGCRecommend = async (vid: number | string) => {
+  const { data } = await asyncGetPGCRecommendByVideoAPI(vid, 1, 12);
+  if ((data.value as any).code === statusCode.OK) {
+    videoList.value = (data.value as any).data.list || [];
+    currentPlayIndex.value = -1;
+  }
+};
+
+await loadPGCRecommend(props.vid);
+
+watch(() => props.vid, (newVid) => {
+  if (newVid) loadPGCRecommend(newVid);
+});
 
 const cleanVid = (raw: unknown): number => {
   const n = Number(String(raw ?? '').trim());
@@ -47,8 +58,6 @@ const toWatchLink = (item: PGCRecommendItem) => {
   const vid = cleanVid(item.latest_vid);
   return vid > 0 ? `/watch?v=${vid}&mode=pgc` : '/404';
 };
-
-const currentPlayIndex = ref(-1);
 
 const getNextVideo = () => {
   if (currentPlayIndex.value < videoList.value.length - 1) {
