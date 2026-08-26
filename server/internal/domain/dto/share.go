@@ -1,7 +1,7 @@
 package dto
 
 type ShareVideoReq struct {
-	Vid uint `json:"vid" binding:"required"`
+	Vid string `json:"vid" binding:"required"`
 }
 
 type ShareArticleReq struct {

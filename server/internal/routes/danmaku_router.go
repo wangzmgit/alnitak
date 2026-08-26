@@ -13,7 +13,7 @@ func CollectDanmakuRoutes(r *gin.RouterGroup) {
 	danmakuAuth.Use(middleware.Auth())
 	{
 		// 发送弹幕
-		danmakuAuth.POST("sendDanmaku", middleware.Ban(), api.SendDanmaku)
+		danmakuAuth.POST("sendDanmaku", middleware.Ban(), middleware.RateLimiter(middleware.DanmakuRateLimit), api.SendDanmaku)
 	}
 
 	// 获取弹幕列表

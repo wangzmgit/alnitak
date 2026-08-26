@@ -106,7 +106,7 @@ func main() {
 	flag.Parse()
 
 	initialize.InitConfig(*env)
-	logger.InitLogger()
+	logger.InitLogger(global.Config)
 	global.Mysql = mysql.Init(global.Config.Mysql)
 	global.Redis = redis.Init(global.Config.Redis)
 	initialize.InitTables()

@@ -14,4 +14,5 @@ type Config struct {
 
 	Private bool //是否私有 (仅七牛云)
 	UseSSL  bool //是否使用HTTPS连接OSS
+	Timeout int  //上传超时（秒），0=使用SDK默认
 }

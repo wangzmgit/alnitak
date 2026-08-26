@@ -91,10 +91,20 @@ func GetVideoById(ctx *gin.Context) {
 
 // 获取所有的视频列表
 func GetAllVideoList(ctx *gin.Context) {
-	videos := service.GetAllVideoList(ctx)
+	page := utils.StringToInt(ctx.Query("page"))
+	pageSize := utils.StringToInt(ctx.Query("pageSize"))
+
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 30
+	}
+
+	total, videos := service.GetAllVideoList(ctx, page, pageSize)
 
 	// 返回给前端
-	resp.OkWithData(ctx, gin.H{"videos": videos})
+	resp.OkWithData(ctx, gin.H{"total": total, "videos": videos})
 }
 
 // 编辑视频信息
@@ -369,4 +379,39 @@ func ReTranscodeVideo(ctx *gin.Context) {
 	}
 
 	resp.OkWithMessage(ctx, "已触发重新转码")
+}
+
+func ReTranscodeResource(ctx *gin.Context) {
+	resourceID := utils.StringToUint(ctx.Query("resourceID"))
+	if resourceID == 0 {
+		resp.FailWithMessage(ctx, "分PID不能为空")
+		return
+	}
+	quality := ctx.Query("quality") // 可选，指定单个画质重试
+	resource, err := service.ReTranscodeResource(ctx, resourceID, quality)
+	if err != nil {
+		resp.FailWithMessage(ctx, err.Error())
+		return
+	}
+	resp.OkWithDetailed(ctx, gin.H{
+		"resourceID": resource.ID,
+		"videoID":    resource.Vid,
+		"status":     resource.Status,
+	}, "已触发分P重新转码")
+}
+
+func ReUploadVideo(ctx *gin.Context) {
+	vid := utils.StringToUint(ctx.Query("vid"))
+
+	if vid == 0 {
+		resp.FailWithMessage(ctx, "视频ID不能为空")
+		return
+	}
+
+	if err := service.ReUploadVideo(ctx, vid); err != nil {
+		resp.FailWithMessage(ctx, err.Error())
+		return
+	}
+
+	resp.OkWithMessage(ctx, "已触发重新上传")
 }

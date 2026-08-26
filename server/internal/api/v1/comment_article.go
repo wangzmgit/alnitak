@@ -17,12 +17,19 @@ func AddArticleComment(ctx *gin.Context) {
 		return
 	}
 
+	// cid 兼容 shortId 或数字 ID，统一解析为数字 ID
+	cid, err := service.ParseArticleID(addCommentReq.Cid)
+	if err != nil {
+		resp.FailWithMessage(ctx, err.Error())
+		return
+	}
+
 	if utils.VerifyStringLength(addCommentReq.Content, "=", 0) {
 		resp.FailWithMessage(ctx, "评论或回复内容不能为空")
 		return
 	}
 
-	comment, err := service.AddArticleComment(ctx, addCommentReq)
+	comment, err := service.AddArticleComment(ctx, addCommentReq, cid)
 	if err != nil {
 		resp.FailWithMessage(ctx, err.Error())
 		return
@@ -98,16 +105,17 @@ func DeleteArticleComment(ctx *gin.Context) {
 }
 
 // 获取文章评论列表
+// shortId 为空时走"当前用户全部文章"逻辑
 func GetArticleCommentList(ctx *gin.Context) {
-	raw := ctx.Query("aid")
-	aid, err := service.ParseArticleID(raw)
-	if err != nil {
-		resp.FailWithMessage(ctx, err.Error())
-		return
-	}
-	if aid == 0 {
-		resp.FailWithMessage(ctx, "参数有误")
-		return
+	raw := ctx.Query("shortId")
+	var aid uint
+	if raw != "" {
+		parsed, err := service.ParseArticleID(raw)
+		if err != nil {
+			resp.FailWithMessage(ctx, err.Error())
+			return
+		}
+		aid = parsed
 	}
 	page := utils.StringToInt(ctx.Query("page"))
 	pageSize := utils.StringToInt(ctx.Query("pageSize"))

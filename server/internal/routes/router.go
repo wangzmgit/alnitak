@@ -23,6 +23,8 @@ func InitRouter() {
 
 	//跨域中间件
 	r.Use(middleware.CORS())
+	//安全响应头中间件
+	r.Use(middleware.SecurityHeaders())
 	if !global.Config.Security.CloseRecordUserOperation {
 		r.Use(middleware.OperationRecord())
 	}
@@ -84,8 +86,8 @@ func CollectRoutes(r *gin.Engine) *gin.Engine {
 		clientGroup := v1.Group("client")
 		clientGroup.Use(middleware.Auth())
 		clientGroup.POST("log", api.ClientLog)
-		// 登录注册相关路由路由
-		CollectAuthRoutes(v1)
+		// 用户认证相关路由
+		CollectUserAuthRoutes(v1)
 		// 用户相关路由
 		CollectUserRoutes(v1)
 		// 验证相关路由
@@ -131,14 +133,20 @@ func CollectRoutes(r *gin.Engine) *gin.Engine {
 		CollectOnlineRoutes(v1)
 		// 配置相关接口
 		CollectConfigRoutes(v1)
+		// 备用 OSS 重试相关接口
+		CollectBackupRoutes(v1)
 		// PGC相关接口
 		CollectPGCRoutes(v1)
 	}
 
 	// 获取静态文件
 	r.GET("/api/image/:file", api.GetImgFile)
+	r.GET("/api/subtitle/:file", middleware.OptionalAuth(), api.GetSubtitleFile)
 	// 后台静态页（如 PGC 管理）
 	r.Static("/admin", "./static/admin")
+
+	// 管理员：查看远程转码 Worker 状态
+	r.GET("/api/v1/admin/workers", middleware.Auth(), api.ListWorkers)
 
 	return r
 }

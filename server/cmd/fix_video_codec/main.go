@@ -41,7 +41,7 @@ func main() {
 	fmt.Println("")
 
 	initialize.InitConfig(*env)
-	logger.InitLogger()
+	logger.InitLogger(global.Config)
 
 	global.Mysql = mysql.Init(global.Config.Mysql)
 	initialize.InitTables()

@@ -13,6 +13,12 @@ package global
 //
 // 资源特有：冲突、去重等业务可在扩展字段（如 conflict_resource_id）中表达，不单独占用 status。
 
+// 分P 对外可见性（resource.visible_status）
+const (
+	VISIBLE_HIDDEN = 0 // 隐藏（处理中 / 排队中，不返回给前端）
+	VISIBLE_SHOWN  = 1 // 可见（转码完成且已上线）
+)
+
 // ResourceStatusName 返回资源状态简短英文键，便于前端 i18n。
 func ResourceStatusName(status int) string {
 	switch status {
@@ -30,6 +36,8 @@ func ResourceStatusName(status int) string {
 		return "rejected"
 	case PROCESSING_FAIL:
 		return "process_failed"
+	case UPLOAD_FAILED:
+		return "upload_failed"
 	default:
 		return "unknown"
 	}

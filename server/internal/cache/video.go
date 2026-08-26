@@ -16,7 +16,10 @@ func GetVideoInfo(id uint) (video vo.VideoResp) {
 	}
 	// 反序列化
 	if err := json.Unmarshal([]byte(jsonStr), &video); err != nil {
-		utils.ErrorLog("视频信息反序列化失败", "cache", err.Error())
+		// 缓存数据与当前结构不兼容（如字段类型变更），删除旧缓存让调用方重建
+		utils.ErrorLog("视频信息反序列化失败，删除旧缓存", "cache", err.Error())
+		global.Redis.Del(VIDEO_INFO_KEY + utils.UintToString(id))
+		return
 	}
 	return
 }

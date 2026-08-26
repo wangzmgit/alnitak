@@ -79,6 +79,26 @@ func SetOtherConfig(ctx *gin.Context) {
 	resp.Ok(ctx)
 }
 
+// 获取转码配置
+func GetTranscodingConfig(ctx *gin.Context) {
+	config := service.GetTranscodingConfig()
+	resp.OkWithData(ctx, gin.H{"config": config})
+}
+
+// 修改转码配置
+func SetTranscodingConfig(ctx *gin.Context) {
+	var req dto.TranscodingConfigReq
+	if err := ctx.Bind(&req); err != nil {
+		resp.FailWithMessage(ctx, "请求参数有误")
+		return
+	}
+	if err := service.SetTranscodingConfig(req); err != nil {
+		resp.FailWithMessage(ctx, err.Error())
+		return
+	}
+	resp.Ok(ctx)
+}
+
 // 获取资源清理预览
 func GetCleanupPreview(ctx *gin.Context) {
 	result := service.GetCleanupPreview()

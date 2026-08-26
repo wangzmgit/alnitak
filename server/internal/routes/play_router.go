@@ -13,4 +13,10 @@ func CollectPlayRoutes(r *gin.RouterGroup) {
 		g.POST("grant", middleware.OptionalAuth(), api.PostPlayGrant)
 		g.GET(":resourceShortId", api.GetPlayByResource)
 	}
+
+	// 音轨信息（多音轨支持）
+	audio := r.Group("audio")
+	{
+		audio.GET("tracks/:resourceId", api.GetAudioTracks)
+	}
 }

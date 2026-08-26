@@ -24,12 +24,19 @@ func UserRegister(ctx *gin.Context, registerReq dto.RegisterReq) error {
 		return errors.New("邮箱已存在")
 	}
 
+	// 验证码暴力枚举防护
+	if cache.GetEmailCodeTryCount(registerReq.Email) > 5 {
+		return errors.New("验证码错误次数过多，请重新获取")
+	}
+
 	if cache.GetEmailCode(registerReq.Email) != registerReq.Code { // 验证邮箱验证码
+		cache.IncrEmailCodeTryCount(registerReq.Email)
 		return errors.New("邮箱验证码错误")
 	}
 
-	// 删除邮箱验证码
+	// 删除邮箱验证码及计数
 	cache.DelEmailCode(registerReq.Email)
+	cache.DelEmailCodeTryCount(registerReq.Email)
 
 	// 对密码加密
 	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(registerReq.Password), bcrypt.DefaultCost)
@@ -48,14 +55,22 @@ func UserRegister(ctx *gin.Context, registerReq dto.RegisterReq) error {
 }
 
 // generateTokenPair 生成 accessToken + refreshToken 并存入缓存
-func generateTokenPair(userId uint) (accessToken, refreshToken string, err error) {
+func generateTokenPair(userId uint, rememberMe ...bool) (accessToken, refreshToken string, err error) {
 	if accessToken, err = jwt.GenerateAccessToken(userId); err != nil {
 		return "", "", errors.New("验证token生成失败")
 	}
-	if refreshToken, err = jwt.GenerateRefreshToken(userId); err != nil {
+
+	useLong := len(rememberMe) > 0 && rememberMe[0]
+	var refreshTTL time.Duration
+	if useLong {
+		refreshTTL = cache.REFRESH_TOKEN_LONG_EXPIRATION_TIME
+	} else {
+		refreshTTL = cache.REFRESH_TOKEN_EXPIRATION_TIME
+	}
+	if refreshToken, err = jwt.GenerateRefreshToken(userId, refreshTTL); err != nil {
 		return "", "", errors.New("刷新token生成失败")
 	}
-	cache.SetRefreshToken(userId, refreshToken)
+	cache.SetRefreshToken(userId, refreshToken, refreshTTL)
 	return accessToken, refreshToken, nil
 }
 
@@ -74,7 +89,7 @@ func UserLogin(ctx *gin.Context, loginReq dto.LoginReq) (accessToken, refreshTok
 		return "", "", 0, errors.New("用户名密码不匹配")
 	}
 
-	accessToken, refreshToken, err = generateTokenPair(user.ID)
+	accessToken, refreshToken, err = generateTokenPair(user.ID, loginReq.RememberMe)
 	if err != nil {
 		return "", "", 0, err
 	}
@@ -96,7 +111,7 @@ func EmailLogin(ctx *gin.Context, loginReq dto.EmailLoginReq) (accessToken, refr
 		return "", "", 0, errors.New("邮箱验证错误")
 	}
 
-	accessToken, refreshToken, err = generateTokenPair(user.ID)
+	accessToken, refreshToken, err = generateTokenPair(user.ID, loginReq.RememberMe)
 	if err != nil {
 		return "", "", 0, err
 	}
@@ -126,8 +141,8 @@ func UpdateToken(ctx *gin.Context, tokenReq dto.TokenReq) (accessToken, refreshT
 	if claims.ExpiresAt.Before(time.Now().Add(cache.REFRESH_TOKEN_BUFFER_TIME)) {
 		// 移除refreshToken
 		cache.DelRefreshToken(claims.UserId, tokenReq.RefreshToken)
-		// 重新生成refreshToken
-		refreshToken, err = jwt.GenerateRefreshToken(claims.UserId)
+		// 重新生成refreshToken（活跃用户用长过期时间）
+		refreshToken, err = jwt.GenerateRefreshToken(claims.UserId, cache.REFRESH_TOKEN_LONG_EXPIRATION_TIME)
 		if err != nil {
 			utils.ErrorLog("Token生成失败", "user", err.Error())
 			return "", "", 0, errors.New("Token生成失败")
@@ -141,9 +156,9 @@ func UpdateToken(ctx *gin.Context, tokenReq dto.TokenReq) (accessToken, refreshT
 		return "", "", 0, errors.New("Token生成失败")
 	}
 
-	// 存入缓存
+	// 存入缓存（新 token 用长过期时间）
 	if refreshToken != "" {
-		cache.SetRefreshToken(claims.UserId, refreshToken)
+		cache.SetRefreshToken(claims.UserId, refreshToken, cache.REFRESH_TOKEN_LONG_EXPIRATION_TIME)
 	}
 
 	return accessToken, refreshToken, claims.UserId, nil
@@ -218,19 +233,74 @@ func ResetPwdCheck(ctx *gin.Context, email string) error {
 }
 
 func ModifyPwd(ctx *gin.Context, modifyPwdReq dto.ModifyPwdReq) error {
-	if cache.GetEmailCode(modifyPwdReq.Email) != modifyPwdReq.Code { // 验证邮箱验证码
+	// 校验：必须先通过 ResetPwdCheck（人机验证）才能改密码
+	if cache.GetResetPwdCheckStatus(modifyPwdReq.Email) != 1 {
+		return errors.New("请先完成安全验证")
+	}
+
+	// 校验：邮箱验证码
+	if cache.GetEmailCode(modifyPwdReq.Email) != modifyPwdReq.Code {
+		// 验证码错误计数
+		cache.IncrEmailCodeTryCount(modifyPwdReq.Email)
+		if cache.GetEmailCodeTryCount(modifyPwdReq.Email) > 5 {
+			cache.DelEmailCode(modifyPwdReq.Email)            // 使当前验证码失效
+			cache.DelResetPwdCheckStatus(modifyPwdReq.Email) // 需要重新走安全验证
+			return errors.New("验证码错误次数过多，请重新获取")
+		}
 		return errors.New("邮箱验证错误")
 	}
 
 	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(modifyPwdReq.Password), bcrypt.DefaultCost)
-	if err := global.Mysql.Model(&model.User{}).Where("email = ?", modifyPwdReq.Email).
-		Update("password", hashedPassword).Error; err != nil {
+	user, err := FindUserByEmail(modifyPwdReq.Email)
+	if err != nil {
+		return errors.New("用户不存在")
+	}
+	if err := global.Mysql.Model(&model.User{}).Where("id = ?", user.ID).
+		Update("password", string(hashedPassword)).Error; err != nil {
 		utils.ErrorLog("修改密码失败", "user", err.Error())
 		return errors.New("修改失败")
 	}
 
-	// 删除验证状态
+	// 清理验证状态
+	cache.DelEmailCode(modifyPwdReq.Email)
+	cache.DelEmailCodeTryCount(modifyPwdReq.Email)
 	cache.DelResetPwdCheckStatus(modifyPwdReq.Email)
+	// 改密码后失效该用户的所有已有 refreshToken，防止已被窃取的会话续签
+	cache.DelAllRefreshToken(user.ID)
+
+	return nil
+}
+
+// ChangePassword 修改密码（已登录用户，知道旧密码）
+func ChangePassword(ctx *gin.Context, userId uint, req dto.ChangePasswordReq) error {
+	if len(req.NewPassword) < 6 {
+		return errors.New("新密码长度不能小于6位")
+	}
+
+	user, err := FindUserById(userId)
+	if err != nil {
+		return errors.New("用户不存在")
+	}
+
+	// 校验旧密码
+	if bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.OldPassword)) != nil {
+		return errors.New("旧密码错误")
+	}
+
+	// 新密码不能和旧密码相同
+	if req.OldPassword == req.NewPassword {
+		return errors.New("新密码不能与旧密码相同")
+	}
+
+	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+	if err := global.Mysql.Model(&model.User{}).Where("id = ?", user.ID).
+		Update("password", string(hashedPassword)).Error; err != nil {
+		utils.ErrorLog("修改密码失败", "user", err.Error())
+		return errors.New("修改失败")
+	}
+
+	// 改密码后失效所有 refreshToken，防止已被窃取的会话续签
+	cache.DelAllRefreshToken(user.ID)
 
 	return nil
 }
@@ -403,12 +473,15 @@ func DeleteUser(ctx *gin.Context, id uint) error {
 		// 删除视频的所有关联资源
 		global.Mysql.Where("vid = ?", video.ID).Delete(&model.Resource{})
 		global.Mysql.Where("vid = ?", video.ID).Delete(&model.VideoIndexFile{})
-		global.Mysql.Where("cid = ? and type = 0", video.ID).Delete(&model.Comment{})
-		global.Mysql.Where("vid = ?", video.ID).Delete(&model.Danmaku{})
+		// 评论级联（含 comment_like / msg_like type=3 / msg_like type=0 / msg_reply）
+		CleanupContentComments(video.ID, global.CONTENT_TYPE_VIDEO)
+		if video.ShortID != "" {
+			global.Mysql.Where("video_short_id = ?", video.ShortID).Delete(&model.Danmaku{})
+		}
 		global.Mysql.Where("vid = ?", video.ID).Delete(&model.CollectVideo{})
 		global.Mysql.Where("vid = ?", video.ID).Delete(&model.LikeVideo{})
 		global.Mysql.Where("vid = ?", video.ID).Delete(&model.History{})
-		global.Mysql.Where("vid = ?", video.ID).Delete(&model.AtMessage{})
+		global.Mysql.Where("cid = ? and `type` = ?", video.ID, global.CONTENT_TYPE_VIDEO).Delete(&model.AtMessage{})
 		// 删除视频本身
 		global.Mysql.Where("id = ?", video.ID).Delete(&model.Video{})
 	}
@@ -417,7 +490,9 @@ func DeleteUser(ctx *gin.Context, id uint) error {
 	var articles []model.Article
 	global.Mysql.Where("uid = ?", id).Find(&articles)
 	for _, article := range articles {
-		global.Mysql.Where("cid = ? and type = 1", article.ID).Delete(&model.Comment{})
+		// 评论级联清理
+		CleanupContentComments(article.ID, global.CONTENT_TYPE_ARTICLE)
+		global.Mysql.Where("cid = ? and `type` = ?", article.ID, global.CONTENT_TYPE_ARTICLE).Delete(&model.AtMessage{})
 		global.Mysql.Where("aid = ?", article.ID).Delete(&model.CollectArticle{})
 		global.Mysql.Where("aid = ?", article.ID).Delete(&model.LikeArticle{})
 		// 删除文章本身
@@ -506,10 +581,6 @@ func GetUserBaseInfo(userId uint) (user vo.UserInfoResp) {
 		// 存到redis
 		cache.SetUserInfo(user)
 	}
-
-	// 过滤掉敏感信息
-	user.Email = ""
-	user.Phone = ""
 
 	// 查询粉丝数量（实时查询，不缓存）
 	global.Mysql.Model(&model.Relation{}).

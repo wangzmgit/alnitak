@@ -18,6 +18,7 @@ func InitDefaultData() {
 	initUserData()       // 初始化用户数据
 	// 每次启动将 authApiDesc 中尚未入库的接口写入 API 表，并补全 001/002 的 Casbin 规则（须在 InitCasbin 之前执行）
 	SyncApiData()
+	FixPGCCopyright()
 }
 
 // 初始化API数据
@@ -75,9 +76,17 @@ func initApiData() {
 		{Method: "POST", Path: "/api/v1/comment/article/addComment", Category: "评论回复", Desc: "发表文章评论或回复"},
 		{Method: "GET", Path: "/api/v1/comment/article/getCommentList", Category: "评论回复", Desc: "获取文章评论列表"},
 		{Method: "DELETE", Path: "/api/v1/comment/article/deleteComment/:id", Category: "评论回复", Desc: "删除文章评论或回复"},
+		{Method: "POST", Path: "/api/v1/comment/article/like/:id", Category: "评论回复", Desc: "点赞文章评论"},
+		{Method: "DELETE", Path: "/api/v1/comment/article/like/:id", Category: "评论回复", Desc: "取消点赞文章评论"},
+		{Method: "POST", Path: "/api/v1/comment/article/dislike/:id", Category: "评论回复", Desc: "点踩文章评论"},
+		{Method: "DELETE", Path: "/api/v1/comment/article/dislike/:id", Category: "评论回复", Desc: "取消点踩文章评论"},
 		{Method: "POST", Path: "/api/v1/comment/video/addComment", Category: "评论回复", Desc: "发表视频评论或回复"},
 		{Method: "DELETE", Path: "/api/v1/comment/video/deleteComment/:id", Category: "评论回复", Desc: "删除视频评论或回复"},
 		{Method: "GET", Path: "/api/v1/comment/video/getCommentList", Category: "评论回复", Desc: "获取视频评论列表"},
+		{Method: "POST", Path: "/api/v1/comment/video/like/:id", Category: "评论回复", Desc: "点赞视频评论"},
+		{Method: "DELETE", Path: "/api/v1/comment/video/like/:id", Category: "评论回复", Desc: "取消点赞视频评论"},
+		{Method: "POST", Path: "/api/v1/comment/video/dislike/:id", Category: "评论回复", Desc: "点踩视频评论"},
+		{Method: "DELETE", Path: "/api/v1/comment/video/dislike/:id", Category: "评论回复", Desc: "取消点踩视频评论"},
 		{Method: "POST", Path: "/api/v1/danmaku/sendDanmaku", Category: "弹幕", Desc: "发送弹幕"},
 		{Method: "POST", Path: "/api/v1/history/video/addHistory", Category: "历史记录", Desc: "保存视频历史记录"},
 		{Method: "GET", Path: "/api/v1/history/video/getHistory", Category: "历史记录", Desc: "获取视频历史记录"},
@@ -105,7 +114,7 @@ func initApiData() {
 		{Method: "POST", Path: "/api/v1/relation/follow", Category: "关注", Desc: "关注用户"},
 		{Method: "GET", Path: "/api/v1/relation/getUserRelation", Category: "关注", Desc: "获取用户关系"},
 		{Method: "POST", Path: "/api/v1/relation/unfollow", Category: "关注", Desc: "取关用户"},
-		{Method: "DELETE", Path: "/api/v1/resource/deleteResource/:id", Category: "资源", Desc: "删除视频资源"},
+		{Method: "DELETE", Path: "/api/v1/resource/deleteResource/:id", Category: "资源", Desc: "删除视频资源（可通过deleteDanmaku参数选择是否同时删除弹幕）"},
 		{Method: "PUT", Path: "/api/v1/resource/modifyTitle", Category: "资源", Desc: "修改资源标题"},
 		{Method: "PUT", Path: "/api/v1/resource/reorder", Category: "资源", Desc: "资源排序"},
 		{Method: "GET", Path: "/api/v1/review/getArticleReviewRecord", Category: "审核", Desc: "获取文章审核记录"},
@@ -127,6 +136,11 @@ func initApiData() {
 		{Method: "POST", Path: "/api/v1/upload/checkVideo", Category: "上传", Desc: "获取视频上传进度"},
 		{Method: "POST", Path: "/api/v1/upload/chunkVideo", Category: "上传", Desc: "上传视频文件分片"},
 		{Method: "POST", Path: "/api/v1/upload/mergeVideo", Category: "上传", Desc: "合并视频文件分片"},
+		{Method: "POST", Path: "/api/v1/upload/presignImage", Category: "上传", Desc: "获取图片直传预签名URL"},
+		{Method: "POST", Path: "/api/v1/upload/confirmImage", Category: "上传", Desc: "确认图片直传完成"},
+		{Method: "POST", Path: "/api/v1/upload/initVideo", Category: "上传", Desc: "初始化视频分片直传"},
+		{Method: "POST", Path: "/api/v1/upload/presignChunks", Category: "上传", Desc: "续签分片直传预签名URL"},
+		{Method: "POST", Path: "/api/v1/upload/completeVideo", Category: "上传", Desc: "完成视频分片直传"},
 		{Method: "PUT", Path: "/api/v1/user/banUser", Category: "用户", Desc: "封禁用户（后台管理）"},
 		{Method: "PUT", Path: "/api/v1/user/unBanUser", Category: "用户", Desc: "解封用户（后台管理）"},
 		{Method: "GET", Path: "/api/v1/user/getUserBanRecord", Category: "用户", Desc: "获取封禁记录（后台管理）"},
@@ -153,6 +167,9 @@ func initApiData() {
 		{Method: "POST", Path: "/api/v1/pgc/getReviewList", Category: "PGC", Desc: "获取PGC待审列表（后台管理）"},
 		{Method: "POST", Path: "/api/v1/pgc/reviewApproved", Category: "PGC", Desc: "PGC审核通过（后台管理）"},
 		{Method: "POST", Path: "/api/v1/pgc/reviewFailed", Category: "PGC", Desc: "PGC审核驳回（后台管理）"},
+		{Method: "POST", Path: "/api/v1/pgc/getManageList", Category: "PGC", Desc: "获取PGC管理列表（后台管理）"},
+		{Method: "POST", Path: "/api/v1/pgc/adminUpdateStatus", Category: "PGC", Desc: "管理员修改PGC状态（后台管理）"},
+		{Method: "DELETE", Path: "/api/v1/pgc/adminDelete/:pgc_id", Category: "PGC", Desc: "管理员删除PGC（后台管理）"},
 		{Method: "GET", Path: "/api/v1/config/getEmailConfig", Category: "配置", Desc: "获取邮箱配置（后台管理）"},
 		{Method: "POST", Path: "/api/v1/config/setEmailConfig", Category: "配置", Desc: "编辑邮箱配置（后台管理）"},
 		{Method: "GET", Path: "/api/v1/config/getStorageConfig", Category: "配置", Desc: "获取存储配置（后台管理）"},
@@ -161,6 +178,23 @@ func initApiData() {
 		{Method: "POST", Path: "/api/v1/config/setOtherConfig", Category: "配置", Desc: "编辑其他配置（后台管理）"},
 		{Method: "GET", Path: "/api/v1/config/getCleanupPreview", Category: "配置", Desc: "获取资源清理预览（后台管理）"},
 		{Method: "POST", Path: "/api/v1/config/executeCleanup", Category: "配置", Desc: "执行资源清理（后台管理）"},
+		{Method: "GET", Path: "/api/v1/config/getTranscodingConfig", Category: "配置", Desc: "获取转码配置（后台管理）"},
+		{Method: "POST", Path: "/api/v1/config/setTranscodingConfig", Category: "配置", Desc: "编辑转码配置（后台管理）"},
+		// 用户认证相关
+		{Method: "GET", Path: "/api/v1/auth/type/list", Category: "用户认证", Desc: "获取认证类型列表"},
+		{Method: "GET", Path: "/api/v1/auth/user/list", Category: "用户认证", Desc: "获取用户认证列表"},
+		{Method: "GET", Path: "/api/v1/auth/user/primary", Category: "用户认证", Desc: "获取用户主要认证"},
+		{Method: "GET", Path: "/api/v1/auth/user/:uid/auth", Category: "用户认证", Desc: "获取指定用户的认证信息"},
+		{Method: "POST", Path: "/api/v1/auth/type/add", Category: "用户认证", Desc: "添加认证类型（需登录）"},
+		{Method: "PUT", Path: "/api/v1/auth/type/edit", Category: "用户认证", Desc: "编辑认证类型（需登录）"},
+		{Method: "DELETE", Path: "/api/v1/auth/type/:id", Category: "用户认证", Desc: "删除认证类型（需登录）"},
+		{Method: "GET", Path: "/api/v1/auth/type/all", Category: "用户认证", Desc: "获取所有认证类型（需登录）"},
+		{Method: "GET", Path: "/api/v1/auth/type/:id", Category: "用户认证", Desc: "获取认证类型详情（需登录）"},
+		{Method: "POST", Path: "/api/v1/auth/user/add", Category: "用户认证", Desc: "添加用户认证（需登录）"},
+		{Method: "PUT", Path: "/api/v1/auth/user/edit", Category: "用户认证", Desc: "编辑用户认证（需登录）"},
+		{Method: "DELETE", Path: "/api/v1/auth/user", Category: "用户认证", Desc: "删除用户认证（需登录）"},
+		{Method: "GET", Path: "/api/v1/auth/user/all", Category: "用户认证", Desc: "获取用户认证列表（管理用，需登录）"},
+		{Method: "GET", Path: "/api/v1/auth/user/:id", Category: "用户认证", Desc: "获取用户认证详情（需登录）"},
 	}
 	if err := global.Mysql.Create(&entities).Error; err != nil {
 		zap.L().Error("API数据初始化失败", zap.String("err", err.Error()), zap.String("module", "initialize"))
@@ -207,9 +241,17 @@ func initCasbinRuleData() {
 		{Ptype: "p", V0: "001", V1: "/api/v1/comment/article/addComment", V2: "POST"},
 		{Ptype: "p", V0: "001", V1: "/api/v1/comment/article/getCommentList", V2: "GET"},
 		{Ptype: "p", V0: "001", V1: "/api/v1/comment/article/deleteComment/:id", V2: "DELETE"},
+		{Ptype: "p", V0: "001", V1: "/api/v1/comment/article/like/:id", V2: "POST"},
+		{Ptype: "p", V0: "001", V1: "/api/v1/comment/article/like/:id", V2: "DELETE"},
+		{Ptype: "p", V0: "001", V1: "/api/v1/comment/article/dislike/:id", V2: "POST"},
+		{Ptype: "p", V0: "001", V1: "/api/v1/comment/article/dislike/:id", V2: "DELETE"},
 		{Ptype: "p", V0: "001", V1: "/api/v1/comment/video/addComment", V2: "POST"},
 		{Ptype: "p", V0: "001", V1: "/api/v1/comment/video/deleteComment/:id", V2: "DELETE"},
 		{Ptype: "p", V0: "001", V1: "/api/v1/comment/video/getCommentList", V2: "GET"},
+		{Ptype: "p", V0: "001", V1: "/api/v1/comment/video/like/:id", V2: "POST"},
+		{Ptype: "p", V0: "001", V1: "/api/v1/comment/video/like/:id", V2: "DELETE"},
+		{Ptype: "p", V0: "001", V1: "/api/v1/comment/video/dislike/:id", V2: "POST"},
+		{Ptype: "p", V0: "001", V1: "/api/v1/comment/video/dislike/:id", V2: "DELETE"},
 		{Ptype: "p", V0: "001", V1: "/api/v1/danmaku/sendDanmaku", V2: "POST"},
 		{Ptype: "p", V0: "001", V1: "/api/v1/history/video/addHistory", V2: "POST"},
 		{Ptype: "p", V0: "001", V1: "/api/v1/history/video/getHistory", V2: "GET"},
@@ -237,8 +279,24 @@ func initCasbinRuleData() {
 		{Ptype: "p", V0: "001", V1: "/api/v1/upload/checkVideo", V2: "POST"},
 		{Ptype: "p", V0: "001", V1: "/api/v1/upload/chunkVideo", V2: "POST"},
 		{Ptype: "p", V0: "001", V1: "/api/v1/upload/mergeVideo", V2: "POST"},
+		{Ptype: "p", V0: "001", V1: "/api/v1/upload/presignImage", V2: "POST"},
+		{Ptype: "p", V0: "001", V1: "/api/v1/upload/confirmImage", V2: "POST"},
+		{Ptype: "p", V0: "001", V1: "/api/v1/upload/initVideo", V2: "POST"},
+		{Ptype: "p", V0: "001", V1: "/api/v1/upload/presignChunks", V2: "POST"},
+		{Ptype: "p", V0: "001", V1: "/api/v1/upload/completeVideo", V2: "POST"},
 		{Ptype: "p", V0: "001", V1: "/api/v1/user/editUserInfo", V2: "PUT"},
 		{Ptype: "p", V0: "001", V1: "/api/v1/user/getUserInfo", V2: "GET"},
+		// 用户认证相关
+		{Ptype: "p", V0: "001", V1: "/api/v1/auth/type/add", V2: "POST"},
+		{Ptype: "p", V0: "001", V1: "/api/v1/auth/type/edit", V2: "PUT"},
+		{Ptype: "p", V0: "001", V1: "/api/v1/auth/type/:id", V2: "DELETE"},
+		{Ptype: "p", V0: "001", V1: "/api/v1/auth/type/all", V2: "GET"},
+		{Ptype: "p", V0: "001", V1: "/api/v1/auth/type/:id", V2: "GET"},
+		{Ptype: "p", V0: "001", V1: "/api/v1/auth/user/add", V2: "POST"},
+		{Ptype: "p", V0: "001", V1: "/api/v1/auth/user/edit", V2: "PUT"},
+		{Ptype: "p", V0: "001", V1: "/api/v1/auth/user", V2: "DELETE"},
+		{Ptype: "p", V0: "001", V1: "/api/v1/auth/user/all", V2: "GET"},
+		{Ptype: "p", V0: "001", V1: "/api/v1/auth/user/:id", V2: "GET"},
 		{Ptype: "p", V0: "001", V1: "/api/v1/video/deleteVideo/:id", V2: "DELETE"},
 		{Ptype: "p", V0: "001", V1: "/api/v1/video/editVideoInfo", V2: "PUT"},
 		{Ptype: "p", V0: "001", V1: "/api/v1/video/getAllVideoList", V2: "GET"},
@@ -289,9 +347,17 @@ func initCasbinRuleData() {
 		{Ptype: "p", V0: "002", V1: "/api/v1/comment/article/addComment", V2: "POST"},
 		{Ptype: "p", V0: "002", V1: "/api/v1/comment/article/getCommentList", V2: "GET"},
 		{Ptype: "p", V0: "002", V1: "/api/v1/comment/article/deleteComment/:id", V2: "DELETE"},
+		{Ptype: "p", V0: "002", V1: "/api/v1/comment/article/like/:id", V2: "POST"},
+		{Ptype: "p", V0: "002", V1: "/api/v1/comment/article/like/:id", V2: "DELETE"},
+		{Ptype: "p", V0: "002", V1: "/api/v1/comment/article/dislike/:id", V2: "POST"},
+		{Ptype: "p", V0: "002", V1: "/api/v1/comment/article/dislike/:id", V2: "DELETE"},
 		{Ptype: "p", V0: "002", V1: "/api/v1/comment/video/addComment", V2: "POST"},
 		{Ptype: "p", V0: "002", V1: "/api/v1/comment/video/deleteComment/:id", V2: "DELETE"},
 		{Ptype: "p", V0: "002", V1: "/api/v1/comment/video/getCommentList", V2: "GET"},
+		{Ptype: "p", V0: "002", V1: "/api/v1/comment/video/like/:id", V2: "POST"},
+		{Ptype: "p", V0: "002", V1: "/api/v1/comment/video/like/:id", V2: "DELETE"},
+		{Ptype: "p", V0: "002", V1: "/api/v1/comment/video/dislike/:id", V2: "POST"},
+		{Ptype: "p", V0: "002", V1: "/api/v1/comment/video/dislike/:id", V2: "DELETE"},
 		{Ptype: "p", V0: "002", V1: "/api/v1/config/getEmailConfig", V2: "GET"},
 		{Ptype: "p", V0: "002", V1: "/api/v1/config/getOtherConfig", V2: "GET"},
 		{Ptype: "p", V0: "002", V1: "/api/v1/config/getStorageConfig", V2: "GET"},
@@ -300,6 +366,8 @@ func initCasbinRuleData() {
 		{Ptype: "p", V0: "002", V1: "/api/v1/config/setStorageConfig", V2: "POST"},
 		{Ptype: "p", V0: "002", V1: "/api/v1/config/getCleanupPreview", V2: "GET"},
 		{Ptype: "p", V0: "002", V1: "/api/v1/config/executeCleanup", V2: "POST"},
+		{Ptype: "p", V0: "002", V1: "/api/v1/config/getTranscodingConfig", V2: "GET"},
+		{Ptype: "p", V0: "002", V1: "/api/v1/config/setTranscodingConfig", V2: "POST"},
 		{Ptype: "p", V0: "002", V1: "/api/v1/danmaku/sendDanmaku", V2: "POST"},
 		{Ptype: "p", V0: "002", V1: "/api/v1/history/video/addHistory", V2: "POST"},
 		{Ptype: "p", V0: "002", V1: "/api/v1/history/video/getHistory", V2: "GET"},
@@ -339,6 +407,9 @@ func initCasbinRuleData() {
 		{Ptype: "p", V0: "002", V1: "/api/v1/pgc/getReviewList", V2: "POST"},
 		{Ptype: "p", V0: "002", V1: "/api/v1/pgc/reviewApproved", V2: "POST"},
 		{Ptype: "p", V0: "002", V1: "/api/v1/pgc/reviewFailed", V2: "POST"},
+		{Ptype: "p", V0: "002", V1: "/api/v1/pgc/getManageList", V2: "POST"},
+		{Ptype: "p", V0: "002", V1: "/api/v1/pgc/adminUpdateStatus", V2: "POST"},
+		{Ptype: "p", V0: "002", V1: "/api/v1/pgc/adminDelete/:pgc_id", V2: "DELETE"},
 		{Ptype: "p", V0: "002", V1: "/api/v1/role/addRole", V2: "POST"},
 		{Ptype: "p", V0: "002", V1: "/api/v1/role/deleteRole/:id", V2: "DELETE"},
 		{Ptype: "p", V0: "002", V1: "/api/v1/role/editRole", V2: "PUT"},
@@ -352,6 +423,11 @@ func initCasbinRuleData() {
 		{Ptype: "p", V0: "002", V1: "/api/v1/upload/checkVideo", V2: "POST"},
 		{Ptype: "p", V0: "002", V1: "/api/v1/upload/chunkVideo", V2: "POST"},
 		{Ptype: "p", V0: "002", V1: "/api/v1/upload/mergeVideo", V2: "POST"},
+		{Ptype: "p", V0: "002", V1: "/api/v1/upload/presignImage", V2: "POST"},
+		{Ptype: "p", V0: "002", V1: "/api/v1/upload/confirmImage", V2: "POST"},
+		{Ptype: "p", V0: "002", V1: "/api/v1/upload/initVideo", V2: "POST"},
+		{Ptype: "p", V0: "002", V1: "/api/v1/upload/presignChunks", V2: "POST"},
+		{Ptype: "p", V0: "002", V1: "/api/v1/upload/completeVideo", V2: "POST"},
 		{Ptype: "p", V0: "002", V1: "/api/v1/user/banUser", V2: "PUT"},
 		{Ptype: "p", V0: "002", V1: "/api/v1/user/unBanUser", V2: "PUT"},
 		{Ptype: "p", V0: "002", V1: "/api/v1/user/getUserBanRecord", V2: "GET"},
@@ -361,6 +437,17 @@ func initCasbinRuleData() {
 		{Ptype: "p", V0: "002", V1: "/api/v1/user/editUserRole", V2: "PUT"},
 		{Ptype: "p", V0: "002", V1: "/api/v1/user/getUserInfo", V2: "GET"},
 		{Ptype: "p", V0: "002", V1: "/api/v1/user/getUserListManage", V2: "POST"},
+		// 用户认证相关
+		{Ptype: "p", V0: "002", V1: "/api/v1/auth/type/add", V2: "POST"},
+		{Ptype: "p", V0: "002", V1: "/api/v1/auth/type/edit", V2: "PUT"},
+		{Ptype: "p", V0: "002", V1: "/api/v1/auth/type/:id", V2: "DELETE"},
+		{Ptype: "p", V0: "002", V1: "/api/v1/auth/type/all", V2: "GET"},
+		{Ptype: "p", V0: "002", V1: "/api/v1/auth/type/:id", V2: "GET"},
+		{Ptype: "p", V0: "002", V1: "/api/v1/auth/user/add", V2: "POST"},
+		{Ptype: "p", V0: "002", V1: "/api/v1/auth/user/edit", V2: "PUT"},
+		{Ptype: "p", V0: "002", V1: "/api/v1/auth/user", V2: "DELETE"},
+		{Ptype: "p", V0: "002", V1: "/api/v1/auth/user/all", V2: "GET"},
+		{Ptype: "p", V0: "002", V1: "/api/v1/auth/user/:id", V2: "GET"},
 		{Ptype: "p", V0: "002", V1: "/api/v1/video/deleteVideo/:id", V2: "DELETE"},
 		{Ptype: "p", V0: "002", V1: "/api/v1/video/deleteVideoManage/:id", V2: "DELETE"},
 		{Ptype: "p", V0: "002", V1: "/api/v1/video/editVideoInfo", V2: "PUT"},
@@ -513,6 +600,38 @@ func syncMenuData() {
 		Name: "ContentPlaylist", Path: "content/playlist", Component: "views/content/playlist/index.vue",
 		Desc: "", Sort: 2, Title: "合集管理", Icon: "ListOutline", Hidden: false, KeepAlive: false,
 	})
+
+	// PGC管理（内容管理下）
+	ensureMenuExists("Content", "ContentVideo", model.Menu{
+		Name: "ContentPGC", Path: "content/pgc", Component: "views/content/pgc/index.vue",
+		Desc: "", Sort: 2, Title: "PGC管理", Icon: "FilmOutline", Hidden: false, KeepAlive: false,
+	})
+
+	// Workers 状态页（系统管理下）
+	ensureMenuExists("System", "SystemMenu", model.Menu{
+		Name: "SystemWorkers", Path: "system/workers", Component: "views/system/workers/index.vue",
+		Desc: "", Sort: 6, Title: "转码Worker", Icon: "ServerOutline", Hidden: false, KeepAlive: false,
+	})
+
+	// 备用 OSS 上传失败记录（系统管理下）
+	ensureMenuExists("System", "SystemMenu", model.Menu{
+		Name: "SystemBackupOSS", Path: "system/backup-oss", Component: "views/system/backup-oss/index.vue",
+		Desc: "", Sort: 7, Title: "备用OSS重试", Icon: "CloudOutline", Hidden: false, KeepAlive: false,
+	})
+
+	// 同步内容管理子菜单排序：视频(1) → PGC(2) → 其余(3+)
+	contentSortOrder := map[string]uint{
+		"ContentVideo":     1,
+		"ContentPGC":       2,
+		"ContentArticle":   3,
+		"ContentCarousel":  4,
+		"ContentPartition": 5,
+		"ContentAnnounce":  6,
+		"ContentPlaylist":  7,
+	}
+	for name, sort := range contentSortOrder {
+		global.Mysql.Model(&model.Menu{}).Where("name = ?", name).Update("sort", sort)
+	}
 }
 
 // 初始化分区数据
@@ -622,7 +741,8 @@ var authApiDesc = map[string]string{
 	"GET|/api/v1/article/getUploadArticle":           "获取上传的文章",
 	"POST|/api/v1/article/uploadArticleInfo":         "上传文章信息",
 	// Auth
-	"POST|/api/v1/auth/logout": "退出登录",
+	"POST|/api/v1/auth/logout":         "退出登录",
+	"POST|/api/v1/auth/changePassword": "修改密码（需旧密码校验）",
 	// 客户端
 	"POST|/api/v1/client/log": "客户端日志上报",
 	// 轮播图
@@ -641,9 +761,17 @@ var authApiDesc = map[string]string{
 	"POST|/api/v1/comment/article/addComment":          "发表文章评论或回复",
 	"GET|/api/v1/comment/article/getCommentList":       "获取文章评论列表",
 	"DELETE|/api/v1/comment/article/deleteComment/:id": "删除文章评论或回复",
+	"POST|/api/v1/comment/article/like/:id":            "点赞文章评论",
+	"DELETE|/api/v1/comment/article/like/:id":          "取消点赞文章评论",
+	"POST|/api/v1/comment/article/dislike/:id":         "点踩文章评论",
+	"DELETE|/api/v1/comment/article/dislike/:id":       "取消点踩文章评论",
 	"POST|/api/v1/comment/video/addComment":            "发表视频评论或回复",
 	"DELETE|/api/v1/comment/video/deleteComment/:id":   "删除视频评论或回复",
 	"GET|/api/v1/comment/video/getCommentList":         "获取视频评论列表",
+	"POST|/api/v1/comment/video/like/:id":              "点赞视频评论",
+	"DELETE|/api/v1/comment/video/like/:id":            "取消点赞视频评论",
+	"POST|/api/v1/comment/video/dislike/:id":           "点踩视频评论",
+	"DELETE|/api/v1/comment/video/dislike/:id":         "取消点踩视频评论",
 	// 弹幕
 	"POST|/api/v1/danmaku/sendDanmaku": "发送弹幕",
 	// 历史记录
@@ -703,7 +831,12 @@ var authApiDesc = map[string]string{
 	"POST|/api/v1/upload/video/:vid": "上传视频分P",
 	"POST|/api/v1/upload/checkVideo": "获取视频上传进度",
 	"POST|/api/v1/upload/chunkVideo": "上传视频文件分片",
-	"POST|/api/v1/upload/mergeVideo": "合并视频文件分片",
+	"POST|/api/v1/upload/mergeVideo":       "合并视频文件分片",
+	"POST|/api/v1/upload/presignImage":     "获取图片直传预签名URL",
+	"POST|/api/v1/upload/confirmImage":     "确认图片直传完成",
+	"POST|/api/v1/upload/initVideo":        "初始化视频分片直传",
+	"POST|/api/v1/upload/presignChunks":    "续签分片直传预签名URL",
+	"POST|/api/v1/upload/completeVideo":    "完成视频分片直传",
 	// 用户
 	"PUT|/api/v1/user/banUser":            "封禁用户（后台管理）",
 	"PUT|/api/v1/user/unBanUser":          "解封用户（后台管理）",
@@ -730,13 +863,20 @@ var authApiDesc = map[string]string{
 	"GET|/api/v1/video/getResourceQualityManage": "获取视频资源支持的分辨率信息（后台管理）",
 	"GET|/api/v1/video/getVideoFileManage":       "获取视频文件URL（后台管理）",
 	"POST|/api/v1/video/reTranscodeVideo":        "重新转码视频（后台管理）",
+	"POST|/api/v1/video/reTranscodeResource":     "重新转码单个分P（后台管理）",
+	"POST|/api/v1/video/reUploadVideo":           "重新上传OSS（后台管理）",
+	"POST|/api/v1/video/subtitle/upload":         "上传分P字幕",
+	"PUT|/api/v1/video/subtitle/:id":             "更新分P字幕",
+	"DELETE|/api/v1/video/subtitle/:id":          "删除分P字幕",
 	// 配置
-	"GET|/api/v1/config/getEmailConfig":    "获取邮箱配置（后台管理）",
-	"POST|/api/v1/config/setEmailConfig":   "编辑邮箱配置（后台管理）",
-	"GET|/api/v1/config/getStorageConfig":  "获取存储配置（后台管理）",
-	"POST|/api/v1/config/setStorageConfig": "编辑存储配置（后台管理）",
-	"GET|/api/v1/config/getOtherConfig":    "获取其他配置（后台管理）",
-	"POST|/api/v1/config/setOtherConfig":   "编辑其他配置（后台管理）",
+	"GET|/api/v1/config/getEmailConfig":        "获取邮箱配置（后台管理）",
+	"POST|/api/v1/config/setEmailConfig":       "编辑邮箱配置（后台管理）",
+	"GET|/api/v1/config/getStorageConfig":      "获取存储配置（后台管理）",
+	"POST|/api/v1/config/setStorageConfig":     "编辑存储配置（后台管理）",
+	"GET|/api/v1/config/getOtherConfig":        "获取其他配置（后台管理）",
+	"POST|/api/v1/config/setOtherConfig":       "编辑其他配置（后台管理）",
+	"GET|/api/v1/config/getTranscodingConfig":  "获取转码配置（后台管理）",
+	"POST|/api/v1/config/setTranscodingConfig": "编辑转码配置（后台管理）",
 	// 合集
 	"POST|/api/v1/playlist/add":                        "创建合集",
 	"PUT|/api/v1/playlist/edit":                        "编辑合集",
@@ -751,6 +891,10 @@ var authApiDesc = map[string]string{
 	"GET|/api/v1/playlist/getPlaylistReviewRecord":     "获取合集审核记录",
 	"POST|/api/v1/playlist/getPlaylistListManage":      "获取全站合集列表（后台管理）",
 	"DELETE|/api/v1/playlist/deletePlaylistManage/:id": "删除合集（后台管理）",
+	// 备用 OSS
+	"GET|/api/v1/backup/failures":   "获取备用OSS上传失败记录",
+	"POST|/api/v1/backup/retry/:id": "重试单条备用OSS上传失败记录",
+	"POST|/api/v1/backup/retryAll":  "重试所有备用OSS上传失败记录",
 	// PGC
 	"POST|/api/v1/pgc/create":                 "创建PGC内容",
 	"PUT|/api/v1/pgc/update":                  "更新PGC内容",
@@ -760,6 +904,11 @@ var authApiDesc = map[string]string{
 	"POST|/api/v1/pgc/getReviewList":          "获取PGC待审列表（后台管理）",
 	"POST|/api/v1/pgc/reviewApproved":         "PGC审核通过（后台管理）",
 	"POST|/api/v1/pgc/reviewFailed":           "PGC审核驳回（后台管理）",
+	"POST|/api/v1/pgc/getManageList":          "获取PGC管理列表（后台管理）",
+	"POST|/api/v1/pgc/adminUpdateStatus":      "管理员修改PGC状态（后台管理）",
+	"DELETE|/api/v1/pgc/adminDelete/:pgc_id":  "管理员删除PGC（后台管理）",
+	// 远程转码 Worker
+	"GET|/api/v1/admin/workers": "获取远程转码Worker状态（后台管理）",
 }
 
 // SyncApiData 自动同步需要登录权限的路由到API表
@@ -864,6 +1013,7 @@ func inferCategory(path string) string {
 		"user":       "用户",
 		"verify":     "验证",
 		"video":      "视频",
+		"admin":      "系统管理",
 		"online":     "在线",
 	}
 
@@ -871,4 +1021,53 @@ func inferCategory(path string) string {
 		return category
 	}
 	return "其他"
+}
+
+// FixPGCCopyright 修正已标记PGC的视频版权字段 + 反查剧集ID
+// 历史遗留数据：pgc_attached=true 但 copyright 仍为 0/1（旧 bool 迁移而来）
+// 每次启动自动修复，确保新旧数据一致
+func FixPGCCopyright() {
+	// 修正 copyright
+	result := global.Mysql.Exec(
+		"UPDATE video SET copyright = ? WHERE pgc_attached = 1 AND copyright != ?",
+		global.CopyrightPGC, global.CopyrightPGC,
+	)
+	if result.Error != nil {
+		zap.L().Error("修正PGC版权字段失败", zap.String("err", result.Error.Error()), zap.String("module", "initialize"))
+	} else if result.RowsAffected > 0 {
+		zap.L().Info("修正PGC版权字段",
+			zap.Int64("count", result.RowsAffected),
+			zap.Int("to", int(global.CopyrightPGC)),
+			zap.String("module", "initialize"))
+	}
+
+	// 反填 ep_id（pgc_attached=1 但有剧集绑定的视频）
+	result2 := global.Mysql.Exec(
+		"UPDATE video v " +
+			"INNER JOIN pgc_episode e ON e.vid = v.id " +
+			"SET v.ep_id = e.id " +
+			"WHERE v.pgc_attached = 1 AND v.ep_id = 0",
+	)
+	if result2.Error != nil {
+		zap.L().Error("反填PGC剧集ID失败", zap.String("err", result2.Error.Error()), zap.String("module", "initialize"))
+	} else if result2.RowsAffected > 0 {
+		zap.L().Info("反填PGC剧集ID",
+			zap.Int64("count", result2.RowsAffected),
+			zap.String("module", "initialize"))
+	}
+
+	// 补填 copyright_original（旧数据绑定前未保存原始版权）
+	result3 := global.Mysql.Exec(
+		"UPDATE video SET copyright_original = ? "+
+			"WHERE pgc_attached = 1 AND copyright_original = 0 AND copyright = ?",
+		global.CopyrightUnknown, global.CopyrightPGC,
+	)
+	if result3.Error != nil {
+		zap.L().Error("补填PGC原始版权字段失败", zap.String("err", result3.Error.Error()), zap.String("module", "initialize"))
+	} else if result3.RowsAffected > 0 {
+		zap.L().Info("补填PGC原始版权字段",
+			zap.Int64("count", result3.RowsAffected),
+			zap.Int("to", int(global.CopyrightUnknown)),
+			zap.String("module", "initialize"))
+	}
 }

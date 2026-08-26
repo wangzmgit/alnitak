@@ -85,7 +85,19 @@ GET /api/v1/pgc/:pgc_id/episodes?page=1&page_size=20
 ```
 POST /api/v1/pgc/:pgc_id/episodes/add
 ```
-**认证**: 是
+**认证**: 是  
+**说明**: `vid` 可选；为 `0` 或不传时表示先创建占位剧集，后续调用「绑定视频」接口补充。
+
+### 绑定剧集视频（占位 -> 已绑定）
+```
+PUT /api/v1/pgc/:pgc_id/episodes/:id/bind
+```
+**认证**: 是  
+**Body**:
+```json
+{ "vid": 123456, "duration": 1440.0, "publish_time": "2024-01-01 10:00:00" }
+```
+`duration`、`publish_time` 可选；未传 `publish_time` 时默认取视频创建时间。
 
 ### 删除剧集
 ```

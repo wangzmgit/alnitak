@@ -85,7 +85,7 @@ func GetUserListManage(ctx *gin.Context) {
 		return
 	}
 
-	if userListReq.PageSize > 100 {
+	if userListReq.PageSize > 50 {
 		resp.FailWithMessage(ctx, "请求数量过多")
 		return
 	}

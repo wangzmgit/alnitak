@@ -137,5 +137,92 @@ func (t *TencentCOS) GetObjectUrl(objectKey string) string {
 		utils.ErrorLog("腾讯云COS生成文件URL失败", "transcoding", fmt.Sprintf("Error: %v, ObjectKey: %s", err, objectKey))
 		return ""
 	}
-	return presignedURL.String()
+	// GetPresignedURL 返回 *url.URL，直接 .String()
+	url := presignedURL.String()
+	if url == "" {
+		utils.ErrorLog("腾讯云COS生成文件URL失败", "transcoding", "empty url")
+	}
+	return url
 }
+
+// 获取对象读取器（用于代理流式传输）
+func (t *TencentCOS) GetObjectReader(objectKey string) (io.ReadCloser, error) {
+	resp, err := t.client.Object.Get(context.Background(), objectKey, nil)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Body, nil
+}
+
+// ── 直传 OSS 预签名方法 ──
+
+// PresignPutObject 生成单文件上传预签名 URL（用于图片直传）。
+func (t *TencentCOS) PresignPutObject(objectKey string, expiry time.Duration) (string, error) {
+	presignedURL, err := t.client.Object.GetPresignedURL(
+		context.Background(),
+		http.MethodPut,
+		objectKey,
+		t.config.KeyID,
+		t.config.KeySecret,
+		expiry,
+		nil,
+	)
+	if err != nil {
+		return "", fmt.Errorf("presign put object: %w", err)
+	}
+	return presignedURL.String(), nil
+}
+
+// InitiateMultipartUpload 发起分片上传，返回 uploadID。
+func (t *TencentCOS) InitiateMultipartUpload(objectKey string) (string, error) {
+	resp, _, err := t.client.Object.InitiateMultipartUpload(context.Background(), objectKey, nil)
+	if err != nil {
+		return "", fmt.Errorf("initiate multipart upload: %w", err)
+	}
+	return resp.UploadID, nil
+}
+
+// PresignUploadPart 为指定分片生成预签名 PUT URL（partNumber 从 1 开始）。
+// COS 需要 uploadId 和 partNumber 作为 query 参数参与签名，
+// 通过 cos-go-sdk-v5 的 GetPresignedURL 最后一个 url.Values 参数传入，
+// 签名时会将这些 query 纳入签名计算。
+func (t *TencentCOS) PresignUploadPart(uploadID, objectKey string, partNumber int, expiry time.Duration) (string, error) {
+	query := &url.Values{}
+	query.Set("uploadId", uploadID)
+	query.Set("partNumber", fmt.Sprintf("%d", partNumber))
+
+	// GetPresignedURL 最后一个可选参数如果是 *url.Values，SDK 会把它纳入签名
+	presignedURL, err := t.client.Object.GetPresignedURL(
+		context.Background(),
+		http.MethodPut,
+		objectKey,
+		t.config.KeyID,
+		t.config.KeySecret,
+		expiry,
+		query, // 作为 cos.ObjectPutHeaderOptions 的接口实现，实际是 url.Values
+	)
+	if err != nil {
+		return "", fmt.Errorf("presign upload part %d: %w", partNumber, err)
+	}
+	return presignedURL.String(), nil
+}
+
+// CompleteMultipartUpload 通知 OSS 合并所有已上传分片。
+func (t *TencentCOS) CompleteMultipartUpload(uploadID, objectKey string, parts []CompletePart) error {
+	opt := &cos.CompleteMultipartUploadOptions{
+		Parts: make([]cos.Object, 0, len(parts)),
+	}
+	for _, p := range parts {
+		opt.Parts = append(opt.Parts, cos.Object{
+			PartNumber: p.PartNumber,
+			ETag:       p.ETag,
+		})
+	}
+
+	_, _, err := t.client.Object.CompleteMultipartUpload(context.Background(), objectKey, uploadID, opt)
+	if err != nil {
+		return fmt.Errorf("complete multipart upload: %w", err)
+	}
+	return nil
+}
+

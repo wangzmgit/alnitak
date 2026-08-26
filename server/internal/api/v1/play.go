@@ -31,7 +31,8 @@ func PostPlayGrant(ctx *gin.Context) {
 }
 
 // GetPlayByResource 核心播放接口：grant token + 资源 shortId → 带签名的音视频 URL。
-// GET /api/v1/play/:resourceShortId?token=JWT&quality=720p（quality 可选）
+// 配置了备用 OSS 时同时返回 backupVideo/backupAudio（B站风格多源容灾）。
+// GET /api/v1/play/:resourceShortId?token=JWT&quality=720p&audioLang=jpn（quality/audioLang 可选）
 func GetPlayByResource(ctx *gin.Context) {
 	rsid := ctx.Param("resourceShortId")
 	tok := ctx.Query("token")
@@ -40,14 +41,11 @@ func GetPlayByResource(ctx *gin.Context) {
 		return
 	}
 	quality := ctx.Query("quality")
-	videoU, audioU, exp, err := service.GetPlayURLs(ctx, rsid, tok, quality)
+	audioLang := ctx.Query("audioLang")
+	result, err := service.GetPlayURLs(ctx, rsid, tok, quality, audioLang)
 	if err != nil {
 		resp.FailWithMessage(ctx, err.Error())
 		return
 	}
-	resp.OkWithData(ctx, gin.H{
-		"video":   videoU,
-		"audio":   audioU,
-		"expires": exp,
-	})
+	resp.OkWithData(ctx, result)
 }

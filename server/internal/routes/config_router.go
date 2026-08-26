@@ -28,6 +28,10 @@ func CollectConfigRoutes(r *gin.RouterGroup) {
 		configAuth.GET("getCleanupPreview", api.GetCleanupPreview)
 		// 执行资源清理
 		configAuth.POST("executeCleanup", api.ExecuteCleanup)
+		// 获取转码配置
+		configAuth.GET("getTranscodingConfig", api.GetTranscodingConfig)
+		// 修改转码配置
+		configAuth.POST("setTranscodingConfig", api.SetTranscodingConfig)
 	}
 
 }

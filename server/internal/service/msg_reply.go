@@ -26,9 +26,10 @@ func GetReplyMessage(ctx *gin.Context, page, pageSize int) (total int64, msg []v
 }
 
 // 添加回复消息
-func InsertReplyMessage(addCommentReq dto.AddCommentReq, commentId, userId uint, contentType int) error {
+// cid 为已解析好的数字 ID（视频/文章）
+func InsertReplyMessage(addCommentReq dto.AddCommentReq, cid, commentId, userId uint, contentType int) error {
 	msg := model.ReplyMessage{
-		Cid:                addCommentReq.Cid,
+		Cid:                cid,
 		Sid:                userId,
 		CommentId:          commentId,
 		Content:            addCommentReq.Content,
@@ -47,11 +48,11 @@ func InsertReplyMessage(addCommentReq dto.AddCommentReq, commentId, userId uint,
 	if addCommentReq.ParentID == 0 {
 		if contentType == global.CONTENT_TYPE_VIDEO {
 			// 通知给视频作者
-			video := GetVideoInfo(addCommentReq.Cid)
+			video := GetVideoInfo(cid)
 			msg.Uid = video.Uid
 		} else {
 			// 通知给文章作者
-			article := GetArticleInfo(addCommentReq.Cid)
+			article := GetArticleInfo(cid)
 			msg.Uid = article.Uid
 		}
 

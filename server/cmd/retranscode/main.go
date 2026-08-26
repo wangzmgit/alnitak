@@ -32,12 +32,14 @@ func main() {
 
 	// 初始化配置、日志、存储、数据库、缓存等，逻辑与主程序保持一致
 	initialize.InitConfig(*env)
-	logger.InitLogger()
+	logger.InitLogger(global.Config)
 	jigsaw.Jigsaw()
 
 	if global.Config.Storage.OssType != "local" {
 		global.Storage = oss.InitStorage(global.Config.Storage)
 	}
+	// 初始化备用OSS（多源容灾）
+	global.StorageBackup = oss.InitBackupStorage(global.Config.Storage)
 
 	initialize.InitSnowflake()
 

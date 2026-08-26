@@ -17,3 +17,9 @@ type ReorderResourceReq struct {
 	Vid         uint   `json:"vid"`         // 视频ID
 	ResourceIds []uint `json:"resourceIds"` // 按顺序排列的资源ID列表
 }
+
+// 删除资源请求
+type DeleteResourceReq struct {
+	ResourceID     uint `json:"resourceId"`     // 资源ID
+	DeleteDanmaku  bool `json:"deleteDanmaku"`   // 是否同时删除弹幕
+}

@@ -21,7 +21,7 @@ func main() {
 	flag.Parse()
 
 	initialize.InitConfig(*env)
-	logger.InitLogger()
+	logger.InitLogger(global.Config)
 	global.Mysql = mysql.Init(global.Config.Mysql)
 	initialize.InitSnowflake()
 	initialize.InitTables()

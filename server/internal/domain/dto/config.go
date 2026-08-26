@@ -28,10 +28,8 @@ type StorageConfigReq struct {
 }
 
 type OtherConfigReq struct {
-	AllowOrigin     string `json:"allowOrigin"`
-	Prefix          string `json:"prefix"`
-	Generate1080p60 bool   `json:"generate1080p60"`
-	UseGpu          bool   `json:"useGpu"`
+	AllowOrigin string `json:"allowOrigin"`
+	Prefix      string `json:"prefix"`
 
 	// 服务器配置
 	ServerPort  string `json:"serverPort"`
@@ -39,4 +37,18 @@ type OtherConfigReq struct {
 	SslPort     string `json:"sslPort"`
 	SslCertFile string `json:"sslCertFile"`
 	SslKeyFile  string `json:"sslKeyFile"`
+}
+
+type TranscodingConfigReq struct {
+	Mode                string `json:"mode"`
+	UseGpu              bool   `json:"useGpu"`
+	UseH265             bool   `json:"useH265"`
+	UseAv1              bool   `json:"useAv1"`
+	Generate1080p60     bool   `json:"generate1080p60"`
+	MaxCpuConcurrency   int    `json:"maxCpuConcurrency"`
+	MaxGpuConcurrency   int    `json:"maxGpuConcurrency"`
+	WorkerConcurrency   int    `json:"workerConcurrency"`
+	EncodingConcurrency int    `json:"encodingConcurrency"`
+	MaxQueueDepth       int    `json:"maxQueueDepth"`
+	WorkDir             string `json:"workDir"`
 }

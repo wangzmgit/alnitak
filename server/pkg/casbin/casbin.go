@@ -1,8 +1,6 @@
 package casbin
 
 import (
-	"sync"
-
 	"interastral-peace.com/alnitak/pkg/mysql"
 	"interastral-peace.com/alnitak/utils"
 
@@ -10,8 +8,6 @@ import (
 	gormadapter "github.com/casbin/gorm-adapter/v3"
 	"go.uber.org/zap"
 )
-
-var checkLock sync.Mutex
 
 type Casbin struct {
 	casbinEnforcer *casbin.Enforcer
@@ -44,20 +40,16 @@ func InitCasbin() *Casbin {
 }
 
 func (c *Casbin) CasbinCheck(sub string, obj string, act string) bool {
-	// 同一时间只允许一个请求执行校验, 否则可能会校验失败
-	checkLock.Lock()
-	defer checkLock.Unlock()
-
-	pass, _ := c.casbinEnforcer.Enforce(sub, obj, act)
-
+	// Enforce 内部已使用 RWMutex，并发安全，无需额外加锁
+	pass, err := c.casbinEnforcer.Enforce(sub, obj, act)
+	if err != nil {
+		utils.ErrorLog("casbin校验失败", "casbin", err.Error())
+		return false
+	}
 	return pass
 }
 
 func (c *Casbin) DeletePolicy(sub string, obj string, act string) bool {
-	// 同一时间只允许一个请求执行校验, 否则可能会校验失败
-	checkLock.Lock()
-	defer checkLock.Unlock()
-
 	ok, err := c.casbinEnforcer.RemovePolicy(sub, obj, act)
 	if !ok {
 		utils.ErrorLog("移除casbin policy失败", "casbin", err.Error())
@@ -66,10 +58,6 @@ func (c *Casbin) DeletePolicy(sub string, obj string, act string) bool {
 }
 
 func (c *Casbin) AddPolicy(sub string, obj string, act string) bool {
-	// 同一时间只允许一个请求执行校验, 否则可能会校验失败
-	checkLock.Lock()
-	defer checkLock.Unlock()
-
 	ok, err := c.casbinEnforcer.AddPolicy(sub, obj, act)
 	if !ok {
 		utils.ErrorLog("添加casbin policy失败", "casbin", err.Error())
@@ -79,8 +67,5 @@ func (c *Casbin) AddPolicy(sub string, obj string, act string) bool {
 
 // ReloadPolicy 重新从数据库加载策略
 func (c *Casbin) ReloadPolicy() error {
-	checkLock.Lock()
-	defer checkLock.Unlock()
-
 	return c.casbinEnforcer.LoadPolicy()
 }

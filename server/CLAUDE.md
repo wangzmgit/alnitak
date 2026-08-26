@@ -118,3 +118,23 @@ All endpoints are under `/api/v1/` with comprehensive route organization:
 - File uploads and static serving
 
 The server runs on port 9000 and serves static images at `/api/image/:file`.
+
+## Development Rules (强制遵守)
+
+### 1. 改动前必须检查原有逻辑
+- 修改任何文件前，先读完相关文件的原有逻辑，确认新改动不会破坏已有功能
+- 修改 API 前检查 git 历史确认原有函数保留
+- 改路由前对比旧代码确认原有路由存在
+- 改名/重命名前 grep 检查所有调用方
+
+### 2. 改动后必须编译验证
+- 后端：`go build ./...` + 打包 exe（`alnitak-server.exe` / `alnitak-worker.exe`）
+- Flutter：`flutter analyze` + `flutter build apk --release --target-platform android-arm64 --split-per-abi`
+- **Web 不编译**（`web-client`、`admin-client` 不运行 `yarn build`）
+
+### 3. 前端三端同步（强制）
+涉及后端接口变更（新增/修改/删除），**必须同步**以下所有前端：
+- `E:\web\alnitak\web\web-client`（用户端 Web）
+- `E:\web\alnitak\web\admin-client`（管理端 Web）
+- `E:\alnitak_flutter`（Flutter App）
+- 三端接口调用参数、响应解析、错误处理必须一致

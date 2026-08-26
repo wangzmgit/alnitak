@@ -2,82 +2,75 @@ package logger
 
 import (
 	"os"
+	"strings"
 
 	"github.com/natefinch/lumberjack"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"interastral-peace.com/alnitak/internal/global"
+	"interastral-peace.com/alnitak/internal/config"
 )
 
-// 1 定义一下logger使用的常量
-var (
-	mode       string
-	filename   string
-	level      zapcore.Level
-	maxSize    int
-	maxAge     int
-	maxBackups int
-)
+// InitLogger 初始化全局日志。配置项：
+//
+//	mode: dev 同时输出到文件和控制台；prod 只输出到文件（ERROR+ 额外到 stderr）。
+//	level: debug/info/warn/error，默认 info。
+func InitLogger(cfg *config.Config) (err error) {
+	mode := cfg.Log.Mode
+	filename := cfg.Log.FileName
+	maxSize := cfg.Log.MaxSize
+	maxAge := cfg.Log.MaxAge
+	maxBackups := cfg.Log.MaxBackups
+	level := parseLevel(cfg.Log.Level)
 
-// 2 初始化Logger对象
-func InitLogger() (err error) {
-	// 读取配置
-	mode = global.Config.Log.Mode             //开发模式
-	filename = global.Config.Log.FileName     // 日志存放路径
-	level = zapcore.DebugLevel                // 日志级别
-	maxSize = global.Config.Log.MaxSize       //最大存储大小
-	maxAge = global.Config.Log.MaxAge         //最大存储时间
-	maxBackups = global.Config.Log.MaxBackups //#备份数量
+	writeSyncer := zapcore.AddSync(&lumberjack.Logger{
+		Filename:   filename,
+		MaxSize:    maxSize,
+		MaxBackups: maxBackups,
+		MaxAge:     maxAge,
+	})
+	encoder := newJSONEncoder()
 
-	// 创建Core三大件，进行初始化
-	writeSyncer := getLogWriter(filename, maxSize, maxAge, maxBackups)
-	encoder := getEncoder()
-	// 创建核心-->如果是dev模式，就在控制台和文件都打印，否则就只写到文件中
 	var core zapcore.Core
 	if mode == "dev" {
-		// 开发模式，日志输出到终端
 		consoleEncoder := zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig())
-		// NewTee创建一个核心，将日志条目复制到两个或多个底层核心中。
 		core = zapcore.NewTee(
 			zapcore.NewCore(encoder, writeSyncer, level),
 			zapcore.NewCore(consoleEncoder, zapcore.Lock(os.Stdout), level),
 		)
 	} else {
-		core = zapcore.NewCore(encoder, writeSyncer, level)
+		// prod: 所有级别写文件，ERROR+ 额外输出到 stderr（供 nssm/docker 捕获）
+		core = zapcore.NewTee(
+			zapcore.NewCore(encoder, writeSyncer, level),
+			zapcore.NewCore(encoder, zapcore.Lock(os.Stderr), zapcore.ErrorLevel),
+		)
 	}
 
-	//core := zapcore.NewCore(encoder, writeSyncer, level)
-	// 创建 logger 对象
 	log := zap.New(core, zap.AddCaller())
-	// 替换全局的 logger, 后续在其他包中只需使用zap.L()调用即可
 	zap.ReplaceGlobals(log)
 	return
 }
 
-// 获取Encoder，给初始化logger使用的
-func getEncoder() zapcore.Encoder {
-	// 使用zap提供的 NewProductionEncoderConfig
-	encoderConfig := zap.NewProductionEncoderConfig()
-	// 设置时间格式
-	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
-	// 时间的key
-	encoderConfig.TimeKey = "time"
-	// 级别
-	encoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
-	// 显示调用者信息
-	encoderConfig.EncodeCaller = zapcore.ShortCallerEncoder
-	// 返回json 格式的 日志编辑器
-	return zapcore.NewJSONEncoder(encoderConfig)
+func newJSONEncoder() zapcore.Encoder {
+	cfg := zap.NewProductionEncoderConfig()
+	cfg.EncodeTime = zapcore.ISO8601TimeEncoder
+	cfg.TimeKey = "time"
+	cfg.EncodeLevel = zapcore.CapitalLevelEncoder
+	cfg.EncodeCaller = zapcore.ShortCallerEncoder
+	return zapcore.NewJSONEncoder(cfg)
 }
 
-// 获取切割的问题，给初始化logger使用的
-func getLogWriter(filename string, maxSize, maxBackup, maxAge int) zapcore.WriteSyncer {
-	// 使用 lumberjack 归档切片日志
-	lumberJackLogger := &lumberjack.Logger{
-		Filename:   filename,
-		MaxSize:    maxSize,
-		MaxBackups: maxBackup,
-		MaxAge:     maxAge,
+// parseLevel 把配置字符串转成 zapcore.Level，非法值回退到 InfoLevel。
+func parseLevel(s string) zapcore.Level {
+	switch strings.ToLower(strings.TrimSpace(s)) {
+	case "debug":
+		return zapcore.DebugLevel
+	case "info":
+		return zapcore.InfoLevel
+	case "warn":
+		return zapcore.WarnLevel
+	case "error":
+		return zapcore.ErrorLevel
+	default:
+		return zapcore.InfoLevel
 	}
-	return zapcore.AddSync(lumberJackLogger)
 }

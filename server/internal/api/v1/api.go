@@ -151,3 +151,16 @@ func EditRoleApi(ctx *gin.Context) {
 	// 返回
 	resp.Ok(ctx)
 }
+
+// ListWorkers 返回在线转码 Worker 列表（管理员接口）
+func ListWorkers(ctx *gin.Context) {
+	workers, err := service.GetAliveWorkers(ctx)
+	if err != nil {
+		resp.FailWithMessage(ctx, "查询 Worker 状态失败: "+err.Error())
+		return
+	}
+	if workers == nil {
+		workers = []service.WorkerHeartbeat{}
+	}
+	resp.OkWithData(ctx, gin.H{"workers": workers, "total": len(workers)})
+}

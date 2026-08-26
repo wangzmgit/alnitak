@@ -16,6 +16,8 @@ type LoginReq struct {
 	Password string
 	// 验证ID
 	CaptchaId string
+	// 记住登录
+	RememberMe bool `json:"rememberMe"`
 }
 
 type EmailLoginReq struct {
@@ -25,6 +27,8 @@ type EmailLoginReq struct {
 	Code string
 	// 验证ID
 	CaptchaId string
+	// 记住登录
+	RememberMe bool `json:"rememberMe"`
 }
 
 type RegisterReq struct {
@@ -60,6 +64,12 @@ type ModifyPwdReq struct {
 	Password  string
 	Code      string
 	CaptchaId string
+}
+
+// 修改密码（已登录用户，知道旧密码）
+type ChangePasswordReq struct {
+	OldPassword string `json:"oldPassword"`
+	NewPassword string `json:"newPassword"`
 }
 
 // 编辑用户信息

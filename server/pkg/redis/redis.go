@@ -15,11 +15,23 @@ type Redis struct {
 	ctx         context.Context
 }
 
+// RawClient 暴露底层 *redis.Client，供队列/Worker 等高级组件使用。
+func (r *Redis) RawClient() *redis.Client {
+	return r.redisClient
+}
+
 func Init(c config.Redis) *Redis {
 	redisClient := redis.NewClient(&redis.Options{
-		Addr:     fmt.Sprintf("%s:%d", c.Host, c.Port),
-		Password: c.Password,
-		DB:       0, // use default DB
+		Addr:         fmt.Sprintf("%s:%d", c.Host, c.Port),
+		Password:     c.Password,
+		DB:           0,
+		DialTimeout:  10 * time.Second,  // 建连超时（跨洋高延迟）
+		ReadTimeout:  8 * time.Second,   // 读超时（丢包重传需要余量）
+		WriteTimeout: 8 * time.Second,   // 写超时
+		PoolSize:     20,                // 连接池大小
+		MinIdleConns: 5,                 // 保持最小空闲连接，减少建连开销
+		PoolTimeout:  10 * time.Second,  // 从池中获取连接的超时
+		DisableIdentity:          true,   // 禁用 CLIENT SETINFO（兼容 Redis < 7.2）
 	})
 	zap.L().Info("redis连接成功", zap.String("module", "db"))
 
@@ -54,6 +66,17 @@ func (r *Redis) Incr(key string) {
 	if err := r.redisClient.Incr(r.ctx, key).Err(); err != nil {
 		zap.L().Error("Redis Incr 操作失败", zap.String("key", key), zap.Error(err))
 	}
+}
+
+// SetNX 原子性地"仅当 key 不存在时设置并带过期时间"，返回 true 表示成功占位，常用于限流/防刷。
+// 底层 Redis 错误时返回 false，宁可放行也不误伤用户。
+func (r *Redis) SetNX(key string, value interface{}, expiration time.Duration) bool {
+	ok, err := r.redisClient.SetNX(r.ctx, key, value, expiration).Result()
+	if err != nil {
+		zap.L().Error("Redis SetNX 操作失败", zap.String("key", key), zap.Error(err))
+		return false
+	}
+	return ok
 }
 
 func (r *Redis) Keys(key string) []string {

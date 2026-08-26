@@ -13,9 +13,10 @@ func CleanupOrphanedResources() {
 
 	result := service.ExecuteCleanup()
 
-	utils.InfoLog(fmt.Sprintf("资源清理任务完成: 视频目录=%d, 图片=%d, 视频文件记录=%d, 索引文件记录=%d, 图片文件记录=%d, Resource记录=%d, 错误=%d",
+	utils.InfoLog(fmt.Sprintf("资源清理任务完成: 视频目录=%d, 图片=%d, 字幕=%d, 视频文件记录=%d, 索引文件记录=%d, 图片文件记录=%d, Resource记录=%d, 错误=%d",
 		result.CleanedVideoDirs,
 		result.CleanedImages,
+		result.CleanedSubtitles,
 		result.CleanedVideoFiles,
 		result.CleanedIndexFiles,
 		result.CleanedImageFiles,

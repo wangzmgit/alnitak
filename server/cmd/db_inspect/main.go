@@ -29,7 +29,7 @@ func main() {
 	flag.Parse()
 
 	initialize.InitConfig(*env)
-	logger.InitLogger()
+	logger.InitLogger(global.Config)
 	global.Mysql = mysql.Init(global.Config.Mysql)
 
 	fmt.Println("OK: 已连接数据库。")

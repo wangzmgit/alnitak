@@ -3,8 +3,8 @@ package vo
 import "time"
 
 const (
-	HISTORY_VIDEO_FIELD    = "`video`.`id`,`video`.`uid`,`video`.`title`,`video`.`cover`,`video`.`desc`,`history`.`updated_at`,`history`.`time`,`history`.`duration`,`history`.`part`,`video`.`pgc_attached`,`video`.`short_id`"
-	HISTORY_SUBQUERY_FIELD = "vid, MAX(updated_at) as latest_updated_at"
+	HISTORY_VIDEO_FIELD    = "`video`.`id`,`video`.`uid`,`video`.`title`,`video`.`cover`,`video`.`desc`,`history`.`updated_at`,`history`.`time`,`history`.`duration`,`history`.`part`,`video`.`pgc_attached`,`video`.`short_id`,`history`.`resource_short_id` as `rid`"
+	HISTORY_SUBQUERY_FIELD = "video_short_id, MAX(updated_at) as latest_updated_at"
 )
 
 type HistoryVideoResp struct {
@@ -19,6 +19,9 @@ type HistoryVideoResp struct {
 	Part      uint      `json:"part"` // 分P序号
 
 	ShortID string `json:"shortId,omitempty"` // 用于 UGC 跳转
+
+	// 资源短ID，用于精准跳转（不受分P排序影响）
+	Rid string `json:"rid,omitempty"`
 
 	// PGC：存储仍是 vid+part；列表展示与续播跳转按剧集维度区分
 	PGCAttached   bool   `json:"pgcAttached"`

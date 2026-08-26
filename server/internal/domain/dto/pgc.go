@@ -16,11 +16,19 @@ type CreatePGCReq struct {
 }
 
 type EpisodeReq struct {
-	EpisodeNumber int     `json:"episode_number" binding:"required"`
-	Title         string  `json:"title"`
-	VID           uint    `json:"vid" binding:"required"`
-	Duration      float64 `json:"duration"`
-	PublishTime   string  `json:"publish_time"`
+	EpisodeNumber int    `json:"episode_number" binding:"required"`
+	Title         string `json:"title"`
+	// VID 可选：0 表示仅创建剧集占位，后续通过 bind 接口绑定视频
+	VID         uint    `json:"vid"`
+	Duration    float64 `json:"duration"`
+	PublishTime string  `json:"publish_time"`
+}
+
+// BindPGCEpisodeVideoReq 为占位剧集绑定已存在的视频
+type BindPGCEpisodeVideoReq struct {
+	VID         uint     `json:"vid" binding:"required"`
+	Duration    *float64 `json:"duration"`
+	PublishTime string   `json:"publish_time"`
 }
 
 type UpdatePGCReq struct {
@@ -65,6 +73,15 @@ type EpisodeListReq struct {
 	PGCID    uint `form:"-"`
 	Page     int  `form:"page" binding:"required,min=1"`
 	PageSize int  `form:"page_size" binding:"required,min=1,max=100"`
+}
+
+// PGCManageListReq 后台 PGC 内容管理列表（POST JSON）
+type PGCManageListReq struct {
+	Page     int    `json:"page" binding:"required,min=1"`
+	PageSize int    `json:"pageSize" binding:"required,min=1,max=100"`
+	PGCType  int    `json:"pgc_type"`
+	Status   *int   `json:"status"`
+	Keyword  string `json:"keyword"`
 }
 
 // PGCReviewListReq 后台 PGC 待审列表

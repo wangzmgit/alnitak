@@ -105,6 +105,9 @@ func GetUserPlaylist(ctx *gin.Context) {
 	uid := utils.StringToUint(ctx.Query("uid"))
 	page := utils.StringToInt(ctx.DefaultQuery("page", "1"))
 	pageSize := utils.StringToInt(ctx.DefaultQuery("pageSize", "20"))
+	if pageSize > 50 {
+		pageSize = 50
+	}
 	if uid == 0 {
 		resp.FailWithMessage(ctx, "参数有误")
 		return
@@ -167,6 +170,9 @@ func GetPlaylistVideoList(ctx *gin.Context) {
 	playlistID := utils.StringToUint(ctx.Query("playlistId"))
 	page := utils.StringToInt(ctx.DefaultQuery("page", "1"))
 	pageSize := utils.StringToInt(ctx.DefaultQuery("pageSize", "20"))
+	if pageSize > 50 {
+		pageSize = 50
+	}
 	if playlistID == 0 {
 		resp.FailWithMessage(ctx, "参数有误")
 		return
@@ -193,6 +199,9 @@ func GetPlaylistVideoListWithParts(ctx *gin.Context) {
 func GetPlaylistListManage(ctx *gin.Context) {
 	page := utils.StringToInt(ctx.DefaultQuery("page", "1"))
 	pageSize := utils.StringToInt(ctx.DefaultQuery("pageSize", "10"))
+	if pageSize > 50 {
+		pageSize = 50
+	}
 
 	total, list := service.GetPlaylistListManage(page, pageSize)
 	resp.OkWithData(ctx, gin.H{"total": total, "list": list})
@@ -218,6 +227,9 @@ func DeletePlaylistManage(ctx *gin.Context) {
 func GetReviewPlaylistList(ctx *gin.Context) {
 	page := utils.StringToInt(ctx.DefaultQuery("page", "1"))
 	pageSize := utils.StringToInt(ctx.DefaultQuery("pageSize", "10"))
+	if pageSize > 50 {
+		pageSize = 50
+	}
 
 	total, list := service.GetReviewPlaylistList(page, pageSize)
 	resp.OkWithData(ctx, gin.H{"total": total, "list": list})

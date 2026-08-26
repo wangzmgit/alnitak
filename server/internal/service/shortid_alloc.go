@@ -59,3 +59,19 @@ func AllocateUniqueArticleShortID() (string, error) {
 	}
 	return "", errShortIDExhausted
 }
+
+// AllocateUniqueSubtitleShortID 为 subtitle_track 表分配全局唯一的随机 shortId。
+func AllocateUniqueSubtitleShortID() (string, error) {
+	for range shortIDAllocAttempts {
+		id, err := utils.NewOpaqueShortID()
+		if err != nil {
+			return "", err
+		}
+		var n int64
+		global.Mysql.Model(&model.SubtitleTrack{}).Where("short_id = ?", id).Count(&n)
+		if n == 0 {
+			return id, nil
+		}
+	}
+	return "", errShortIDExhausted
+}

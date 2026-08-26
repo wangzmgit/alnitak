@@ -12,8 +12,6 @@ type UserInfoResp struct {
 	ID         uint      `json:"uid"`
 	Username   string    `json:"name"`
 	Sign       string    `json:"sign"`
-	Email      string    `json:"email"`
-	Phone      string    `json:"phone"`
 	Status     int       `json:"status"`
 	Avatar     string    `json:"avatar"`
 	Gender     int       `json:"gender"`

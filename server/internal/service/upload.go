@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"crypto/md5"
 	"encoding/hex"
 	"errors"
@@ -12,6 +13,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"gorm.io/gorm/clause"
@@ -23,6 +25,7 @@ import (
 	"interastral-peace.com/alnitak/internal/domain/model"
 	"interastral-peace.com/alnitak/internal/domain/vo"
 	"interastral-peace.com/alnitak/internal/global"
+	osslib "interastral-peace.com/alnitak/pkg/oss"
 	"interastral-peace.com/alnitak/utils"
 )
 
@@ -41,6 +44,11 @@ func UploadImg(ctx *gin.Context, file *multipart.FileHeader) (string, error) {
 
 	// 参数校验
 	if !utils.IsImgType(suffix, global.Config.File.AllowedImgExts) { // 文件后缀
+		return "", errors.New("文件类型错误")
+	}
+
+	// 魔数校验：读取文件头确认真实类型
+	if isImg, err := utils.CheckImageMagicBytes(file); err != nil || !isImg {
 		return "", errors.New("文件类型错误")
 	}
 
@@ -83,6 +91,8 @@ func UploadImg(ctx *gin.Context, file *multipart.FileHeader) (string, error) {
 			utils.ErrorLog("图片上传到OSS失败", "upload", err.Error())
 			return "", errors.New("文件上传失败")
 		}
+		// 上传到备用 OSS（带重试 + 失败持久化）
+		go UploadToBackupWithRetry(objectKey, filePath, "image")
 	}
 
 	// 记录到数据库
@@ -122,10 +132,10 @@ func UploadVideoCreate(ctx *gin.Context, videoFileReq dto.VideoFileReq) (vo.Reso
 
 	var fileInfo model.VideoFile
 
-	// 支持 FileID 和 Hash 两种方式查询
-	if videoFileReq.FileID > 0 {
-		if err := global.Mysql.Unscoped().First(&fileInfo, videoFileReq.FileID).Error; err != nil {
-			utils.ErrorLog("视频文件信息不存在", "upload", fmt.Sprintf("fileID=%d", videoFileReq.FileID))
+	// 支持 FileID(DirName) 和 Hash 两种方式查询
+	if videoFileReq.FileID != "" {
+		if err := global.Mysql.Unscoped().Where("dir_name = ?", videoFileReq.FileID).First(&fileInfo).Error; err != nil {
+			utils.ErrorLog("视频文件信息不存在", "upload", fmt.Sprintf("fileID=%s", videoFileReq.FileID))
 			return vo.ResourceResp{}, errors.New("视频文件不存在")
 		}
 	} else {
@@ -146,7 +156,7 @@ func UploadVideoCreate(ctx *gin.Context, videoFileReq dto.VideoFileReq) (vo.Reso
 	// 先创建视频记录
 	suffix := utils.GetFileSuffix(fileInfo.OriginalName)
 	uploadVideoPath := "./upload/video/" + fileInfo.DirName + "/upload" + suffix
-	vid, err := initVideo(userId, uploadVideoPath, fileInfo.OriginalName)
+	vid, err := initVideo(userId, uploadVideoPath, fileInfo.OriginalName, videoFileReq.Cover)
 	if err != nil || vid == 0 {
 		utils.ErrorLog("创建视频失败", "upload", fmt.Sprintf("uid=%d, dirName=%s, originalName=%s, err=%v", userId, fileInfo.DirName, fileInfo.OriginalName, err))
 		return vo.ResourceResp{}, errors.New("创建失败")
@@ -157,7 +167,18 @@ func UploadVideoCreate(ctx *gin.Context, videoFileReq dto.VideoFileReq) (vo.Reso
 		return vo.ResourceResp{}, errors.New("创建文件引用失败")
 	}
 
-	resource, err := CompleteUploadVideo(vid, userId, fileInfo.ID, fileInfo.DirName, fileInfo.OriginalName, fileInfo.Status == model.FileStatusReady)
+	// 构建前端元数据
+	var meta *VideoMeta
+	if videoFileReq.Duration > 0 {
+		meta = &VideoMeta{
+			Duration:  videoFileReq.Duration,
+			Width:     videoFileReq.Width,
+			Height:    videoFileReq.Height,
+			CodecName: videoFileReq.CodecName,
+		}
+	}
+
+	resource, err := CompleteUploadVideo(vid, userId, fileInfo.ID, fileInfo.DirName, fileInfo.OriginalName, fileInfo.Status == model.FileStatusReady, meta)
 	if err != nil {
 		// 补偿：创建资源失败时回滚临时引用关系，避免 resource_id=0 悬挂记录
 		decreaseVideoFileRefCount(fileInfo.ID, userId, 0, fileInfo.DirName)
@@ -193,7 +214,17 @@ func UploadVideoAdd(ctx *gin.Context, vid uint, videoFileReq dto.VideoFileReq) (
 		return vo.ResourceResp{}, errors.New("创建文件引用失败")
 	}
 
-	resource, err := CompleteUploadVideo(vid, userId, fileInfo.ID, fileInfo.DirName, fileInfo.OriginalName, fileInfo.Status == model.FileStatusReady)
+	var meta *VideoMeta
+	if videoFileReq.Duration > 0 {
+		meta = &VideoMeta{
+			Duration:  videoFileReq.Duration,
+			Width:     videoFileReq.Width,
+			Height:    videoFileReq.Height,
+			CodecName: videoFileReq.CodecName,
+		}
+	}
+
+	resource, err := CompleteUploadVideo(vid, userId, fileInfo.ID, fileInfo.DirName, fileInfo.OriginalName, fileInfo.Status == model.FileStatusReady, meta, videoFileReq.ReplaceResourceID)
 	if err != nil {
 		// 补偿：创建资源失败时回滚临时引用关系，避免 resource_id=0 悬挂记录
 		decreaseVideoFileRefCount(fileInfo.ID, userId, 0, fileInfo.DirName)
@@ -212,7 +243,7 @@ func UploadVideoAdd(ctx *gin.Context, vid uint, videoFileReq dto.VideoFileReq) (
 func UploadVideoCheck(ctx *gin.Context, videoFileReq dto.VideoFileReq) (dto.VideoCheckResp, error) {
 	resp := dto.VideoCheckResp{
 		Chunks: []int{},
-		FileID: 0,
+		FileID: "",
 	}
 
 	// 【全局去重】按 hash + size 查询，包含软删除的记录
@@ -225,19 +256,19 @@ func UploadVideoCheck(ctx *gin.Context, videoFileReq dto.VideoFileReq) (dto.Vide
 		return resp, nil
 	}
 
-	resp.FileID = fileInfo.ID
+	resp.FileID = fileInfo.DirName
 
 	// 如果是软删除状态，恢复它
 	if fileInfo.DeletedAt.Valid {
 		if err := global.Mysql.Unscoped().Model(&fileInfo).Update("deleted_at", nil).Error; err != nil {
 			utils.ErrorLog("恢复软删除记录失败", "upload", err.Error())
 		} else {
-			utils.InfoLog(fmt.Sprintf("【秒传检测】hash=%s, 恢复软删除记录 fileID=%d", videoFileReq.Hash, fileInfo.ID), "upload")
+			utils.InfoLog(fmt.Sprintf("【秒传检测】hash=%s, 恢复软删除记录 fileID=%s", videoFileReq.Hash, fileInfo.DirName), "upload")
 		}
 	}
 
-	utils.InfoLog(fmt.Sprintf("【秒传检测】hash=%s, size=%d, fileID=%d, Status=%d, RefCount=%d, DirName=%s",
-		videoFileReq.Hash, videoFileReq.Size, fileInfo.ID, fileInfo.Status, fileInfo.RefCount, fileInfo.DirName), "upload")
+	utils.InfoLog(fmt.Sprintf("【秒传检测】hash=%s, size=%d, fileID=%s, Status=%d, RefCount=%d, DirName=%s",
+		videoFileReq.Hash, videoFileReq.Size, fileInfo.DirName, fileInfo.Status, fileInfo.RefCount, fileInfo.DirName), "upload")
 
 	// 【秒传判断】根据文件状态决定处理方式
 	switch fileInfo.Status {
@@ -255,11 +286,11 @@ func UploadVideoCheck(ctx *gin.Context, videoFileReq dto.VideoFileReq) (dto.Vide
 			// 优先查 file_id 关联，如果没有则通过 VideoIndexFile 的 DirName 关联查询
 			var resourceCount int64
 			global.Mysql.Model(&model.Resource{}).Where("file_id = ?", fileInfo.ID).Count(&resourceCount)
-			utils.InfoLog(fmt.Sprintf("【秒传检测】通过FileID查询: fileID=%d 关联Resource数量=%d", fileInfo.ID, resourceCount), "upload")
+			utils.InfoLog(fmt.Sprintf("【秒传检测】通过FileID查询: fileID=%s 关联Resource数量=%d", fileInfo.DirName, resourceCount), "upload")
 
 			if resourceCount > 0 {
 				// 有已关联资源，可以秒传
-				utils.InfoLog(fmt.Sprintf("【秒传成功】hash=%s, size=%d, fileID=%d, 返回[-1]", videoFileReq.Hash, videoFileReq.Size, fileInfo.ID), "upload")
+				utils.InfoLog(fmt.Sprintf("【秒传成功】hash=%s, size=%d, fileID=%s, 返回[-1]", videoFileReq.Hash, videoFileReq.Size, fileInfo.DirName), "upload")
 				resp.Chunks = []int{-1}
 				return resp, nil
 			}
@@ -272,7 +303,7 @@ func UploadVideoCheck(ctx *gin.Context, videoFileReq dto.VideoFileReq) (dto.Vide
 					// 找到了通过 DirName 关联的资源，可以秒传
 					// 同时修复 Resource.FileID 以便后续直接使用
 					global.Mysql.Model(&model.Resource{}).Where("id = ? AND file_id = 0", videoIndex.ResourceID).Update("file_id", fileInfo.ID)
-					utils.InfoLog(fmt.Sprintf("【秒传成功】hash=%s, size=%d, fileID=%d (通过DirName关联), 返回[-1]", videoFileReq.Hash, videoFileReq.Size, fileInfo.ID), "upload")
+					utils.InfoLog(fmt.Sprintf("【秒传成功】hash=%s, size=%d, fileID=%s (通过DirName关联), 返回[-1]", videoFileReq.Hash, videoFileReq.Size, fileInfo.DirName), "upload")
 					resp.Chunks = []int{-1}
 					return resp, nil
 				}
@@ -280,7 +311,7 @@ func UploadVideoCheck(ctx *gin.Context, videoFileReq dto.VideoFileReq) (dto.Vide
 
 			// 文件状态是Ready但没有Resource，本地文件存在，直接返回[-1]让前端创建
 			// CompleteUploadVideo 会因查不到已有Resource而走正常转码流程
-			utils.InfoLog(fmt.Sprintf("【秒传检测】hash=%s, size=%d, fileID=%d, 状态Ready但无可用Resource，返回[-1]走转码", videoFileReq.Hash, videoFileReq.Size, fileInfo.ID), "upload")
+			utils.InfoLog(fmt.Sprintf("【秒传检测】hash=%s, size=%d, fileID=%s, 状态Ready但无可用Resource，返回[-1]走转码", videoFileReq.Hash, videoFileReq.Size, fileInfo.DirName), "upload")
 			resp.Chunks = []int{-1}
 			return resp, nil
 		}
@@ -292,6 +323,8 @@ func UploadVideoCheck(ctx *gin.Context, videoFileReq dto.VideoFileReq) (dto.Vide
 		uploadVideoPath := "./upload/video/" + fileInfo.DirName + "/upload" + suffix
 		if utils.IsFileExists(uploadVideoPath) {
 			// 合并文件存在，前端可以直接调创建接口，不需要重新上传分片
+			// 同时确保 OSS 上有源文件，避免远程 Worker 拉不到
+			uploadMergedVideoToOSS(fileInfo.DirName, suffix, uploadVideoPath)
 			utils.InfoLog(fmt.Sprintf("【秒传检测】hash=%s, Status=%d, 合并文件已存在，返回[-1]", videoFileReq.Hash, fileInfo.Status), "upload")
 			resp.Chunks = []int{-1}
 			return resp, nil
@@ -343,6 +376,13 @@ func UploadVideoChunk(ctx *gin.Context, file *multipart.FileHeader) error {
 	suffix := path.Ext(fileName)
 	if !utils.IsVideoType(suffix, global.Config.File.AllowedVideoExts) {
 		return errors.New("不支持的视频格式")
+	}
+
+	// 首分片时校验魔数，确保文件头部包含真实视频格式标识
+	if chunkIndex == 0 {
+		if isVideo, err := utils.CheckVideoMagicBytes(file); err != nil || !isVideo {
+			return errors.New("不支持的视频格式")
+		}
 	}
 
 	// 2️⃣ 查询或创建文件记录（hash + size 全局唯一）
@@ -419,9 +459,9 @@ func UploadVideoChunk(ctx *gin.Context, file *multipart.FileHeader) error {
 func UploadVideoMerge(ctx *gin.Context, videoFileReq dto.VideoFileReq) error {
 	var fileInfo model.VideoFile
 
-	// 1️⃣ 查询文件：优先按 fileID，fallback 到 hash+size
-	if videoFileReq.FileID > 0 {
-		if err := global.Mysql.First(&fileInfo, videoFileReq.FileID).Error; err != nil {
+	// 1️⃣ 查询文件：优先按 fileID(DirName)，fallback 到 hash+size
+	if videoFileReq.FileID != "" {
+		if err := global.Mysql.Where("dir_name = ?", videoFileReq.FileID).First(&fileInfo).Error; err != nil {
 			return errors.New("视频文件不存在")
 		}
 	} else if videoFileReq.Hash != "" && videoFileReq.Size > 0 {
@@ -478,11 +518,26 @@ func UploadVideoMerge(ctx *gin.Context, videoFileReq dto.VideoFileReq) error {
 		return errors.New("文件校验失败")
 	}
 
-	// 6️⃣ 更新最终状态
+	// 6️⃣ 上传合并后的文件到 OSS（非 local 模式），供远程 Worker 拉取转码
+	if global.Config.Storage.OssType != "local" {
+		objectKey := fmt.Sprintf("video/%s/upload%s", fileInfo.DirName, suffix)
+		if err := global.Storage.PutObjectFromFile(objectKey, outputFile); err != nil {
+			utils.ErrorLog("上传视频文件到OSS失败", "upload", err.Error())
+			// 不回滚合并状态：文件已在本地存在，可后续重试上传
+			// 标记为 Merged 但无 OSS 对象，Worker 会报 key not found
+			global.Mysql.Model(&fileInfo).
+				Update("status", model.FileStatusMerged)
+			return errors.New("上传视频文件到OSS失败")
+		}
+		// 上传到备用 OSS（带重试 + 失败持久化）
+		go UploadToBackupWithRetry(objectKey, outputFile, "video")
+	}
+
+	// 7️⃣ 更新最终状态
 	global.Mysql.Model(&fileInfo).
 		Update("status", model.FileStatusMerged)
 
-	// 7️⃣ 删除分片目录
+	// 8️⃣ 删除分片目录
 	_ = os.RemoveAll(chunkDir)
 
 	return nil
@@ -578,16 +633,50 @@ func decreaseVideoFileRefCount(fileID, uid, resourceID uint, dirName string) {
 	}
 }
 
+// VideoMeta 前端传入的视频元数据（OSS 直传时本地无文件，前端截取）
+type VideoMeta struct {
+	Duration  float64 // 时长（秒）
+	Width     int
+	Height    int
+	CodecName string
+}
+
 // CompleteUploadVideo 完成视频上传（支持全局去重）
 // fileID: 关联的视频文件ID
 // skipTranscode: 如果文件已转码完成，跳过转码直接使用
-func CompleteUploadVideo(vid, userId, fileID uint, videoName, title string, skipTranscode bool) (vo.ResourceResp, error) {
+func CompleteUploadVideo(vid, userId, fileID uint, videoName, title string, skipTranscode bool, meta *VideoMeta, replaceResourceID ...uint) (vo.ResourceResp, error) {
 	suffix := utils.GetFileSuffix(title)
 	uploadVideoPath := "./upload/video/" + videoName + "/upload" + suffix
 
 	// 去掉后缀名并截断过长标题
 	titleWithoutExt := title[:len(title)-len(path.Ext(title))]
 	titleWithoutExt = truncateString(titleWithoutExt, 255)
+
+	// 处理替换场景
+	replaceID := uint(0)
+	sortOrder := -1 // 默认为append到末尾
+	if len(replaceResourceID) > 0 && replaceResourceID[0] > 0 {
+		replaceID = replaceResourceID[0]
+		// 校验旧资源属于同一视频
+		var oldResource model.Resource
+		if err := global.Mysql.Where("id = ? AND vid = ?", replaceID, vid).First(&oldResource).Error; err != nil {
+			return vo.ResourceResp{}, errors.New("被替换的资源不存在")
+		}
+		sortOrder = oldResource.SortOrder
+		// ShortID 不提前转移：审核期间旧资源保留 ShortID，保证弹幕/字幕/历史正常
+		// 审核通过时再由 ReviewVideoApproved 统一转移
+	} else {
+		// append模式：取当前最大排序序号+1
+		global.Mysql.Model(&model.Resource{}).Where("vid = ?", vid).
+			Select("COALESCE(MAX(sort_order), -1)").Scan(&sortOrder)
+		sortOrder++ // sortOrder 现在是 maxOrder+1
+	}
+
+	// 分配新资源的 ShortID
+	rSid, errSid := AllocateUniqueResourceShortID()
+	if errSid != nil {
+		return vo.ResourceResp{}, errSid
+	}
 
 	// 如果文件已就绪（秒传），直接复用已有转码结果
 	if skipTranscode {
@@ -596,25 +685,18 @@ func CompleteUploadVideo(vid, userId, fileID uint, videoName, title string, skip
 		if err := global.Mysql.Where("file_id = ?", fileID).First(&existingResource).Error; err == nil {
 			// 【重要】秒传的资源也需要审核，状态设为 WAITING_REVIEW
 			// 审核员决定是否通过，不能因为别人上传过就自动通过
-			// 获取当前最大排序序号
-			var maxOrder int
-			global.Mysql.Model(&model.Resource{}).Where("vid = ?", vid).
-				Select("COALESCE(MAX(sort_order), -1)").Scan(&maxOrder)
-
-			rSid, errSid := AllocateUniqueResourceShortID()
-			if errSid != nil {
-				return vo.ResourceResp{}, errSid
-			}
 			resource := model.Resource{
-				Vid:       vid,
-				Uid:       userId,
-				Title:     titleWithoutExt,
-				Status:    global.WAITING_REVIEW, // 等待审核，不直接通过
-				Duration:  existingResource.Duration,
-				FileID:    fileID,
-				SortOrder: maxOrder + 1,
-				ShortID:   rSid,
-				CodecName: existingResource.CodecName,
+				Vid:            vid,
+				Uid:            userId,
+				Title:          titleWithoutExt,
+				Status:         global.WAITING_REVIEW, // 等待审核，不直接通过
+				VisibleStatus:  global.VISIBLE_HIDDEN, // 审核通过前对外隐藏
+				Duration:       existingResource.Duration,
+				FileID:         fileID,
+				SortOrder:      sortOrder,
+				ShortID:        rSid,
+				CodecName:      existingResource.CodecName,
+				ReplaceID:      replaceID,
 			}
 			if err := global.Mysql.Create(&resource).Error; err != nil {
 				return vo.ResourceResp{}, errors.New("保存视频失败")
@@ -631,31 +713,40 @@ func CompleteUploadVideo(vid, userId, fileID uint, videoName, title string, skip
 	}
 
 	// 正常流程：读取视频信息并启动转码
-	transcodingInfo, err := ProcessVideoInfo(uploadVideoPath)
-	if err != nil {
-		return vo.ResourceResp{}, errors.New("读取视频信息失败")
+	var transcodingInfo *dto.TranscodingInfo
+	if meta != nil && meta.Duration > 0 {
+		// 前端传入元数据（OSS 直传场景，本地无视频文件）
+		transcodingInfo = &dto.TranscodingInfo{
+			Width:        meta.Width,
+			Height:       meta.Height,
+			Duration:     meta.Duration,
+			CodecName:    meta.CodecName,
+			OriginalVideoStatus: -1,
+		}
+		utils.InfoLog(fmt.Sprintf("【前端元数据】fileID=%d, %dx%d, %.1fs, codec=%s", fileID, meta.Width, meta.Height, meta.Duration, meta.CodecName), "upload")
+	} else {
+		var err error
+		transcodingInfo, err = ProcessVideoInfo(uploadVideoPath)
+		if err != nil {
+			return vo.ResourceResp{}, errors.New("读取视频信息失败")
+		}
 	}
 
-	// 获取当前最大排序序号
-	var maxOrder int
-	global.Mysql.Model(&model.Resource{}).Where("vid = ?", vid).
-		Select("COALESCE(MAX(sort_order), -1)").Scan(&maxOrder)
-
-	rSid, errSid := AllocateUniqueResourceShortID()
-	if errSid != nil {
-		return vo.ResourceResp{}, errSid
-	}
 	// 存入数据库
+	// 如果视频已公开，新分P对外隐藏，等转码完成后再改为可见
+	// 替换场景：新资源排在同一位置，复用旧 ShortID（弹幕/字幕/历史继承），旧资源等新资源成功后再隐藏
 	resource := model.Resource{
-		Vid:       vid,
-		Uid:       userId,
-		Title:     titleWithoutExt,
-		CodecName: transcodingInfo.CodecName,
-		Status:    global.VIDEO_PROCESSING,
-		Duration:  utils.SecFromFloat(transcodingInfo.Duration),
-		FileID:    fileID,
-		SortOrder: maxOrder + 1,
-		ShortID:   rSid,
+		Vid:            vid,
+		Uid:            userId,
+		Title:          titleWithoutExt,
+		CodecName:      transcodingInfo.CodecName,
+		Status:         global.VIDEO_PROCESSING,
+		VisibleStatus:  global.VISIBLE_HIDDEN,
+		Duration:       utils.SecFromFloat(transcodingInfo.Duration),
+		FileID:         fileID,
+		SortOrder:      sortOrder,
+		ShortID:        rSid,
+		ReplaceID:      replaceID,
 	}
 	if err := global.Mysql.Create(&resource).Error; err != nil {
 		return vo.ResourceResp{}, errors.New("保存视频失败")
@@ -668,7 +759,10 @@ func CompleteUploadVideo(vid, userId, fileID uint, videoName, title string, skip
 	transcodingInfo.OutputDir = "./upload/video/" + videoName + "/"
 	transcodingInfo.InputFile = transcodingInfo.OutputDir + "upload" + suffix
 	transcodingInfo.Suffix = suffix
-	go VideoTransCoding(transcodingInfo)
+	if err := GetCurrentTranscoder().Enqueue(context.Background(), transcodingInfo); err != nil {
+		utils.ErrorLog("转码入队失败", "upload",
+			fmt.Sprintf("ResourceID=%d, err=%v", resource.ID, err))
+	}
 
 	return vo.ResourceToResourceResp(resource), nil
 }
@@ -702,28 +796,19 @@ func generateFileUrl(objectKey string) string {
 }
 
 // 初始化视频
-func initVideo(userId uint, videoPath, title string) (uint, error) {
-	// 生成封面
-	coverName := generateImgFilename(".jpg")
-	objectKey := "image/" + coverName
-	filePath := "./upload/image/" + coverName
+func initVideo(userId uint, videoPath, title string, coverObjectKey string) (uint, error) {
+	var coverUrl string
 
-	if err := GenerateCover(videoPath, filePath); err != nil {
-		utils.ErrorLog("生成封面失败", "upload", fmt.Sprintf("videoPath=%s, err=%v", videoPath, err))
-		return 0, err // 封面失败直接中断，避免写入无效 Video 记录
+	if coverObjectKey != "" {
+		coverUrl = generateFileUrl(coverObjectKey)
+		utils.InfoLog(fmt.Sprintf("initVideo: 使用前端封面 coverObjectKey=%s", coverObjectKey), "upload")
+	} else {
+		utils.InfoLog("initVideo: 无封面，等待用户后续上传", "upload")
 	}
-	if global.Config.Storage.OssType != "local" {
-		// 上传到OSS
-		if err := global.Storage.PutObjectFromFile(objectKey, filePath); err != nil {
-			_ = os.Remove(filePath)
-			return 0, err
-		}
-	}
+
 	// 去掉后缀名并截断过长标题
 	titleWithoutExt := title[:len(title)-len(path.Ext(title))]
 	titleWithoutExt = truncateString(titleWithoutExt, 255)
-
-	coverUrl := generateFileUrl(objectKey)
 
 	utils.InfoLog(fmt.Sprintf("initVideo: uid=%d, title=%s, cover=%s", userId, titleWithoutExt, coverUrl), "upload")
 
@@ -731,7 +816,7 @@ func initVideo(userId uint, videoPath, title string) (uint, error) {
 		Uid:       userId,
 		Cover:     coverUrl,
 		Title:     titleWithoutExt,
-		Copyright: true,
+		Copyright: global.CopyrightReprint,
 		Status:    global.CREATED_VIDEO,
 	})
 	if err != nil {
@@ -752,4 +837,323 @@ func generateImgFilename(suffix string) string {
 func generateVideoFilename() string {
 	id := global.SnowflakeNode.Generate()
 	return id.String()
+}
+
+// uploadMergedVideoToOSS 确保已合并的本地视频文件已上传到 OSS，
+// 供远程 Worker 拉取转码。上传失败仅记日志，不阻塞业务流程。
+func uploadMergedVideoToOSS(dirName, suffix, localPath string) {
+	if global.Config.Storage.OssType == "local" {
+		return
+	}
+	objectKey := fmt.Sprintf("video/%s/upload%s", dirName, suffix)
+	if err := global.Storage.PutObjectFromFile(objectKey, localPath); err != nil {
+		utils.ErrorLog("上传视频到OSS失败(秒传场景)", "upload",
+			fmt.Sprintf("key=%s, err=%v", objectKey, err))
+		return
+	}
+	utils.InfoLog(fmt.Sprintf("上传视频到OSS成功(秒传场景): key=%s", objectKey), "upload")
+	go UploadToBackupWithRetry(objectKey, localPath, "video")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 直传 OSS 服务函数
+// ═══════════════════════════════════════════════════════════════════
+
+// presignURLTTL 预签名 URL 有效期。
+// 图片直传：15分钟足够；视频分片直传：大文件可能超过15分钟，给24小时兜底
+const (
+	presignURLTTL        = 15 * time.Minute // 图片直传
+	presignVideoChunkTTL = 24 * time.Hour   // 视频分片直传
+	// presignBatchSize 每次分批签名的分片数量（防预签名URL被滥用）
+	presignBatchSize = 20
+)
+
+// PresignImageUpload 为图片直传生成预签名 URL。
+// local 模式返回错误（请使用原始上传接口）。
+func PresignImageUpload(ctx *gin.Context, req dto.PresignImageReq) (dto.PresignImageResp, error) {
+	if global.Config.Storage.OssType == "local" || global.Storage == nil {
+		return dto.PresignImageResp{}, errors.New("当前存储模式不支持直传，请使用原始上传接口")
+	}
+
+	suffix := path.Ext(req.FileName)
+	if !utils.IsImgType(suffix, global.Config.File.AllowedImgExts) {
+		return dto.PresignImageResp{}, errors.New("不支持的图片格式")
+	}
+
+	fileName := generateImgFilename(suffix)
+	objectKey := "image/" + fileName
+
+	presignURL, err := global.Storage.PresignPutObject(objectKey, presignURLTTL)
+	if err != nil {
+		utils.ErrorLog("图片预签名失败", "upload", err.Error())
+		return dto.PresignImageResp{}, errors.New("生成上传地址失败")
+	}
+
+	utils.InfoLog(fmt.Sprintf("【直传图片】objectKey=%s, uid=%d", objectKey, ctx.GetUint("userId")), "upload")
+	return dto.PresignImageResp{
+		PresignURL: presignURL,
+		ObjectKey:  objectKey,
+	}, nil
+}
+
+// ConfirmImageUpload 确认图片已直传到 OSS 并写入数据库。
+func ConfirmImageUpload(ctx *gin.Context, req dto.ConfirmImageReq) (string, error) {
+	if global.Config.Storage.OssType == "local" || global.Storage == nil {
+		return "", errors.New("当前存储模式不支持直传")
+	}
+
+	userId := ctx.GetUint("userId")
+	fileName := path.Base(req.ObjectKey)
+
+	// 检查是否已存在相同 hash 的图片
+	var existingFile model.ImageFile
+	global.Mysql.Where("hash = ?", req.Hash).First(&existingFile)
+	if existingFile.ID != 0 {
+		url := generateFileUrl("image/" + existingFile.FileName)
+		cache.SetUploadImage(url, userId)
+		return url, nil
+	}
+
+	// 写入数据库
+	global.Mysql.Create(&model.ImageFile{
+		Uid:      userId,
+		FileName: fileName,
+		Hash:     req.Hash,
+	})
+
+	url := generateFileUrl(req.ObjectKey)
+	cache.SetUploadImage(url, userId)
+	utils.InfoLog(fmt.Sprintf("【直传图片确认】objectKey=%s, uid=%d", req.ObjectKey, userId), "upload")
+	return url, nil
+}
+
+// InitVideoUpload 发起视频分片直传 OSS（仅 OSS 非 local 模式）。
+// 创建 VideoFile 记录 + 发起 OSS 分片上传 + 返回每个分片的预签名 URL。
+func InitVideoUpload(ctx *gin.Context, req dto.InitVideoUploadReq) (dto.InitVideoUploadResp, error) {
+	if global.Config.Storage.OssType == "local" || global.Storage == nil {
+		return dto.InitVideoUploadResp{}, errors.New("当前存储模式不支持直传，请使用原始上传接口")
+	}
+
+	userId := ctx.GetUint("userId")
+
+	suffix := path.Ext(req.FileName)
+	if !utils.IsVideoType(suffix, global.Config.File.AllowedVideoExts) {
+		return dto.InitVideoUploadResp{}, errors.New("不支持的视频格式")
+	}
+
+	// 查询或创建文件记录（hash + size 全局唯一）
+	var videoFile model.VideoFile
+	err := global.Mysql.Transaction(func(tx *gorm.DB) error {
+		result := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("hash = ? AND size = ?", req.Hash, req.Size).First(&videoFile)
+
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			videoFile = model.VideoFile{
+				Hash:         req.Hash,
+				Size:         req.Size,
+				DirName:      generateVideoFilename(),
+				OriginalName: truncateString(req.FileName, 255),
+				ChunksCount:  req.TotalChunks,
+				Status:       model.FileStatusUploading,
+				UploaderUid:  userId,
+			}
+			if err := tx.Create(&videoFile).Error; err != nil {
+				return err
+			}
+		} else if result.Error != nil {
+			return result.Error
+		}
+
+		// 校验分片数量一致
+		if videoFile.ChunksCount != req.TotalChunks {
+			return errors.New("分片数量不匹配")
+		}
+		return nil
+	})
+	if err != nil {
+		utils.ErrorLog("创建视频文件记录失败", "upload", err.Error())
+		return dto.InitVideoUploadResp{}, errors.New("初始化上传失败")
+	}
+
+	// 如果已上传完成（秒传），直接返回
+	if videoFile.Status == model.FileStatusReady {
+		utils.InfoLog(fmt.Sprintf("【直传视频秒传】fileID=%s, hash=%s", videoFile.DirName, req.Hash), "upload")
+		return dto.InitVideoUploadResp{
+			FileID:      videoFile.DirName,
+			TotalChunks: 0, // 0 表示秒传
+		}, nil
+	}
+
+	objectKey := fmt.Sprintf("video/%s/upload%s", videoFile.DirName, suffix)
+
+	// 发起 OSS 分片上传
+	uploadID, err := global.Storage.InitiateMultipartUpload(objectKey)
+	if err != nil {
+		utils.ErrorLog("发起OSS分片上传失败", "upload", err.Error())
+		return dto.InitVideoUploadResp{}, errors.New("初始化上传失败")
+	}
+
+	// 缓存 uploadID 到 Redis（续签接口需要），TTL 与分片签名有效期一致
+	uploadIDKey := fmt.Sprintf("video:upload_id:%s", videoFile.DirName)
+	global.Redis.RawClient().Set(ctx, uploadIDKey, uploadID, presignVideoChunkTTL)
+
+	// 分批签名：只签第一批 presignBatchSize 个分片，前端上传完后续签
+	firstBatchEnd := req.TotalChunks
+	if firstBatchEnd > presignBatchSize {
+		firstBatchEnd = presignBatchSize
+	}
+
+	chunks := make([]dto.PresignChunkResp, firstBatchEnd)
+	for i := 0; i < firstBatchEnd; i++ {
+		partNumber := i + 1
+		presignURL, err := global.Storage.PresignUploadPart(uploadID, objectKey, partNumber, presignVideoChunkTTL)
+		if err != nil {
+			utils.ErrorLog("分片预签名失败", "upload", fmt.Sprintf("part=%d, err=%v", partNumber, err))
+			return dto.InitVideoUploadResp{}, errors.New("生成分片上传地址失败")
+		}
+		chunks[i] = dto.PresignChunkResp{
+			Index:      i,
+			PartNumber: partNumber,
+			PresignURL: presignURL,
+		}
+	}
+
+	// 计算下一批起始 index
+	nextBatchStart := -1 // -1 表示全部签完
+	if firstBatchEnd < req.TotalChunks {
+		nextBatchStart = firstBatchEnd
+	}
+
+	utils.InfoLog(fmt.Sprintf("【直传视频初始化】fileID=%s, uploadID=%s, objectKey=%s, chunks=%d/%d, uid=%d",
+		videoFile.DirName, uploadID, objectKey, firstBatchEnd, req.TotalChunks, userId), "upload")
+
+	return dto.InitVideoUploadResp{
+		FileID:         videoFile.DirName,
+		UploadID:       uploadID,
+		ObjectKey:      objectKey,
+		TotalChunks:    req.TotalChunks,
+		Chunks:         chunks,
+		NextBatchStart: nextBatchStart,
+	}, nil
+}
+
+// PresignUploadChunks 前端上传完一批分片后续签下一批预签名 URL。
+// 通过 fileID 查找 uploadID 和 objectKey，为指定范围的分片生成预签名 URL。
+func PresignUploadChunks(ctx *gin.Context, req dto.PresignUploadChunksReq) (dto.PresignUploadChunksResp, error) {
+	if global.Config.Storage.OssType == "local" || global.Storage == nil {
+		return dto.PresignUploadChunksResp{}, errors.New("当前存储模式不支持直传")
+	}
+
+	// 限制每次最大请求数量
+	if req.Count <= 0 || req.Count > presignBatchSize {
+		req.Count = presignBatchSize
+	}
+	if req.Start < 0 {
+		return dto.PresignUploadChunksResp{}, errors.New("无效的起始位置")
+	}
+
+	// 查找文件记录
+	var videoFile model.VideoFile
+	if err := global.Mysql.Where("dir_name = ?", req.FileID).First(&videoFile).Error; err != nil {
+		return dto.PresignUploadChunksResp{}, errors.New("文件记录不存在")
+	}
+
+	suffix := path.Ext(videoFile.OriginalName)
+	objectKey := fmt.Sprintf("video/%s/upload%s", videoFile.DirName, suffix)
+
+	// 需要 uploadID 来签名，从 Redis 获取（InitVideoUpload 时应缓存）
+	// 或者重新查找：如果文件已在上传中，uploadID 存在 Redis
+	uploadIDKey := fmt.Sprintf("video:upload_id:%s", videoFile.DirName)
+	uploadID, err := global.Redis.RawClient().Get(ctx, uploadIDKey).Result()
+	if err != nil {
+		return dto.PresignUploadChunksResp{}, errors.New("上传会话已过期，请重新发起上传")
+	}
+
+	// 计算本批签名范围
+	end := req.Start + req.Count
+	if end > videoFile.ChunksCount {
+		end = videoFile.ChunksCount
+	}
+
+	chunks := make([]dto.PresignChunkResp, 0, end-req.Start)
+	for i := req.Start; i < end; i++ {
+		partNumber := i + 1
+		presignURL, err := global.Storage.PresignUploadPart(uploadID, objectKey, partNumber, presignVideoChunkTTL)
+		if err != nil {
+			utils.ErrorLog("续签分片失败", "upload", fmt.Sprintf("fileID=%s, part=%d, err=%v", req.FileID, partNumber, err))
+			return dto.PresignUploadChunksResp{}, errors.New("续签分片地址失败")
+		}
+		chunks = append(chunks, dto.PresignChunkResp{
+			Index:      i,
+			PartNumber: partNumber,
+			PresignURL: presignURL,
+		})
+	}
+
+	// 计算下一批起始 index
+	nextBatchStart := -1
+	if end < videoFile.ChunksCount {
+		nextBatchStart = end
+	}
+
+	utils.InfoLog(fmt.Sprintf("【直传视频续签】fileID=%s, start=%d, count=%d, next=%d",
+		req.FileID, req.Start, len(chunks), nextBatchStart), "upload")
+
+	return dto.PresignUploadChunksResp{
+		Chunks:         chunks,
+		NextBatchStart: nextBatchStart,
+	}, nil
+}
+
+// CompleteVideoUpload 完成视频分片直传 OSS。
+// 验证分片完整性、完成 OSS 合并、更新文件状态为 Merged。
+func CompleteVideoUpload(ctx *gin.Context, req dto.CompleteVideoUploadReq) error {
+	if global.Config.Storage.OssType == "local" || global.Storage == nil {
+		return errors.New("当前存储模式不支持直传")
+	}
+
+	userId := ctx.GetUint("userId")
+
+	var videoFile model.VideoFile
+	if err := global.Mysql.Where("dir_name = ?", req.FileID).First(&videoFile).Error; err != nil {
+		return errors.New("视频文件不存在")
+	}
+
+	// 权限校验：只有上传者可以完成
+	if videoFile.UploaderUid != userId {
+		return errors.New("无权操作")
+	}
+
+	// 校验分片数量
+	if len(req.Parts) != videoFile.ChunksCount {
+		return fmt.Errorf("分片数量不匹配：期望 %d，实际 %d", videoFile.ChunksCount, len(req.Parts))
+	}
+
+	suffix := utils.GetFileSuffix(videoFile.OriginalName)
+	objectKey := fmt.Sprintf("video/%s/upload%s", videoFile.DirName, suffix)
+
+	// 转换为 oss.CompletePart
+	ossParts := make([]osslib.CompletePart, 0, len(req.Parts))
+	for _, p := range req.Parts {
+		ossParts = append(ossParts, osslib.CompletePart{
+			PartNumber: p.PartNumber,
+			ETag:       p.ETag,
+		})
+	}
+
+	// 完成 OSS 分片上传
+	if err := global.Storage.CompleteMultipartUpload(req.UploadID, objectKey, ossParts); err != nil {
+		utils.ErrorLog("完成OSS分片上传失败", "upload",
+			fmt.Sprintf("fileID=%s, err=%v", req.FileID, err))
+		return errors.New("合并分片失败")
+	}
+
+	// 更新文件状态为 Merged
+	if err := global.Mysql.Model(&videoFile).Update("status", model.FileStatusMerged).Error; err != nil {
+		utils.ErrorLog("更新视频文件状态失败", "upload",
+			fmt.Sprintf("fileID=%s, err=%v", req.FileID, err))
+	}
+
+	utils.InfoLog(fmt.Sprintf("【直传视频完成】fileID=%s, objectKey=%s, uid=%d", req.FileID, objectKey, userId), "upload")
+	return nil
 }

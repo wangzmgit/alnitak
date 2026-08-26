@@ -20,8 +20,11 @@ func GetPartitionList(partitionType int) (partitions []vo.PartitionResp) {
 	}
 
 	if len(partitions) == 0 {
-		global.Mysql.Model(&model.Partition{}).Select(vo.PARTITION_FIELD).
-			Where("`type` = ?", partitionType).Scan(&partitions)
+		if err := global.Mysql.Model(&model.Partition{}).Select(vo.PARTITION_FIELD).
+			Where("`type` = ?", partitionType).Scan(&partitions).Error; err != nil {
+			utils.ErrorLog("获取分区列表失败", "partition", err.Error())
+			return
+		}
 
 		// 存入缓存
 		if partitionType == global.CONTENT_TYPE_VIDEO {

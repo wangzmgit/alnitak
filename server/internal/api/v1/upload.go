@@ -110,3 +110,84 @@ func UploadVideoCheck(ctx *gin.Context) {
 
 	resp.OkWithData(ctx, gin.H{"chunks": result.Chunks, "fileID": result.FileID})
 }
+
+// ── 直传 OSS Handlers ──
+
+func PresignImageUpload(ctx *gin.Context) {
+	var req dto.PresignImageReq
+	if err := ctx.Bind(&req); err != nil {
+		resp.FailWithMessage(ctx, "请求参数有误")
+		return
+	}
+
+	data, err := service.PresignImageUpload(ctx, req)
+	if err != nil {
+		resp.FailWithMessage(ctx, err.Error())
+		return
+	}
+
+	resp.OkWithData(ctx, data)
+}
+
+func ConfirmImageUpload(ctx *gin.Context) {
+	var req dto.ConfirmImageReq
+	if err := ctx.Bind(&req); err != nil {
+		resp.FailWithMessage(ctx, "请求参数有误")
+		return
+	}
+
+	url, err := service.ConfirmImageUpload(ctx, req)
+	if err != nil {
+		resp.FailWithMessage(ctx, err.Error())
+		return
+	}
+
+	resp.OkWithData(ctx, gin.H{"url": url})
+}
+
+func InitVideoUpload(ctx *gin.Context) {
+	var req dto.InitVideoUploadReq
+	if err := ctx.Bind(&req); err != nil {
+		resp.FailWithMessage(ctx, "请求参数有误")
+		return
+	}
+
+	data, err := service.InitVideoUpload(ctx, req)
+	if err != nil {
+		resp.FailWithMessage(ctx, err.Error())
+		return
+	}
+
+	resp.OkWithData(ctx, data)
+}
+
+func CompleteVideoUpload(ctx *gin.Context) {
+	var req dto.CompleteVideoUploadReq
+	if err := ctx.Bind(&req); err != nil {
+		resp.FailWithMessage(ctx, "请求参数有误")
+		return
+	}
+
+	if err := service.CompleteVideoUpload(ctx, req); err != nil {
+		resp.FailWithMessage(ctx, err.Error())
+		return
+	}
+
+	resp.Ok(ctx)
+}
+
+func PresignUploadChunks(ctx *gin.Context) {
+	var req dto.PresignUploadChunksReq
+	if err := ctx.Bind(&req); err != nil {
+		resp.FailWithMessage(ctx, "请求参数有误")
+		return
+	}
+
+	data, err := service.PresignUploadChunks(ctx, req)
+	if err != nil {
+		resp.FailWithMessage(ctx, err.Error())
+		return
+	}
+
+	resp.OkWithData(ctx, data)
+}

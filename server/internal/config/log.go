@@ -6,4 +6,5 @@ type Log struct {
 	MaxBackups int    `mapstructure:"max_backups" json:"max_backups" yaml:"max_backups"`
 	MaxSize    int    `mapstructure:"max-size" json:"max-size" yaml:"max-size"`
 	Mode       string `mapstructure:"mode" json:"mode" yaml:"mode"`
+	Level      string `mapstructure:"level" json:"level" yaml:"level"`
 }

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sort"
@@ -38,7 +39,7 @@ func ModifyResourceTitle(ctx *gin.Context, modifyTitleReq dto.ModifyResourceTitl
 }
 
 // 删除资源
-func DeleteResource(ctx *gin.Context, id uint) error {
+func DeleteResource(ctx *gin.Context, id uint, deleteDanmaku bool) error {
 	var resource model.Resource
 	userId := ctx.GetUint("userId")
 	global.Mysql.Model(&model.Resource{}).Where("id = ? and uid = ?", id, userId).First(&resource)
@@ -79,6 +80,13 @@ func DeleteResource(ctx *gin.Context, id uint) error {
 	// 删除视频信息缓存（删除后让下次查询时重新从数据库加载）
 	cache.DelVideoInfo(resource.Vid)
 
+	// 删除关联弹幕（如果用户选择删除）
+	if deleteDanmaku && resource.ShortID != "" {
+		if err := global.Mysql.Where("rid = ?", resource.ShortID).Delete(&model.Danmaku{}).Error; err != nil {
+			utils.ErrorLog("删除弹幕失败", "resource", err.Error())
+		}
+	}
+
 	return nil
 }
 
@@ -92,10 +100,20 @@ func GetVideoResourceByStatus(videoId uint, status int) (resources []vo.Resource
 	return
 }
 
+// 获取对外可见的视频资源（仅返回 VisibleStatus=1 的分P，用于公开播放页）
+func GetVisibleResources(videoId uint) (resources []vo.ResourceResp) {
+	global.Mysql.Model(&model.Resource{}).
+		Select("id, short_id, created_at, vid, title, duration, status, file_id, uid, sort_order").
+		Where("vid = ? and visible_status = ?", videoId, global.VISIBLE_SHOWN).
+		Order("sort_order ASC, id ASC").
+		Scan(&resources)
+	return
+}
+
 // 获取视频资源（含fileId和uid用于全局去重）
 func GetReviewResourceList(videoId uint) (resources []vo.ResourceResp) {
 	global.Mysql.Model(&model.Resource{}).
-		Select("id, created_at, vid, title, duration, status, file_id, uid, sort_order").
+		Select("id, short_id, created_at, vid, title, duration, status, file_id, uid, sort_order").
 		Where("vid = ?", videoId).
 		Order("sort_order ASC, id ASC").
 		Scan(&resources)
@@ -428,7 +446,10 @@ func ReplaceResource(ctx *gin.Context, replaceReq dto.ReplaceResourceReq) (vo.Re
 	transcodingInfo.OutputDir = "./upload/video/" + newFileInfo.DirName + "/"
 	transcodingInfo.InputFile = transcodingInfo.OutputDir + "upload" + suffix
 	transcodingInfo.Suffix = suffix
-	go VideoTransCoding(transcodingInfo)
+	if err := GetCurrentTranscoder().Enqueue(context.Background(), transcodingInfo); err != nil {
+		utils.ErrorLog("资源替换转码入队失败", "resource",
+			fmt.Sprintf("ResourceID=%d, err=%v", replaceReq.ResourceID, err))
+	}
 
 	// 清除视频信息缓存
 	cache.DelVideoInfo(oldResource.Vid)
@@ -437,4 +458,23 @@ func ReplaceResource(ctx *gin.Context, replaceReq dto.ReplaceResourceReq) (vo.Re
 	var updatedResource model.Resource
 	global.Mysql.First(&updatedResource, replaceReq.ResourceID)
 	return vo.ResourceToResourceResp(updatedResource), nil
+}
+
+// GetResourceShortIDByPart 根据分P序号获取资源的ShortID
+// 用于历史记录绑定到具体资源，不受排序影响
+func GetResourceShortIDByPart(videoId uint, part uint) (string, error) {
+	if part == 0 {
+		part = 1
+	}
+	// 按 sort_order 和 id 排序，获取第 part-1 个资源
+	var resource model.Resource
+	err := global.Mysql.Model(&model.Resource{}).
+		Where("vid = ?", videoId).
+		Order("sort_order ASC, id ASC").
+		Offset(int(part - 1)).
+		First(&resource).Error
+	if err != nil {
+		return "", err
+	}
+	return resource.ShortID, nil
 }

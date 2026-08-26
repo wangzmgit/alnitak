@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -18,7 +19,66 @@ func AddHistory(ctx *gin.Context, historyReq dto.HistoryReq) error {
 		historyReq.Part = 1
 	}
 
-	history, err := FindHistoryByPart(historyReq.Vid, userId, historyReq.Part)
+	// 转换 Vid 为字符串
+	vidStr := fmt.Sprintf("%v", historyReq.Vid)
+
+	// 解析视频ID（支持 shortId 或数字ID）
+	videoId, err := ParseVideoID(vidStr)
+	if err != nil {
+		return errors.New("视频不存在")
+	}
+
+	// 获取视频的 short_id
+	var video model.Video
+	if err := global.Mysql.Where("id = ?", videoId).First(&video).Error; err != nil || video.ShortID == "" {
+		return errors.New("视频不存在")
+	}
+
+	// 优先使用前端传入的 rid
+	rid := historyReq.Rid
+	if rid == "" {
+		rid, _ = GetResourceShortIDByPart(videoId, historyReq.Part)
+	}
+
+	// 优先通过 resource_short_id 查找（精准匹配，不受排序影响）
+	if rid != "" {
+		var history model.History
+		err := global.Mysql.Where("video_short_id = ? AND uid = ? AND resource_short_id = ?", video.ShortID, userId, rid).First(&history).Error
+		if err != nil && err != gorm.ErrRecordNotFound {
+			utils.ErrorLog("保存历史记录失败", "history", err.Error())
+			return errors.New("保存失败")
+		}
+
+		if history.ID == 0 {
+			// 不存在，创建新记录
+			if err := global.Mysql.Create(&model.History{
+				VideoShortID:     video.ShortID,
+				Uid:              userId,
+				Time:             historyReq.Time,
+				Part:             historyReq.Part,
+				Duration:         float64(historyReq.Duration),
+				ResourceShortID:  rid,
+			}).Error; err != nil {
+				utils.ErrorLog("保存历史记录失败", "history", err.Error())
+				return errors.New("保存失败")
+			}
+		} else {
+			// 已存在，更新记录
+			history.Time = historyReq.Time
+			history.Part = historyReq.Part
+			history.Duration = float64(historyReq.Duration)
+			history.ResourceShortID = rid
+			if err := global.Mysql.Save(&history).Error; err != nil {
+				utils.ErrorLog("保存历史记录失败", "history", err.Error())
+				return errors.New("保存失败")
+			}
+		}
+		return nil
+	}
+
+	// 回退到旧的按 video_short_id + uid 查询逻辑
+	var history model.History
+	err = global.Mysql.Where("video_short_id = ? AND uid = ?", video.ShortID, userId).First(&history).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		utils.ErrorLog("保存历史记录失败", "history", err.Error())
 		return errors.New("保存失败")
@@ -26,11 +86,12 @@ func AddHistory(ctx *gin.Context, historyReq dto.HistoryReq) error {
 
 	if history.ID == 0 {
 		if err := global.Mysql.Create(&model.History{
-			Uid:      userId,
-			Vid:      historyReq.Vid,
-			Time:     historyReq.Time,
-			Part:     historyReq.Part,
-			Duration: historyReq.Duration,
+			VideoShortID:     video.ShortID,
+			Uid:              userId,
+			Time:             historyReq.Time,
+			Part:             historyReq.Part,
+			Duration:         float64(historyReq.Duration),
+			ResourceShortID:  rid,
 		}).Error; err != nil {
 			utils.ErrorLog("保存历史记录失败", "history", err.Error())
 			return errors.New("保存失败")
@@ -38,7 +99,10 @@ func AddHistory(ctx *gin.Context, historyReq dto.HistoryReq) error {
 	} else {
 		history.Time = historyReq.Time
 		history.Part = historyReq.Part
-		history.Duration = historyReq.Duration
+		history.Duration = float64(historyReq.Duration)
+		if rid != "" {
+			history.ResourceShortID = rid
+		}
 		if err := global.Mysql.Save(&history).Error; err != nil {
 			utils.ErrorLog("保存历史记录失败", "history", err.Error())
 			return errors.New("保存失败")
@@ -50,10 +114,12 @@ func AddHistory(ctx *gin.Context, historyReq dto.HistoryReq) error {
 
 func GetHistoryList(ctx *gin.Context, page, pageSize int) (videos []vo.HistoryVideoResp, err error) {
 	userId := ctx.GetUint("userId")
-	subQuery := global.Mysql.Model(&model.History{}).Where("uid = ?", userId).Select(vo.HISTORY_SUBQUERY_FIELD).Group("vid")
+	subQuery := global.Mysql.Model(&model.History{}).Where("uid = ?", userId).
+		Select("video_short_id, MAX(updated_at) as latest_updated_at, MAX(id) as latest_id").
+		Group("video_short_id")
 	if err := global.Mysql.Model(&model.History{}).Select(vo.HISTORY_VIDEO_FIELD).
-		Joins("LEFT JOIN `video` ON `video`.id = `history`.vid").
-		Joins("INNER JOIN (?) latest on `history`.vid = latest.vid and `history`.updated_at = latest.latest_updated_at", subQuery).
+		Joins("LEFT JOIN `video` ON `video`.short_id = `history`.video_short_id").
+		Joins("INNER JOIN (?) latest on `history`.video_short_id = latest.video_short_id and `history`.updated_at = latest.latest_updated_at and `history`.id = latest.latest_id", subQuery).
 		Where("`history`.uid = ? and video.deleted_at is null and video.`status` = ?", userId, global.AUDIT_APPROVED).
 		Order("`history`.`updated_at` desc").Limit(pageSize).Offset((page - 1) * pageSize).
 		Find(&videos).Error; err != nil {
@@ -66,68 +132,72 @@ func GetHistoryList(ctx *gin.Context, page, pageSize int) (videos []vo.HistoryVi
 }
 
 type historyPGCRow struct {
-	Vid           uint   `gorm:"column:vid"`
-	EpID          uint   `gorm:"column:ep_id"`
-	EpisodeNumber int    `gorm:"column:episode_number"`
-	EpisodeTitle  string `gorm:"column:episode_title"`
-	PGCTitle      string `gorm:"column:pgc_title"`
+	VideoShortID string `gorm:"column:video_short_id"`
+	EpID         uint   `gorm:"column:ep_id"`
 }
 
-// enrichHistoryPGCMeta 为 PGC 绑定视频补充系列标题、剧集信息与 ep_id（与播放页 ep 路由对齐）。
 func enrichHistoryPGCMeta(videos []vo.HistoryVideoResp) {
-	var vids []uint
+	if len(videos) == 0 {
+		return
+	}
+
+	var shortIDs []string
 	for _, v := range videos {
-		if v.PGCAttached {
-			vids = append(vids, v.ID)
+		if v.ShortID != "" {
+			shortIDs = append(shortIDs, v.ShortID)
 		}
 	}
-	if len(vids) == 0 {
+	if len(shortIDs) == 0 {
 		return
 	}
 
-	var rows []historyPGCRow
-	if err := global.Mysql.Table("pgc_episode pe").
-		Select("pe.vid, pe.id AS ep_id, pe.episode_number, pe.title AS episode_title, pc.title AS pgc_title").
-		Joins("JOIN pgc_content pc ON pc.pgc_id = pe.pgc_id AND pc.deleted_at IS NULL").
-		Where("pe.vid IN ? AND pe.deleted_at IS NULL", vids).
-		Order("pe.id DESC").
-		Scan(&rows).Error; err != nil {
-		return
+	var pgcRows []historyPGCRow
+	global.Mysql.Model(&model.Video{}).Where("short_id IN ? AND pgc_attached = ?", shortIDs, true).
+		Pluck("short_id, ep_id", &pgcRows)
+
+	pgcMap := make(map[string]uint, len(pgcRows))
+	for _, r := range pgcRows {
+		pgcMap[r.VideoShortID] = r.EpID
 	}
 
-	mergeHistoryPGCRowsIntoVideos(videos, rows)
-}
-
-// mergeHistoryPGCRowsIntoVideos 将剧集查询结果合并进历史列表（按 vid 去重：同 vid 多行时保留 ORDER 中先出现的一条，通常即 id 最大）。
-func mergeHistoryPGCRowsIntoVideos(videos []vo.HistoryVideoResp, rows []historyPGCRow) {
-	byVid := make(map[uint]historyPGCRow, len(rows))
-	for _, r := range rows {
-		if _, ok := byVid[r.Vid]; !ok {
-			byVid[r.Vid] = r
-		}
-	}
 	for i := range videos {
-		if !videos[i].PGCAttached {
-			continue
+		if epID, ok := pgcMap[videos[i].ShortID]; ok && epID > 0 {
+			videos[i].PGCAttached = true
+			videos[i].EpID = epID
 		}
-		r, ok := byVid[videos[i].ID]
-		if !ok {
-			continue
-		}
-		videos[i].EpID = r.EpID
-		videos[i].EpisodeNumber = r.EpisodeNumber
-		videos[i].EpisodeTitle = r.EpisodeTitle
-		videos[i].PGCTitle = r.PGCTitle
 	}
 }
 
 func GetHistoryProgress(ctx *gin.Context, videoId, part uint) (progress float64, realPart uint, err error) {
 	userId := ctx.GetUint("userId")
+
+	// 获取视频的 short_id
+	var video model.Video
+	if err := global.Mysql.Where("id = ?", videoId).First(&video).Error; err != nil || video.ShortID == "" {
+		return 0, 0, errors.New("视频不存在")
+	}
+
+	// 优先通过ResourceShortID查找（不受排序影响）
+	if part > 0 {
+		resourceShortID, _ := GetResourceShortIDByPart(videoId, part)
+		if resourceShortID != "" {
+			var history model.History
+			err = global.Mysql.Where("video_short_id = ? AND uid = ? AND resource_short_id = ?", video.ShortID, userId, resourceShortID).First(&history).Error
+			if err == nil {
+				return history.Time, history.Part, nil
+			}
+			if err != gorm.ErrRecordNotFound {
+				utils.ErrorLog("通过ResourceShortID获取历史记录进度失败", "history", err.Error())
+			}
+		}
+	}
+
+	// 回退：按旧逻辑查找
 	var history model.History
 	if part == 0 {
-		history, err = FindLatestHistory(videoId, userId)
+		history, err = FindLatestHistory(video.ShortID, userId)
 	} else {
-		history, err = FindHistoryByPart(videoId, userId, part)
+		history, err = FindHistoryByVideoShortID(video.ShortID, userId, part)
 	}
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -140,18 +210,54 @@ func GetHistoryProgress(ctx *gin.Context, videoId, part uint) (progress float64,
 	return history.Time, history.Part, nil
 }
 
-func FindLatestHistory(videoId, userId uint) (history model.History, err error) {
-	if err = global.Mysql.Where("vid = ? and uid= ?", videoId, userId).Order("updated_at desc").First(&history).Error; err != nil {
+func FindLatestHistory(videoShortID string, userId uint) (history model.History, err error) {
+	if err = global.Mysql.Where("video_short_id = ? and uid = ?", videoShortID, userId).Order("updated_at desc").First(&history).Error; err != nil {
 		return
 	}
 
 	return
 }
 
-func FindHistoryByPart(videoId, userId, part uint) (history model.History, err error) {
-	if err = global.Mysql.Where("vid = ? and uid= ? and part = ?", videoId, userId, part).First(&history).Error; err != nil {
+func FindHistoryByVideoShortID(videoShortID string, userId uint, part uint) (history model.History, err error) {
+	if err = global.Mysql.Where("video_short_id = ? and uid = ? and part = ?", videoShortID, userId, part).First(&history).Error; err != nil {
 		return
 	}
 
 	return
+}
+
+func GetHistoryProgressByRid(ctx *gin.Context, videoId uint, rid string, part uint) (float64, error) {
+	userId := ctx.GetUint("userId")
+
+	// 获取视频的 short_id
+	var video model.Video
+	if err := global.Mysql.Where("id = ?", videoId).First(&video).Error; err != nil || video.ShortID == "" {
+		return 0, errors.New("视频不存在")
+	}
+
+	// 优先通过 video_short_id + rid 精准匹配
+	if rid != "" {
+		var history model.History
+		err := global.Mysql.Where("video_short_id = ? AND uid = ? AND resource_short_id = ?", video.ShortID, userId, rid).First(&history).Error
+		if err == nil {
+			return history.Time, nil
+		}
+		if err != gorm.ErrRecordNotFound {
+			utils.ErrorLog("通过video_short_id+rid获取进度失败", "history", err.Error())
+		}
+	}
+
+	// 回退到按 part 查询（兼容旧数据）
+	if part > 0 {
+		var historyByPart model.History
+		err := global.Mysql.Where("video_short_id = ? AND uid = ? AND part = ?", video.ShortID, userId, part).First(&historyByPart).Error
+		if err == nil {
+			return historyByPart.Time, nil
+		}
+		if err != gorm.ErrRecordNotFound {
+			utils.ErrorLog("回退到part获取进度失败", "history", err.Error())
+		}
+	}
+
+	return 0, errors.New("no record")
 }

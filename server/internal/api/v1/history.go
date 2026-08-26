@@ -54,8 +54,19 @@ func GetHistoryProgress(ctx *gin.Context) {
 		resp.FailWithMessage(ctx, "参数有误")
 		return
 	}
+
+	// 优先通过 rid 查找（精准匹配，不受排序影响）
+	rid := ctx.Query("rid")
 	part := utils.StringToUint(ctx.Query("part"))
 
+	// 优先通过 rid 查找，支持回退到 part
+	progress, err := service.GetHistoryProgressByRid(ctx, videoId, rid, part)
+	if err == nil {
+		resp.OkWithData(ctx, gin.H{"progress": progress, "part": 0})
+		return
+	}
+
+	// 回退到旧的按 part 查询逻辑
 	progress, realPart, err := service.GetHistoryProgress(ctx, videoId, part)
 	if err != nil {
 		resp.FailWithMessage(ctx, err.Error())

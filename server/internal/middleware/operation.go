@@ -32,6 +32,16 @@ var skipOperationPaths = map[string]bool{
 	"/api/v1/upload/chunkVideo": true, // 分片上传，一个视频可能有几百个分片
 }
 
+// 敏感接口路径：body 中含密码/token/验证码等，需脱敏
+var sensitivePaths = map[string]bool{
+	"/api/v1/auth/login":        true,
+	"/api/v1/auth/login/email":  true,
+	"/api/v1/auth/register":     true,
+	"/api/v1/auth/modifyPwd":    true,
+	"/api/v1/auth/resetpwdCheck": true,
+	"/api/v1/auth/updateToken":  true,
+}
+
 func OperationRecord() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 跳过高频接口，避免日志表写入压力过大
@@ -64,9 +74,16 @@ func OperationRecord() gin.HandlerFunc {
 			body, _ = json.Marshal(&m)
 		}
 
-		claims, _ := jwt.GetTokenClaims(c.GetHeader("Authorization"))
+		claims, _ := jwt.GetTokenClaims(trimBearer(c.GetHeader("Authorization")))
 		if claims != nil && claims.UserId != 0 {
 			userId = int(claims.UserId)
+		}
+
+		bodyStr := string(body)
+
+		// 敏感接口脱敏：不记录密码/token/验证码等
+		if sensitivePaths[c.Request.URL.Path] {
+			bodyStr = "[敏感数据已脱敏]"
 		}
 
 		record := model.Operate{
@@ -74,7 +91,7 @@ func OperationRecord() gin.HandlerFunc {
 			Method: c.Request.Method,
 			Path:   c.Request.URL.Path,
 			Agent:  c.Request.UserAgent(),
-			Body:   string(body),
+			Body:   bodyStr,
 			UserID: userId,
 		}
 

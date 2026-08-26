@@ -49,7 +49,7 @@ func normalizeTimeRange(tr string) string {
 }
 
 // escapeLikeKeyword 转义 LIKE 模式字符，避免用户输入 %/_ 造成误匹配或扫描
-// 配合 SQL: `LIKE ? ESCAPE '\\'`
+// 配合 SQL: `LIKE ?`（MySQL 默认转义符为 `\`）
 func escapeLikeKeyword(s string) string {
 	s = strings.ReplaceAll(s, `\`, `\\`)
 	s = strings.ReplaceAll(s, `%`, `\%`)

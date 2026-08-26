@@ -1,19 +1,20 @@
 package utils
 
 import (
-	"math/rand"
+	"crypto/rand"
+	"math/big"
 	"strconv"
-	"time"
 )
 
 // 生成n位数字随机码
 func GenerateNumberCode(length int) string {
 	res := ""
-	rand.Seed(time.Now().UnixNano())
-	// 生成 4 个 [0, 9) 范围的真随机数。
 	for i := 0; i < length; i++ {
-		num := rand.Intn(10)
-		res += strconv.Itoa(num)
+		num, err := rand.Int(rand.Reader, big.NewInt(10))
+		if err != nil {
+			panic("crypto/rand failed: " + err.Error())
+		}
+		res += strconv.Itoa(int(num.Int64()))
 	}
 	return res
 }

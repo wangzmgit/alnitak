@@ -13,7 +13,10 @@ import (
 
 func LikeVideo(ctx *gin.Context, likeReq dto.LikeVideoReq) error {
 	var err error
-	videoId := likeReq.Vid
+	videoId, err := ParseVideoID(likeReq.Vid)
+	if err != nil {
+		return errors.New("视频不存在")
+	}
 	userId := ctx.GetUint("userId")
 
 	like, err := FindLikeVideoByUid(videoId, userId)
@@ -49,7 +52,10 @@ func LikeVideo(ctx *gin.Context, likeReq dto.LikeVideoReq) error {
 }
 
 func CancelLikeVideo(ctx *gin.Context, likeReq dto.LikeVideoReq) error {
-	videoId := likeReq.Vid
+	videoId, err := ParseVideoID(likeReq.Vid)
+	if err != nil {
+		return errors.New("视频不存在")
+	}
 	userId := ctx.GetUint("userId")
 
 	like, err := FindLikeVideoByUid(videoId, userId)

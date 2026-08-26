@@ -1,6 +1,9 @@
 package utils
 
 import (
+	"bytes"
+	"io"
+	"mime/multipart"
 	"regexp"
 	"strings"
 )
@@ -98,4 +101,62 @@ func FileSize(fileSize int64, count int64, targetSize int64) bool {
 		return false
 	}
 	return true
+}
+
+// ---- 文件魔数校验 ----
+
+// 图片魔数列表
+var imageMagicPrefixes = [][]byte{
+	{0xFF, 0xD8, 0xFF},                       // JPEG
+	{0x89, 0x50, 0x4E, 0x47},                 // PNG
+	{0x47, 0x49, 0x46, 0x38},                 // GIF87a / GIF89a
+	{0x52, 0x49, 0x46, 0x46},                 // WebP (RIFF)
+	{0x42, 0x4D},                              // BMP
+}
+
+// 视频魔数列表
+var videoMagicPrefixes = [][]byte{
+	{0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70}, // MP4 (mp42 / isom)
+	{0x00, 0x00, 0x00, 0x1C, 0x66, 0x74, 0x79, 0x70}, // MP4 variant
+	{0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70}, // MP4 (iso5 / dash)
+	{0x1A, 0x45, 0xDF, 0xA3},                            // MKV / WebM
+	{0x52, 0x49, 0x46, 0x46},                            // AVI (RIFF)
+}
+
+// CheckFileMagicBytes 读取文件头字节并与魔数列表比对
+func CheckFileMagicBytes(file *multipart.FileHeader, magicList [][]byte) (bool, error) {
+	src, err := file.Open()
+	if err != nil {
+		return false, err
+	}
+	defer src.Close()
+
+	// 取最长的魔数长度作为读取字节数
+	maxLen := 0
+	for _, m := range magicList {
+		if len(m) > maxLen {
+			maxLen = len(m)
+		}
+	}
+	header := make([]byte, maxLen)
+	if _, err := io.ReadFull(src, header); err != nil {
+		return false, err
+	}
+
+	for _, magic := range magicList {
+		if bytes.HasPrefix(header, magic) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// CheckImageMagicBytes 校验文件头是否为已知图片格式
+func CheckImageMagicBytes(file *multipart.FileHeader) (bool, error) {
+	return CheckFileMagicBytes(file, imageMagicPrefixes)
+}
+
+// CheckVideoMagicBytes 校验文件头是否为已知视频格式
+func CheckVideoMagicBytes(file *multipart.FileHeader) (bool, error) {
+	return CheckFileMagicBytes(file, videoMagicPrefixes)
 }

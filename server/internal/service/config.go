@@ -123,16 +123,16 @@ func SetStorageConfig(storageConfigReq dto.StorageConfigReq) error {
 	if storageConfigReq.Type != "local" {
 		global.Storage = oss.InitStorage(global.Config.Storage)
 	}
+	// 重新初始化备用OSS（多源容灾）
+	global.StorageBackup = oss.InitBackupStorage(global.Config.Storage)
 
 	return nil
 }
 
 func GetOtherConfig() vo.OtherConfigResp {
 	return vo.OtherConfigResp{
-		AllowOrigin:     global.Config.Cors.AllowOrigin,
-		Prefix:          global.Config.User.Prefix,
-		Generate1080p60: global.Config.Transcoding.Generate1080p60,
-		UseGpu:          global.Config.Transcoding.UseGpu,
+		AllowOrigin: global.Config.Cors.AllowOrigin,
+		Prefix:      global.Config.User.Prefix,
 
 		ServerPort:  global.Config.Server.Port,
 		SslEnabled:  global.Config.Server.Ssl.Enabled,
@@ -145,7 +145,6 @@ func GetOtherConfig() vo.OtherConfigResp {
 func SetOtherConfig(otherConfigReq dto.OtherConfigReq) error {
 	oldCorsConfig := global.Config.Cors
 	oldUserConfig := global.Config.User
-	oldTranscodingConfig := global.Config.Transcoding
 	oldServerConfig := global.Config.Server
 
 	global.Config.Cors = config.Cors{
@@ -153,10 +152,6 @@ func SetOtherConfig(otherConfigReq dto.OtherConfigReq) error {
 	}
 	global.Config.User = config.User{
 		Prefix: otherConfigReq.Prefix,
-	}
-	global.Config.Transcoding = config.Transcoding{
-		Generate1080p60: otherConfigReq.Generate1080p60,
-		UseGpu:          otherConfigReq.UseGpu,
 	}
 	global.Config.Server = config.Server{
 		Port: otherConfigReq.ServerPort,
@@ -170,8 +165,6 @@ func SetOtherConfig(otherConfigReq dto.OtherConfigReq) error {
 
 	viper.Set("cors.allow_origin", otherConfigReq.AllowOrigin)
 	viper.Set("user.prefix", otherConfigReq.Prefix)
-	viper.Set("transcoding.use_gpu", otherConfigReq.UseGpu)
-	viper.Set("transcoding.generate_1080p60", otherConfigReq.Generate1080p60)
 	viper.Set("server.port", otherConfigReq.ServerPort)
 	viper.Set("server.ssl.enabled", otherConfigReq.SslEnabled)
 	viper.Set("server.ssl.port", otherConfigReq.SslPort)
@@ -181,9 +174,64 @@ func SetOtherConfig(otherConfigReq dto.OtherConfigReq) error {
 	if err := viper.WriteConfig(); err != nil {
 		global.Config.Cors = oldCorsConfig
 		global.Config.User = oldUserConfig
-		global.Config.Transcoding = oldTranscodingConfig
 		global.Config.Server = oldServerConfig
 		utils.ErrorLog("写入其他配置失败", "config", err.Error())
+		return errors.New("更新失败")
+	}
+
+	return nil
+}
+
+// 获取转码配置
+func GetTranscodingConfig() vo.TranscodingConfigResp {
+	return vo.TranscodingConfigResp{
+		Mode:                global.Config.Transcoding.Mode,
+		UseGpu:              global.Config.Transcoding.UseGpu,
+		UseH265:             global.Config.Transcoding.UseH265,
+		UseAv1:              global.Config.Transcoding.UseAv1,
+		Generate1080p60:     global.Config.Transcoding.Generate1080p60,
+		MaxCpuConcurrency:   global.Config.Transcoding.MaxCpuConcurrency,
+		MaxGpuConcurrency:   global.Config.Transcoding.MaxGpuConcurrency,
+		WorkerConcurrency:   global.Config.Transcoding.WorkerConcurrency,
+		EncodingConcurrency: global.Config.Transcoding.EncodingConcurrency,
+		MaxQueueDepth:       global.Config.Transcoding.MaxQueueDepth,
+		WorkDir:             global.Config.Transcoding.WorkDir,
+	}
+}
+
+// 修改转码配置
+func SetTranscodingConfig(req dto.TranscodingConfigReq) error {
+	old := global.Config.Transcoding
+
+	global.Config.Transcoding = config.Transcoding{
+		Mode:                req.Mode,
+		UseGpu:              req.UseGpu,
+		UseH265:             req.UseH265,
+		UseAv1:              req.UseAv1,
+		Generate1080p60:     req.Generate1080p60,
+		MaxCpuConcurrency:   req.MaxCpuConcurrency,
+		MaxGpuConcurrency:   req.MaxGpuConcurrency,
+		WorkerConcurrency:   req.WorkerConcurrency,
+		EncodingConcurrency: req.EncodingConcurrency,
+		MaxQueueDepth:       req.MaxQueueDepth,
+		WorkDir:             req.WorkDir,
+	}
+
+	viper.Set("transcoding.mode", req.Mode)
+	viper.Set("transcoding.use_gpu", req.UseGpu)
+	viper.Set("transcoding.use_h265", req.UseH265)
+	viper.Set("transcoding.use_av1", req.UseAv1)
+	viper.Set("transcoding.generate_1080p60", req.Generate1080p60)
+	viper.Set("transcoding.max_cpu_concurrency", req.MaxCpuConcurrency)
+	viper.Set("transcoding.max_gpu_concurrency", req.MaxGpuConcurrency)
+	viper.Set("transcoding.worker_concurrency", req.WorkerConcurrency)
+	viper.Set("transcoding.encoding_concurrency", req.EncodingConcurrency)
+	viper.Set("transcoding.max_queue_depth", req.MaxQueueDepth)
+	viper.Set("transcoding.work_dir", req.WorkDir)
+
+	if err := viper.WriteConfig(); err != nil {
+		global.Config.Transcoding = old
+		utils.ErrorLog("写入转码配置失败", "config", err.Error())
 		return errors.New("更新失败")
 	}
 
